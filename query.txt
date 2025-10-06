@@ -1,0 +1,898 @@
+CREATE TABLE Questions (
+    question_id INTEGER PRIMARY KEY,
+    year INTEGER NOT NULL,
+    subject NVARCHAR(255) NOT NULL,
+    topic NVARCHAR(255),
+    question_text TEXT NOT NULL,
+    difficulty_level VARCHAR(50) DEFAULT 'medium'
+);
+
+CREATE TABLE Options (
+    option_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    question_id INTEGER NOT NULL,
+    option_text TEXT NOT NULL,
+    is_correct BOOLEAN NOT NULL CHECK (is_correct IN (0, 1)),
+    FOREIGN KEY (question_id) REFERENCES Questions(question_id)
+);
+
+CREATE TABLE Tags (
+    tag_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name NVARCHAR(255) UNIQUE NOT NULL
+);
+
+CREATE TABLE QuestionTags (
+    question_id INTEGER NOT NULL,
+    tag_id INTEGER NOT NULL,
+    PRIMARY KEY (question_id, tag_id),
+    FOREIGN KEY (question_id) REFERENCES Questions(question_id),
+    FOREIGN KEY (tag_id) REFERENCES Tags(tag_id)
+);
+
+CREATE TABLE UserProgress (
+    user_id INTEGER NOT NULL,
+    question_id INTEGER NOT NULL,
+    status VARCHAR(50) CHECK (status IN ('correct', 'wrong', 'unanswered')),
+    attempts INTEGER DEFAULT 0,
+    last_attempt_date DATETIME,
+    score INTEGER,
+    PRIMARY KEY (user_id, question_id),
+    FOREIGN KEY (question_id) REFERENCES Questions(question_id)
+);
+
+CREATE TABLE Exams (
+    exam_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    mode VARCHAR(50) CHECK (mode IN ('simulation', 'topic_based', 'adaptive'))
+);
+
+CREATE TABLE ExamQuestions (
+    exam_id INTEGER NOT NULL,
+    question_id INTEGER NOT NULL,
+    user_answer INTEGER, -- Corresponds to option_id
+    is_correct BOOLEAN,
+    PRIMARY KEY (exam_id, question_id),
+    FOREIGN KEY (exam_id) REFERENCES Exams(exam_id),
+    FOREIGN KEY (question_id) REFERENCES Questions(question_id)
+);
+
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (1, 1403, 'حقوق مدنی', '۱- کدام یک از موارد زیر صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (1, 'با توافق طرفین امکان از بین بردن سبب انفساخ قرارداد وجود ندارد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (1, 'به سبب انفساخ عقد جایز نمی تواند ارادی باشد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (1, 'سبب انفساخ عقد ممکن است ارادی باشد اما انفساخ در هر حال قهری است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (1, 'با توجه به قهری بودن انفساخ ، عقد سبب انفساخ عقد نمی تواند ارادی باشد.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (2, 1403, 'حقوق مدنی', '۲- شخص «الف» حین رانندگی با خودرو سواری با شخص «ب» (موتور سوار) تصادف میکند. شخص «الف» که دارای پوشش بیمه اجباری است صد درصد مقصر حادثه تشخیص داده میشود. بیمه گر مسئولیت تکلیف به جبران کدام دسته از خسارات و تا چه میزانی دارد؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (2, 'دیه هر دو راننده صرفاً تا میزان دیه کامل و خسارات مالی وارد شده به موتورسیکلت تا سقف تعهدات.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (2, 'دیه شخص «الف» تا سقف تعهدات خود و دیه شخص «ب» به هر میزان که طبق قانون تعلق گیرد و خسارات مالی وارده به موتورسیکلت تا سقف تعهدات خود.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (2, 'دیه هر دو راننده تا هر میزان که باشد و خسارت وارد شده به هر دو وسیله نقلیه به صورت کامل.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (2, 'دیه هر دو راننده تا هر میزان که باشد و خسارت وارد شده به هر دو وسیله نقلیه تا سقف تعهدات.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (3, 1403, 'حقوق مدنی', '۳- کدام مورد در خصوص تصرفی که همراه با قصد تملک باشد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (3, 'تصرف در مواردی مملک است حتی اگر همراه با قصد تملک نباشد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (3, 'تصرف به تنهایی حتی اگر همراه با قصد تملک باشد هیچگاه مملک نیست.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (3, 'تصرف نمیتواند جزء سبب مملک باشد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (3, 'تصرف ممکن است در مواردی به تنهایی سبب تملک باشد.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (4, 1403, 'حقوق مدنی', '۴- شخص «الف» جراح پلاستیک زیبایی که تحت پوشش کامل بیمه مسئولیت مدنی ناشی از تقصیر حرفه ای است حین عمل مرتکب تقصیر میشود و در نتیجه بیمار زن فوت میکند. پرداخت خسارت متعلق به بازماندگان واجد شرایط متوفی به میزان دیه کامل مرد مسلمان در نهایت بر عهده چه شخص یا اشخاصی است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (4, 'بیمه گر مسئولیت مدنی و صندوق تأمین خسارتهای بدنی.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (4, 'در مقابل زیان دیدگان پزشک مقصر مسئول پرداخت دیه کامل مرد مسلمان است و پس از پرداخت میتواند آن را از بیمه گر مسئولیت مدنی مسترد کند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (4, 'پزشک مقصر.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (4, 'بیمه گر مسئولیت مدنی.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (5, 1403, 'حقوق مدنی', '۵- شرط وکالت زن در طلاق در چه قالبهایی قابل تحقق است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (5, 'به شکل شرط نتیجه یا شرط فعل، ضمن عقد نكاح.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (5, 'به شکل شرط فعل، ضمن عقد نکاح یا عقد دیگری.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (5, 'به شکل شرط نتیجه یا فعل ضمن عقد نکاح یا عقد دیگری.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (5, 'به شکل شرط نتیجه ضمن عقد نکاح یا عقد دیگری.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (6, 1403, 'حقوق مدنی', '۶- کدام مورد در خصوص تشابه هبه و وصیت تملیکی صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (6, 'هر دو جزو عقود عینی محسوب میشوند و قبول و قیض شخص ذی نفع شرط صحت است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (6, 'در هر دو موصی له یا متهب ممکن است غیر محصور باشد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (6, 'در هر دو امکان رجوع برای واهب و موصی وجود دارد حتی اگر مال توسط موصی له با متهب قبض شده باشد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (6, 'در هر دو در صورت فوت واهب یا موصی قبل از قبول متهب يا موصى له عقد باطل می شود.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (7, 1403, 'حقوق مدنی', '۷- مسئولیت کدام یک از اشخاص زیر در مقابل متعهدله یا زیان دیده به تسهیم است نه تضامنی؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (7, 'چند مستعیر در عاربه طلا و نقره که مال عاریه نزد آنها تلف شده باشد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (7, 'چند قیم چنانچه مرتکب تقصیر شوند و به شخص تحت قیمومت زیانی وارد آورند.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (7, 'چند عامل زیان در حوادث کار چنانچه مجتمعا زیانی وارد آورند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (7, 'چند ضامن چنانچه ضمانت آنان به صورت ضم ذمه به ذمه باشد.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (8, 1403, 'حقوق مدنی', '۸- در قرارداد فروش مالی شرط میشود که چنانچه ثمن معامله ظرف مدت یک ماه پرداخت نشود فروشنده حق فسخ معامله و استرداد اموال فروخته شده را دارد. خریدار قبل از یک ماه به منظور پرداخت ثمن حواله ای به سود فروشنده و بر ذمه شخصی صادر می کند. محال علیه حواله را قبول میکند اما بعدا مدعی میشود که چون به محیل بدهکار نیست حاضر به پرداخت وجه حواله نیست. فروشنده (محتال) چه اقدام حقوقی می تواند انجام دهد؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (8, 'چنانچه ثابت شود محال علیه به محیل بدهکار نیست میتواند معامله را فسخ کند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (8, 'اختیار دارد معامله را فسخ کند یا برای گرفتن مبلغ حواله عليه محال علیه طرح دعوا کند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (8, 'فقط می تواند معامله را فسخ کند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (8, 'برای گرفتن مبلغ حواله تنها میتواند علیه محال علیه طرح دعوا کند.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (9, 1403, 'حقوق مدنی', '۹- چنانچه مسئولیت مدنی مبتنی بر تقصیر باشد کدام یک از اشخاص زیر در برابر زیان دیده مسئولیت مدنی نخواهد داشت؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (9, 'کودک چنانچه به دیگری خسارتی وارد کند و معلوم شود که سرپرست کودک در نگهداری از وی تقصیر کرده، اما سرپرست توانایی جبران خسارت نداشته باشد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (9, 'کارفرمای مشمول قانون کار در قبال خسارات ناشی از فعل کارگر چنانچه ثابت شود تمام احتیاطهایی را که اوضاع و احوال قضیه ایجاب می نموده به عمل آورده است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (9, 'مضطر چنانچه مال غیر را تلف کند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (9, 'مکرَه در اکراه غیر مادی چنانچه مال دیگری را تلف کند.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (10, 1403, 'حقوق مدنی', '۱۰- پدر برای اداره اموال فرزندان صغیرش بعد از فوت خود برادرش را به عنوان وصی تعیین میکند. آیا وصی تعیین شده از طرف پدر می تواند برای انجام مورد وصایت در زمان حیات خود به دیگری وکالت دهد یا برای بعد از فوت خود وصی دیگری تعیین کند؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (10, 'هم می تواند به دیگری وکالت دهد و هم مطلقاً میتواند برای بعد از فوت خود وصی دیگری تعیین کند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (10, 'نه میتواند به دیگری وکالت دهد و نه میتواند برای بعد از فوت خود وصی دیگری تعیین کند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (10, 'می تواند به دیگری وکالت دهد و چنانچه حق امضاء به وی تفویض شده باشد میتواند برای بعد از فوت خود وصی دیگری را هم تعیین کند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (10, 'به دیگری میتواند وکالت دهد اما تحت هیچ شرایطی نمیتواند برای بعد از فوت خود وصی دیگری تعیین کند.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (11, 1403, 'حقوق مدنی', '۱۱- کدام مورد در خصوص تشابه و تفاوت تعلیق در مرحله انعقاد قرارداد و تعلیق در مرحله اجرای قرارداد صحیح نیست؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (11, 'در هر دو اثر عقد تا رفع تعلیق جریان پیدا نمی کند.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (11, 'در هر دو تعلیق ناشی از اراده است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (11, 'در هر دو در صورت تحقق معلق عليه يا رفع مانع اثر عقد جریان پیدا می کند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (11, 'برخی از عقود نه در مرحله انعقاد و نه در مرحله اجراء تعلیق پذیر نیستند.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (12, 1403, 'حقوق مدنی', '۱۲- اجل برای انجام تعهدات قراردادی ناشی از کدام یک از موارد زیر می تواند باشد؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (12, 'صرفا ناشی از اراده طرفین یا حکم دادگاه.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (12, 'صرفاً ناشی از اراده طرفین.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (12, 'صرفاً ناشی از اراده طرفین یا حکم دادگاه مستند به یک قانون خاص و برای یک نوع قرارداد خاص.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (12, 'ناشی از اراده طرفین قرارداد، حکم دادگاه یا قانون خاص.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (13, 1403, 'حقوق مدنی', '۱۳- کدام مورد در خصوص تفاوت و تشابه عقد و ایقاع صحیح نیست؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (13, 'عقد می تواند مملک باشد اما ایقاع هیچگاه مملک نیست.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (13, 'در هر دو ممکن است حق رجوع وجود داشته باشد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (13, 'عيوب اراده در هر دو می تواند مؤثر باشد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (13, 'هر دو اصولاً توسط نماینده می تواند انجام شود.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (14, 1403, 'حقوق مدنی', '۱۴- با توجه به قانون روابط موجر و مستأجر ۱۳۷۶ کدام مورد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (14, 'مستاجر صاحب سرقفلی قبل از تخلیه هر زمانی میتواند نسبت به مطالبه سرقفلی از موجر اقدام کند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (14, 'ارزش سرقفلی به نرخ عادله روز جهت پرداخت صرفا با نظر دادگاه قابل تعیین خواهد بود.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (14, 'مستاجر صاحب سرقفلی نمیتواند در اثنای مدت اجاره برای واگذاری حق خود مبلغی را از مستاجر دیگر به عنوان سرقفلی دریافت کند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (14, 'مستاجر صاحب سرقفلی حق انتقال سرقفلی خویش به غیر را دارد مگر اینکه در ضمن عقد اجاره این حق از وی سلب شده باشد.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (15, 1403, 'حقوق مدنی', '۱۵- کدام مورد در خصوص حقوق پدیدآورندگان آثار صحیح نیست؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (15, 'حق بهره برداری، عرضه و اجرای اثر جزو حقوق انحصاری پدید آورنده محسوب می شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (15, 'نقل از آثار انتشار یافته و استناد به آنها برای مقاصد علمی، ادبی و آموزشی بدون هیچ قید و شرطی مجاز است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (15, 'حقوق معنوی پدید آورنده اثر غیر قابل انتقال است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (15, 'یک اثر زمانی مشترک است که کار یکایک پدیدآورندگان جدا و متمایز نباشد.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (16, 1403, 'حقوق مدنی', '۱۶- «الف» به عنوان وکیل «ب» ملک «ب» را به یک سوم قیمت عرفی به «ج» واگذار میکند. با توجه به اینکه در وکالتنامه «الف» قید گردیده بود که نامبرده میتواند ملک مذکور را به هر شخص و به هر قیمتی و حتی به خود واگذار نماید، وضعیت معامله مذکور از حیث صحت چگونه است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (16, 'به دلیل عدم رعایت غبطه موکل، معامله غیر نافذ بوده و با رد «ب» معامله باطل می شود.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (16, 'به دلیل اعطای اختیار از ناحیه موکل، اقدام «الف» صحیح و اقدام «ب» مشمول قاعده اقدام است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (16, 'معامله در مقابل «ب» غیر قابل استناد است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (16, 'به دلیل عدم رعایت غبطه موکل، معامله از سوی «ب» قابل فسخ است.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (17, 1403, 'حقوق مدنی', '۱۷- کدام مورد در خصوص رد ترکه صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (17, 'رد مطلق ترکه ممکن نیست ولی رد مشروط آن امکان پذیر است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (17, 'حق رد ترکه قابل انتقال به وراث نیست.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (17, 'در صورتی که تحریر ترکه صورت گرفته باشد، مهلت یک ماهه رد ترکه از تاریخ ابلاغ خاتمه تحریر ترکه آغاز می شود.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (17, 'هرگاه اکثریت ورثه ترکه را رد نمایند، موضوع در حکم ترکه بلاوارث خواهد بود.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (18, 1403, 'حقوق مدنی', '۱۸- شخصی فوت میکند که حین الفوت همسرش باردار بوده و پدر و مادرش در قید حیات نیستند و به غیر از همسرش یک خواهر و برادر نیز دارد. جنین بلافاصله بعد از تولد فوت میکند. در این صورت کدام مورد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (18, 'از ماترک متوفی یک هشتم به همسر متوفی و مابقی به جنین می رسد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (18, 'از ماترک متوفی یک هشتم به همسر وی و مابقی به برادر و خواهر متوفی می رسد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (18, 'كل ماترک مستقیم به همسر متوفی می رسد.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (18, 'ماترک متوفی به همسر، برادر و خواهر می رسد.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (19, 1403, 'حقوق مدنی', '۱۹- عین معین متعلق به متعهدله نزد متعهد است. متعهد به جای آن مال، مال دیگری به متعهدله میدهد و مورد قبول متعهدله قرار میگیرد. ماهیت این امر چیست؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (19, 'تهاتر قراردادی در مقام وفای به عهد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (19, 'معاوضه یا بیع یا صلح در مقام معاوضه یا بیع.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (19, 'وفای به عهد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (19, 'فقط معاوضه.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (20, 1403, 'حقوق مدنی', '۲۰- آیا مستعیر میتواند از جهت تعهد به حفاظت و اداره مال، مال عاریه را به تصرف غیر دهد؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (20, 'مستعير تنها و منحصراً با اجازه مالک یا حاکم میتواند مال عاریه را به غیر بسپارد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (20, 'مستعیر نمی تواند مال عاریه را به هیچ نحوی به تصرف غیر دهد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (20, 'مستعير تنها و منحصرا با اجازه مالک میتواند مال عاریه را به غیر بسپارد حتی اگر مال در معرض خطر باشد و لازمه احتراز از خطر سپردن مال به دیگری باشد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (20, 'اگر مستعیر مورد عاریه را در خطر ببیند و به مالک دسترسی نداشته باشد برای احتراز از خطر میتواند آن را به دیگری بسپارد.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (21, 1403, 'آیین دادرسی مدنی', '۲۱- چنانچه آیین نامه دولتی با صدور رأی هیئت عمومی دیوان عدالت اداری ابطال شود، در خصوص اثر این ابطال کدام مورد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (21, 'اثر ابطال از زمان صدور رای جاری است مگر آیین نامه همزمان به علت مخالفت با قوانین موجد حق ابطال شده باشد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (21, 'اثر ابطال از زمان صدور رأی جاری است مگر به علت خلاف شرع ابطال شده و یا در رأی تصریح شده باشد که از زمان تصویب مصوبه جاری است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (21, 'اثر ابطال در هر حال از زمان تصویب آیین نامه جاری است مگر در رأی خلاف آن تصریح شده باشد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (21, 'اثر ابطال در هر حال از زمان صدور رأی ابطال جاری است مگر در رأی خلاف آن تصریح شده باشد.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (22, 1403, 'آیین دادرسی مدنی', '۲۲- دو شخص که اختلاف خود را برای فصل به سه نفر داور ارجاع داده اند، پس از ارجاع به داوری به دو نفر از آنها اختیار صلح و سازش نیز می دهند. چنانچه هیئت داوری اقدام به صدور رأیی نماید که در صدور آن فقط دو نفر از داوران رأی موافق داده باشند، کدام مورد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (22, 'رای داوری در صورتی قابل درخواست بطلان نیست که دو نفری که حق صلح و سازش دارند با آن موافق بوده باشند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (22, 'رأی داوری فقط در صورتی قابلیت درخواست بطلان ندارد که داوری که حق صلح و سازش نداشته نظر مخالف نداده باشد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (22, 'رای داوری قابل درخواست بطلان نیست.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (22, 'رأی داوری قابل درخواست بطلان است.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (23, 1403, 'آیین دادرسی مدنی', '۲۳- حکمی در تأیید حکم دادگاه نخستین از دادگاه تجدید نظر استان صادر و در مهلت مقرر از آن فرجام خواهی می شود. چنانچه دیوان عالی کشور عدم صحت سند مستند حکم فرجام خواسته را احراز نماید، کدام مورد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (23, 'فقط چنانچه سند عادی باشد رأی را نقض میکند و پرونده را به دادگاه هم عرض ارجاع می دهد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (23, 'فقط چنانچه سند رسمی باشد رای را نقض میکند و پرونده را به دادگاه صادر کننده رای منقوض ارجاع می دهد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (23, 'حکم را نقض و پرونده را به دادگاه هم عرض ارجاع می دهد.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (23, 'حکم را نقض و پرونده را به دادگاه صادر کننده رأی منقوض ارجاع می دهد.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (24, 1403, 'آیین دادرسی مدنی', '۲۴- حکمی قطعی از دادگاه تجدید نظر استان له شخص «الف» با وکالت شخص «ج» عليه شخص «ب» صادر و در تاریخ ۱۳۹۰/۲/۱ ابلاغ گردیده و حکم اجرا شده است. همان شخص «ج» اصالتاً در تاریخ ۱۴۰۳/۵/۵ نسبت به همان حکم اعتراض ثالث می نماید. در مورد قابل استماع بودن اعتراض ثالث با لحاظ مدت کدام مورد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (24, 'در صورتی که ثابت شود حقوقی که اساس و ماخذ اعتراض است قانوناً ساقط نشده، قابل استماع است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (24, 'اگر اعتراض ثالث طاری باشد در هر حال مسموع است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (24, 'فقط در اعتراض ثالث طاری در صورتی که ثابت شود حقوقی که اساس و مأخذ اعتراض است قانوناً ساقط نشده مسموع است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (24, 'فقط در صورتی که ثابت شود محکوم له حكم مورد اعتراض حق خود را انتقال نداده است مسموع است.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (25, 1403, 'آیین دادرسی مدنی', '۲۵- در خصوص رعایت اصول و تشریفات دادرسی در رسیدگی به امور حقوقی با توجه به قانون شوراهای حل اختلاف مصوب ۱۴۰۲ کدام مورد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (25, 'رعایت اصول دادرسی در دادگاه عمومی حقوقی و صلح الزامی است اما رعایت تشریفات دادرسی در دادگاه صلح الزامی نیست.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (25, 'رعایت اصول دادرسی در دادگاه عمومی حقوقی و دادگاه صلح و شورای حل اختلاف الزامی است اما رعایت تشریفات دادرسی در دادگاه صلح و شورای حل اختلاف الزامی نیست.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (25, 'رعایت اصول و تشریفات دادرسی در دادگاه عمومی حقوقی و صلح الزامی است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (25, 'رعایت اصول و تشریفات دادرسی در دادگاه عمومی حقوقی و صلح الزامی است اما در شورای حل اختلاف الزامی نیست.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (26, 1403, 'آیین دادرسی مدنی', '۲۶- با توجه به قانون شوراهای حل اختلاف مصوب ۱۴۰۲ و قانون تشکیل دادگاههای خانواده، تحریر ترکه، مهر و موم و رفع آن در صلاحیت چه مرجعی است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (26, 'شورای حل اختلاف.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (26, 'دادگاه عمومی حقوقی.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (26, 'دادگاه خانواده.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (26, 'دادگاه صلح.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (27, 1403, 'آیین دادرسی مدنی', '۲۷- دادخواستی در دیوان عدالت اداری مطرح شده که شاکیان آن پنج نفر میباشند. در خصوص رسیدگی شعبه دیوان به دادخواست مزبور کدام مورد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (27, 'اگر شکایات مندرج در دادخواست به طوری باشد که نتواند ضمن یک دادرسی به آنها رسیدگی کند و در عین حال منشا و مبنای واحدی نداشته باشند باید تفکیک و جداگانه رسیدگی کند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (27, 'اگر شکایات مندرج در دادخواست منشا و مبنای واحد داشته یا دیوان بتواند ضمن یک دادرسی به آنها رسیدگی کند، دیوان به همه موارد ضمن یک دادرسی اتخاذ تصمیم میکند در غیر این صورت موارد به تفکیک و جداگانه رسیدگی می شود.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (27, 'قانونگذار در دیوان عدالت اداری رسیدگی توام با تفکیک را به تشخیص شعبه دیوان واگذار نموده است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (27, 'اگر شکایات مندرج در دادخواست منشا و مبنای واحد نداشته باشند شعبه دیوان در هر حال آنها را تفکیک نموده و جدا گانه رسیدگی می کند.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (28, 1403, 'آیین دادرسی مدنی', '۲۸- سندی در خارج از کشور تنظیم شده و نماینده کنسولی موافقت آن را با قوانین کشور محل تنظیم تصدیق کرده است. در خصوص شرط گواهی وزارت امور خارجه برای پذیرفته شدن آن سند در دادگاههای ایران کدام مورد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (28, 'اگر نماینده کنسولی خارجه در ایران تصدیق کرده باشد منوط بر تصدیق وزارت امور خارجه است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (28, 'در هر حال گواهی وزارت امور خارجه لازم نیست.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (28, 'گواهی وزارت امور خارجه فقط در صورتی لازم است که ایران با کشور محل تنظیم سند قرارداد تعاون قضایی نداشته باشد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (28, 'گواهی وزارت امور خارجه فقط در صورتی لازم است که ایران با کشور محل تنظیم سند قرارداد تعاون قضایی داشته باشد.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (29, 1403, 'آیین دادرسی مدنی', '۲۹- در خصوص مهلت اعتراض به نظریه کارشناسی در پرونده دادرسی و ارزیاب در اجرای احکام مدنی و مبدا مهلت کدام مورد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (29, 'در مورد کارشناس سه روز از تاریخ ابلاغ اخطار وصول نظریه و در مورد ارزیاب هفت روز از تاریخ ابلاغ نظریه.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (29, 'در مورد کارشناس و ارزیاب هفت روز از تاریخ ابلاغ نظریه.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (29, 'در مورد کارشناس هفت روز پس از تاریخ ابلاغ اخطار مبنی بر وصول نظریه و در مورد ارزیاب سه روز از تاریخ ابلاغ نظریه.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (29, 'در مورد کارشناس هفت روز از تاریخ ابلاغ نظریه و در مورد ارزیاب سه روز از تاریخ ابلاغ وصول نظریه ارزیاب.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (30, 1403, 'آیین دادرسی مدنی', '۳۰- در خصوص قابلیت فرجام احکام صادره از دادگاه تجدید نظر راجع به متفرعات دعوی که ضمن رسیدگی به دعاوی راجع به اصل نکاح، فسخ آن و طلاق و نسب صادر میشود، کدام مورد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (30, 'فقط در مورد احکام طلاق و نسب قابل فرجام است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (30, 'در هر چهار حکم قابل فرجام است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (30, 'فقط در مورد احکام اصل نکاح و فسخ آن و اصل طلاق قابل فرجام است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (30, 'فقط در مورد احکام طلاق، نسب و اصل نکاح قابل فرجام است.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (31, 1403, 'آیین دادرسی مدنی', '۳۱- در دعوایی که به خواسته ده میلیارد ریال علیه شخص «الف» و شخص «ب» اقامه شده و دادگاه نخستین حکم علیه خواهان صادر نموده، محکوم علیه پس از تجدید نظر خواهی نسبت به حکم، سه ماه بعد در حالی که پرونده در دادگاه مطرح است تصمیم می گیرد که شخص «ب» را از دعوای تجدید نظر خارج کند. در این صورت کدام مورد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (31, 'باید درخواست استرداد دادخواست تجدید نظر نسبت به شخص «ب» در دادگاه تجدید نظر مطرح نماید.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (31, 'باید درخواست استرداد دادخواست تجدید نظر نسبت به شخص «ب» در دادگاه نخستین مطرح نماید.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (31, 'باید لایحه ای در قالب کاهش خواسته معطوف به کم کردن تجدید نظر خواندگان به دادگاه تجدید نظر تقدیم نماید.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (31, 'باید لایحه ای در قالب کاهش خواسته معطوف به کم کردن تجدید نظر خواندگان به دادگاه نخستین تقدیم نماید.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (32, 1403, 'آیین دادرسی مدنی', '۳۲- حکم خلع ید از یک باب ویلا له شخص «الف» و عليه شخص «ب» صادر، قطعی و اجرا میشود. شخص «الف» پس از اجرای حکم اقدام به تخریب بنای ویلا مینماید. سپس دو سال بعد حکم مزبور در پی اعاده دادرسی با حکم نهایی بلااثر می شود. در خصوص اعاده عملیات اجرایی حکم بلا اثر شده کدام مورد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (32, 'به دستور دادگاه اجرا کننده حکم بلااثر شده، شخص «الف» از ملک خلع ید شده و ملک به تصرف «ب» داده می شود و بهای بنای تخریب شده نیز توسط کارشناس تعیین و از شخص «الف» گرفته شده و به شخص «ب» داده می شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (32, 'به دستور دادگاه صادر کننده حکم بلا اثر کننده، شخص «الف» از ملک خلع ید شده و ملک به تصرف شخص «ب» داده می شود و بهای بنای تخریب شده نیز توسط کارشناس تعیین و از شخص «الف» گرفته شده و به شخص «ب» داده می شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (32, 'به دستور دادگاه اجرا کننده حکم بلااثر شده، شخص «الف» از ملک خلع ید و ملک به همان صورت به تصرف شخص «ب» داده می شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (32, 'به دستور دادگاه اجرا کننده حکم بلااثر شده، اجرائیه قبلی ابطال و شخص «الف» از ملک خلع ید و ملک به همان صورت به تصرف شخص «ب» داده می شود.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (33, 1403, 'آیین دادرسی مدنی', '۳۳- چنانچه هر یک از اصحاب دعوی اصول اسناد عادی را که رو گرفت آنها را ارائه کرده اند در اولین جلسه دادرسی حاضر نکند و طرف مقابل نسبت به آن اظهار انکار نماید، کدام مورد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (33, 'خواه انکار کننده خواهان یا خوانده باشد، سند فقط در صورتی از عداد دلایل خارج میشود که ابراز کننده سند در همان جلسه دلیل اصالت آن را ارائه ننماید.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (33, 'خواه انکار کننده خواهان یا خوانده باشد، دادگاه میتواند به اختیار خود سند را از عداد دلایل خارج نموده یا جلسه را تجدید نماید.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (33, 'خواه انکار کننده خواهان یا خوانده باشد، سند از عداد دلایل خارج می شود.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (33, 'اگر انکار کننده خواهان باشد سند از عداد دلایل خارج میشود و اگر انکار کننده خوانده باشد چنانچه دادخواست مستند به ادله دیگری نباشد در آن خصوص ابطال می شود.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (34, 1403, 'آیین دادرسی مدنی', '۳۴- در خصوص بازداشت یک حلقه انگشتری گران قیمت کدام مورد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (34, 'باید صورت برداری و ارزیابی شده و از محکوم علیه گرفته شده و به حافظ داده شود که میتواند هر شخصی باشد حتی بدون توافق طرفین و سپس ارزیابی شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (34, 'باید صورت برداری و ارزیابی شده و از محکوم علیه گرفته شده و به حافظ داده شود که حافظ میتواند فقط در صورت توافق طرفین حتی پسر عموی محکوم علیه باشد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (34, 'کافی است صورت برداری شده و از محکوم علیه گرفته شده و به حافظ داده شود که میتواند هر شخصی باشد حتی بدون توافق طرفین و سپس ارزیابی شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (34, 'باید صورت برداری و ارزیابی شده و از محکوم علیه گرفته شده و به حافظ داده شود که حافظ میتواند حتى بدون توافق طرفین پسر عموی محکوم علیه باشد.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (35, 1403, 'آیین دادرسی مدنی', '۳۵- خوانده دعوی برای اثبات ادعای خود مبنی بر مطالبه وجه نقد دو گواه معرفی میکند. دادگاه قرار رسیدگی به گواهی گواهان صادر می نماید و هر دو گواه برای حضور در جلسه دادرسی مقرر دعوت میشوند اما در جلسه دادرسی هیچ یک از گواهان حاضر نمی شود. در خصوص ضمانت اجرای این عدم حضور و ارزش و تأثیر گواهی آنها کدام مورد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (35, 'دوباره احضار خواهند شد و در صورت حضور در هر حال تشخیص ارزش و تأثیر گواهی آنها با دادگاه است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (35, 'دوباره احضار خواهند شد و در صورت حضور اگر شرایط گواه شرعی داشته باشند گواهی آنها به دادگاه تحمیل می شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (35, 'گواهی از عداد دلایل خارج می شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (35, 'دوباره احضار خواهند شد و در صورت عدم حضور جلب خواهند شد.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (36, 1403, 'آیین دادرسی مدنی', '۳۶- در دعوایی که خواسته آن چهل میلیون ریال تقویم شده است، حکمی از دادگاه صلح صادر و به اصحاب دعوی ابلاغ می شود. در خصوص امکان فرجام خواهی محکوم علیه از این حکم کدام مورد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (36, 'در هیچ صورت قابل فرجام نیست.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (36, 'در هر صورت قابل فرجام است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (36, 'اگر محکوم علیه در مهلت مقرر نسبت به آن تجدید نظرخواهی نکند و قطعی شود میتواند در مهلت فرجامی فرجام خواهی کند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (36, 'اگر محکوم علیه در مهلت مقرر نسبت به آن تجدید نظر خواهی نکند و قطعی شود و خواسته بابت مهریه باشد، قابل فرجام است.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (37, 1403, 'آیین دادرسی مدنی', '۳۷- حکمی از دادگاه تجدید نظر استان صادر و قطعی شده و عملیات اجرایی حکم در حال انجام است. نسبت به این حکم محکوم علیه درخواست اعاده دادرسی مینماید. در خصوص تکلیف عملیات اجرایی کدام مورد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (37, 'در صورت صدور قرار قبولی اعاده دادرسی در محکوم به غیرمالی در صورتی که محکوم علیه تامین دهد اجرای حکم متوقف و در محکوم به مالی اجرای حکم متوقف می شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (37, 'در صورت صدور قرار قبولی اعاده دادرسی در محکوم به غیرمالی اجرای حکم متوقف و در محکوم به مالی نیز در صورتی که محکوم علیه تأمین دهد اجرای حکم متوقف می شود.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (37, 'با تقدیم دادخواست اعاده دادرسی و تکمیل دادخواست و ارجاع آن، عملیات اجرایی در محکوم به مالی و غیرمالی متوقف می شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (37, 'در صورت صدور قرار قبولی اعاده دادرسی در محکوم به غیرمالی اجرای حکم متوقف و در محکوم به مالی با گرفتن تأمین از محکوم له ادامه می یابد.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (38, 1403, 'آیین دادرسی مدنی', '۳۸- چنانچه خواهان در بخش هزینه دادرسی دادخواست ناقص تقدیم کند و در پی اخطار رفع نقص مدیر دفتر دادگاه پس از یک ماه اقدام به رفع نقص نماید و مدیر دفتر از صدور قرار رد دادخواست خودداری و پرونده به گردش درآید و حکم صادر و پرونده در مرحله تجدید نظر برای رسیدگی به تجدید نظر خواهی مطرح شود، در خصوص تکلیف دادگاه تجدید نظر کدام مورد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (38, 'دادگاه تجدید نظر دستور صدور اخطار رفع نقص به دفتر همین دادگاه می دهد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (38, 'دادگاه تجدید نظر در این مورد اقدامی نمی نماید.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (38, 'دادگاه تجدید نظر قرار رد دادخواست نخستین صادر و حکم تجدید نظر خواسته را فسخ میکند.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (38, 'دادگاه تجدید نظر پرونده را برای اتخاذ تصمیم مقتضی به دادگاه نخستین بر می گرداند.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (39, 1403, 'آیین دادرسی مدنی', '۳۹- چنانچه میان دادگاه عمومی حقوقی و دادگاه کیفری دو از یک استان اختلاف در صلاحیت رخ دهد، کدام مورد در خصوص مرجع حل اختلاف در صلاحیت صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (39, 'شعبه کیفری دیوان عالی کشور.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (39, 'دادگاه کیفری یک همان استان.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (39, 'دادگاه تجدید نظر همان استان.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (39, 'شعبه حقوقی دیوان عالی کشور.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (40, 1403, 'آیین دادرسی مدنی', '۴۰- دعوایی علیه سه نفر به اسامی شخص «الف» و شخص «ب» و شخص «ج» به خواسته ۳۰ میلیارد ریال اقامه می شود. اخطار دعوت به اولین جلسه دادرسی و پیوستهای احتمالی آن فقط به شخص «الف» ابلاغ واقعی و به دیگران ابلاغ قانونی میشود. در اولین جلسه دادرسی فقط شخص «ب» حاضر میشود و هیچ لایحه ای واصل نمی شود. دادگاه در پایان همان جلسه اقدام به صدور حکم محکومیت «الف» و «ج» می نماید. در خصوص توصیف حکم دادگاه به ترتیب نسبت به خواهان، شخص «الف»، شخص «ب» و شخص «ج» کدام مورد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (40, 'حضوری - حضوری - حضوری - غیابی.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (40, 'حضوری - حضوری - غیابی - غیابی.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (40, 'حضوری - غیابی - غیابی - حضوری.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (40, 'غیابی - غیابی - حضوری - غیابی.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (41, 1403, 'حقوق تجارت', '۴۱- ضمانت اجرای عدم مطالبه باقیمانده مبلغ اسمی سهام در شرکت سهامی از سوی مدیران شرکت چیست؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (41, 'موجب ایجاد مسئولیت به جبران خسارت برای هیئت مدیره است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (41, 'موجب ایجاد مسئولیت برای مدیر عامل در مطالبه باقیمانده مبلغ اسمی سهام است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (41, 'از موجبات عزل هیئت مدیره است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (41, 'از موجبات تعقیب کیفری هیئت مدیره است.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (42, 1403, 'حقوق تجارت', '۴۲- در خصوص انتخاب یک شخص اصالتاً یا به نمایندگی از شخص حقوقی در ترکیب هیئت مدیره چند شرکت به طور همزمان کدام مورد صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (42, 'به عنوان عضو هیئت مدیره چند شرکت ممنوعیت ندارد ولی به عنوان مدیر عامل ممنوع است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (42, 'فقط در شرکتهایی که تمام یا بخشی از سرمایه آن متعلق به دولت یا نهادها یا مؤسسات عمومی غیر دولتی باشد ممنوع است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (42, 'در تمام شرکت ها ممنوع است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (42, 'فقط در شرکتهای تعاونی ممنوع است.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (43, 1403, 'حقوق تجارت', '۴۳- اگر پس از تقسیم و خاتمه ورشکستگی، مالی متعلق به ورشکسته کشف شود، تکلیف اداره تصفیه و حکم قانونی آن چیست؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (43, 'در صورتی که مطالبات طلبکاران به طور کامل پرداخت نشده باشد، اموال مذکور به فروش رسیده و بدون تشریفات بین طلبکاران تقسیم می شود.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (43, 'در صورتی که مطالبات طلبکاران به طور کامل پرداخت نشده باشد، از طریق مزایده به فروش رسیده و حاصل فروش بین طلبکاران تقسیم می شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (43, 'در هر حال متعلق به ورشکسته است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (43, 'پس از کسر هزینه های تصفیه به ورشکسته تحویل می شود.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (44, 1403, 'حقوق تجارت', '۴۴- اثر ثبت نام اشخاص در دفتر ثبت تجاری چیست؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (44, 'به طور قطعی و غیر قابل انکار دلیل تاجر شناخته شدن شخص است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (44, 'قاضی را مکلف به تاجر شناختن شخص و رد دعوی اعسار خواهد کرد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (44, 'اماره ای بر تاجر بودن شخص ایجاد می کند.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (44, 'تأثیری در تاجر شناخته شدن شخص ندارد.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (45, 1403, 'حقوق تجارت', '۴۵- کدام مورد در خصوص اضافه ارزش سهام که هنگام افزایش سرمایه شرکت سهامی دریافت می شود صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (45, 'باید نقداً بین سهامداران شرکت تقسیم شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (45, 'باید به اندوخته اختیاری یا قانونی منتقل شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (45, 'باید به اندوخته قانونی منتقل شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (45, 'ممکن است به اندوخته اختیاری منتقل شود.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (46, 1403, 'حقوق تجارت', '۴۶- در خصوص مسئولیت حقوقی دلالی که در نفس معامله منتفع میباشد و این موضوع را به طرف مقابل اطلاع نمیدهد، کدام مورد اصولاً صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (46, 'مسئول خسارت وارده بوده و با آمر خود متضامناً مسئول اجرای تعهد است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (46, 'مسئول خسارت وارده بوده و با آمر خود متساویاً مسئول اجرای تعهد است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (46, 'فقط مسئول خسارت وارده است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (46, 'با آمر خود متضامناً مسئول اجرای تعهد است.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (47, 1403, 'حقوق تجارت', '۴۷- مطابق مقررات قانون تجارت در خصوص مفقودی برات کدام یک از موارد زیر اصولاً نیازی به دادن ضامن و دخالت دادگاه ندارد؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (47, 'گم شدن براتی که قبول شده و در یک نسخه صادر شده است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (47, 'گم شدن براتی که قبول نشده و در چند نسخه صادر شده است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (47, 'گم شدن نسخه قبول شده براتی که در چند نسخه صادر شده است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (47, 'گم شدن براتی که در یک نسخه صادر شده و قبول نشده است.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (48, 1403, 'حقوق تجارت', '۴۸- در صورتی که به موجب تصمیم مجمع عمومی عادی شخصی که کارمند رسمی دولت است به عنوان عضو هیئت مدیره یک شرکت سهامی خصوصی انتخاب شود، حکم قانونی آن چیست؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (48, 'هر ذی نفعی میتواند بطلان مصوبه مجمع عمومی ناظر به انتخاب چنین مدیری را از دادگاه درخواست کند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (48, 'اگر مدیر مزبور در مدت یک ماه موافقت دستگاه متبوع را اخذ نکند و تعداد سهام لازم به عنوان وثیقه را به صندوق شرکت نسپارد، مستعفی شناخته می شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (48, 'دادگاه به تقاضای هر ذی نفع حکم عزل این مدیر را صادر خواهد کرد.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (48, 'ضمانت اجرای قانونی آن صرفاً این است که یکی از اعضای علی البدل جایگزین وی می شود.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (49, 1403, 'حقوق تجارت', '۴۹- در صورتی که مجمع عمومی عادی به طور فوق العاده شرکت سهامی بازرس اصلی شرکت را بدون تعیین جانشین عزل کند، حکم قانونی آن چیست؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (49, 'هر ذی نفعی می تواند ابطال تصمیم مجمع عمومی یاد شده را از دادگاه تقاضا کند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (49, 'بازرس علی البدل به صورت اتوماتیک جانشین او می شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (49, 'در صورت وجود بازرس على البدل مصوبه یاد شده معتبر است و گرنه هر ذی نفعی میتواند ابطال تصمیم مجمع عمومی را از دادگاه تقاضا کند.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (49, 'فقط بازرس معزول میتواند ابطال تصمیم مجمع عمومی یاد شده را از دادگاه تقاضا کند.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (50, 1403, 'حقوق تجارت', '۵۰- کدام مورد در خصوص تبدیل شرکت تجاری موجود به نوع دیگر در حقوق موضوعه ایران صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (50, 'تبدیل شرکت تضامنی یا نسبی به شرکت با مسئولیت محدود مجاز نیست.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (50, 'صرفا تبدیل شرکتهایی که در قانون تجارت تصریح شده است مجاز است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (50, 'در صورت تبدیل شرکت تضامنی به شرکت سهامی خاص مسئولیت شرکای شرکت در قبال طلبکاران زمان تبدیل کماکان تضامنی است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (50, 'تبدیل هر یک از شرکتهای تجاری به نوع دیگر منوط به موافقت تمامی شرکاست.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (51, 1403, 'حقوق تجارت', '۵۱- برای انتشار اعلامیه پذیره نویسی یک شرکت سهامی عام با سرمایه ۲۰ میلیارد ریال کدام یک از مستندات زیر ضرورت دارد؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (51, 'فقط اجازه انتشار اعلامیه پذیره نویسی توسط مرجع ثبت شرکتها و تسلیم آن به سازمان بورس و اوراق بهادار.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (51, 'گواهی معافیت از ثبت نزد سازمان بورس و اوراق بهادار و اجازه انتشار اعلامیه پذیره نویسی توسط مرجع ثبت شركتها.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (51, 'موافقتنامه سازمان بورس و اوراق بهادار و اجازه انتشار اعلامیه پذیره نویسی توسط مرجع ثبت شرکتها.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (51, 'فقط اجازه انتشار اعلامیه پذیره نویسی توسط سازمان بورس و اوراق بهادار و تسلیم آن به مرجع ثبت شرکت ها.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (52, 1403, 'حقوق تجارت', '۵۲- کدام مورد در خصوص تأثیر متقابل ورشکستگی شرکت تجاری و شریک شرکت صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (52, 'ورشکستگی شریک شرکت تضامنی هیچ تاثیری در وضعیت قانونی شرکت نخواهد داشت.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (52, 'ورشکستگی شرکت سهامی به هیچ وجه عملاً منجر به ورشکستگی شریک آن نمی شود.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (52, 'در صورتی که شریک شرکت توان پرداخت دیون تادیه نشده شرکت تضامنی ورشکسته را نداشته باشد لزوما حکم ورشکستگی وی صادر می شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (52, 'ورشکستگی سهامدار شرکت سهامی عام هیچ تأثیری در وضعیت شرکت نداشته و امکان ورشکستگی شرکت به این دلیل منتفی است.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (53, 1403, 'حقوق تجارت', '۵۳- در مبایعه نامه ای شرط شده است که چک شماره فلان بابت قسط آخر ثمن معامله پس از انتقال سند رسمی ملک به نام خریدار قابل مطالبه است. در صورتی که چک در سررسید برگشت بخورد، آیا صادر کننده میتواند در برابر دارنده چک به شرط مزبور استناد کند؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (53, 'در مقابل دارنده بلافصل آری.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (53, 'فقط در صورتی که چک انتقال یافته و دارنده از شرط مزبور آگاه باشد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (53, 'در هر حال قابل استناد است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (53, 'در هر حال قابل استناد نیست.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (54, 1403, 'حقوق تجارت', '۵۴- کدام مورد در خصوص احکام قانونی چک صحیح نیست؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (54, 'در صورتی که چک از طرف تاجر یا برای امور تجارتی صادر نشده باشد مزایای قانونی سند تجاری زایل نمی شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (54, 'انتقال چک صیادی که در وجه شخص معین صادر شده است نیازی به امضای ظهرنویس ندارد.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (54, 'در صورتی که دارنده چک را ظرف ۶ ماه از تاریخ چک برگشت نزند حق رجوع به ضامن و ظهرنویسان چک را ندارد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (54, 'در صورتی که چک از طرف تاجر یا برای امور تجارتی صادر نشده باشد مشمول مرور زمان ۵ ساله ماده ۳۱۸ قانون تجارت نیست.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (55, 1403, 'حقوق تجارت', '۵۵- کدام مورد در خصوص چک صیادی که منجر به صدور گواهی عدم پرداخت شده صحیح نیست؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (55, 'دارنده میتواند با رعایت شرایط قانونی از دادگاه درخواست صدور اجرائیه کند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (55, 'نسبت به چکهایی که مشروط باشد اجرائیه در دادگاه صادر نمی شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (55, 'موجودی تمامی حسابهای صادر کننده در هر بانکی که باشد معادل وجه چک مسدود می شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (55, 'خسارت تأخیر تأدیه از تاریخ سررسید و بر اساس شاخص ماهیانه قابل وصول است.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (56, 1403, 'حقوق تجارت', '۵۶- کدام مورد در خصوص حکم ورشکستگی صحیح نیست؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (56, 'با صدور حکم ورشکستگی دعاوی انفرادی طلبکاران عليه ورشکسته غیر قابل استماع می شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (56, 'حکم ورشکستگی قطعی است و به طور موقت اجرا می شود.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (56, 'حکم ورشکستگی نه فقط نسبت به طلبکاران تاجر بلکه نسبت به تمامی اشخاصی که با تاجر رابطه معاملاتی داشته اند مؤثر است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (56, 'تمامی عملیات اجرایی مربوط به وصول طلب بستانکاران در فاصله تاریخ توقف و تاریخ صدور حکم کان لم یکن می شود.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (57, 1403, 'حقوق تجارت', '۵۷- کدام یک از اعمال حقوقی تاجر ورشکسته پس از صدور حکم ورشکستگی نافذ نیست؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (57, 'قرارداد استخدام و کار در یک شرکت خصوصی.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (57, 'فروش اتومبیل متعلق به مولی علیه به نام وی.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (57, 'واگذاری یک ساله حق انتفاع آپارتمان مسکونی به یکی از بستگان واجب النفقه تاجر ورشكسته.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (57, 'قبول صلح بلاعوض منافع یک ساله آپارتمان مسکونی متعلق به برادر ورشکسته.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (58, 1403, 'حقوق تجارت', '۵۸- سند تجاری به مبلغ ده میلیون ریال صادر شده است و در ظهر آن مبلغ سند توسط صادر کننده تصحیح و مجدداً امضا شده است. در این صورت کدام مبلغ مناط اعتبار است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (58, 'اگر هر دو مبلغ به حروف باشد مبلغ کمتر مناط اعتبار است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (58, 'اگر یک مبلغ به حروف و دیگری به عدد باشد مبلغ حروفی مناط اعتبار است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (58, 'مبلغ مندرج در روی سند تجاری.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (58, 'مبلغ مندرج در ظهر سند تجاری.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (59, 1403, 'حقوق تجارت', '۵۹- کدام مورد در خصوص گواهینامه موقت سهم صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (59, 'مادامی که شرکت سهامی به ثبت نرسیده باشد، شرکت باید به صاحبان سهام گواهینامه موقت بدهد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (59, 'سند قابل معامله ای است که بیانگر تعداد سهام دارنده آن در شرکت است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (59, 'در صورتی که مبلغ اسمی سهام تماماً پرداخت نشده باشد، انتقال دهنده و انتقال گیرنده گواهینامه موقت سهام متضامناً مسئول پرداخت بقیه مبلغ اسمی آن خواهند بود.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (59, 'در صورتی که مبلغ اسمی سهام تماماً پرداخت نشده باشد، انتقال دهنده و انتقال گیرنده گواهینامه موقت سهام مشتركاً مسئول پرداخت بقیه مبلغ اسمی آن خواهند بود.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (60, 1403, 'حقوق تجارت', '۶۰- پس از انتشار صورت مطالبات تصدیق شده توسط اداره تصفیه، طلبکاران چه اقدامی می توانند انجام دهند؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (60, 'ظرف ۲۰ روز میتوانند به رد طلب یا حق رجحان خود یا قبول طلب یا حق رجحان دیگری اعتراض کنند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (60, 'ظرف ۱۰ روز میتوانند به رد طلب یا حق رجحان خود یا قبول طلب یا حق رجحان دیگری اعتراض کنند.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (60, 'ظرف ۱۰ روز میتوانند فقط به رد طلب یا حق رجحان خود اعتراض کنند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (60, 'ظرف ۲۰ روز میتوانند فقط به رد طلب یا حق رجحان خود اعتراض کنند.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (61, 1403, 'اصول استنباط و متون فقه', '۶۱- کدام مورد از عبارت زیر استفاده میشود؟ «لا يترتب اثر على الحلف بغير الله تعالى و ان رضى الخصمان الحلف بغيره كما انه لا اثر لضم غير اسم الله تعالى به»');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (61, 'بر سوگند به غیر از اسم خداوند با رضایت اصحاب دعوی اثر مترتب است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (61, 'اگر همراه با اسم خداوند به غیر از او سوگند یاد شود بر چنین سوگندی اثری مترتب نیست.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (61, 'بر سوگند به غیر از اسم خداوند مطلقاً اثری مترتب نیست.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (61, 'اصحاب دعوی میتوانند به جای اسم خداوند به قرآن سوگند بخورند.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (62, 1403, 'اصول استنباط و متون فقه', '۶۲- در عبارت زیر «تسامح» و «استفاضه» به ترتیب به کدام معنی است؟ «التسامع و الاستفاضه أن افادا العلم يجوز الشهاده بهما»');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (62, 'شیاع - تواتر.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (62, 'تواتر - مرحله ای از شهرت.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (62, 'مرحله ای از شهرت - شیاع.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (62, 'شیاع - مرحله ای از شهرت.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (63, 1403, 'اصول استنباط و متون فقه', '۶۳- از عبارت زیر کدام مورد برداشت میشود؟ «هل تقبل شهاده الأجير لمن أجره؟ قولان: اقربهما المنع و لو تحمل حال الإجاره و اداها بعدها تقبل»');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (63, 'ادای شهادت از سوی اجیر بعد از اجاره مطلقاً قبول میشود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (63, 'شهادت اجیر به نفع مستأجر مطلقاً قبول نمی شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (63, 'اگر تحمل شهادت اجیر در وقت اجاره و ادای آن بعد از اجاره باشد قبول میشود.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (63, 'چنانچه تحمل شهادت اجیر و ادای آن در حال اجاره باشد قبول میشود.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (64, 1403, 'اصول استنباط و متون فقه', '۶۴- کدام برداشت از عبارت زیر صحیح است؟ «حكم الحاكم تبع للشهاده فان كانت محققه نفذ الحكم ظاهراً و واقعاً و الا نفذ ظاهراً لا واقعاً»');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (64, 'حکم حاکم بر اساس شهادت ظاهراً نافذ است نه واقعاً.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (64, 'حکم حاکم بر اساس شهادت میتواند واقعاً و ظاهراً یا فقط ظاهراً نافذ باشد.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (64, 'حکم حاکم بر اساس شهادت واقعاً و ظاهراً نافذ است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (64, 'حکم حاکم بر اساس شهادت واقعاً نافذ است نه ظاهراً.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (65, 1403, 'اصول استنباط و متون فقه', '۶۵- کدام برداشت از عبارت زیر صحیح است؟ «لو قطع المدعى عليه دعوى المدعى بدعوى لم يسمعها حتى يجيب عن دعوى صاحبه و تنتهى الحكومه الا مع رضا المدعى الأول بالتقديم»');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (65, 'حاکم میتواند با رضایت مدعی همزمان دعوای مدعی علیه را نیز مورد بررسی قرار دهد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (65, 'طرح دعوی از سوی مدعی علیه در اثنای رسیدگی به دعوای مدعی مسموع نیست.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (65, 'مدعی علیه در همه موارد ابتدا باید به دعوای مدعی پاسخ دهد و سپس دعوای خود را طرح نماید.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (65, 'حاکم میتواند در بعضی موارد در اثنای طرح دعوای مدعی به دعوای مدعی علیه رسیدگی کند.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (66, 1403, 'اصول استنباط و متون فقه', '۶۶- کدام مورد درباره وکالت صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (66, 'يجوز تعليق الوكاله على متعلقها', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (66, 'يجوز تعليق أصل الوكاله أو متعلقها على شي', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (66, 'يجوز تعليق أصل الوكاله على شيء', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (66, 'لا يجوز تعليق اصل الوكاله أو متعلقها على شيء', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (67, 1403, 'اصول استنباط و متون فقه', '۶۷- در صورت اختلاف وکیل و موکل در اصل وکالت قول کدام مقدم است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (67, 'قول الموكل', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (67, 'قول مدعيه', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (67, 'قول منکره', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (67, 'قول الوكيل', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (68, 1403, 'اصول استنباط و متون فقه', '۶۸- شهادت تبرعی چیست؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (68, 'شهادت کسی است که داوطلبانه به ادای شهادت اقدام کند.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (68, 'شهادتی است که ادای آن تأثیری بر حکم قاضی نداشته باشد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (68, 'شهادت کسی است که از ادای شهادت تبری بجوید.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (68, 'شهادت کسی است که مجانی به ادای شهادت اقدام کند.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (69, 1403, 'اصول استنباط و متون فقه', '۶۹- در چه صورت تصدی منصب قضاوت بر شخص واجب عینی میشود؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (69, 'لمن بر نفسه مجتهداً عادلاً جامعاً لشرايط الفتيا', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (69, 'اذا لم يكن فى البلد أو ما يقرب منه مما لا يتعسر الرفع اليه من به الكفايه', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (69, 'لو اختاره المترافعان أو الناس', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (69, 'لمن يثق بنفسه القيام بوظائفه', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (70, 1403, 'اصول استنباط و متون فقه', '۷۰- کدام مورد در خصوص علم قاضی صحیح نیست؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (70, 'يجوز للقاضى ان يحكم بعلمه في حقوق الله تعالى.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (70, 'يجوز للقاضى أن يحكم يعلمه في حقوق الناس.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (70, 'لا يجوز للقاضي أن يحكم بالبينه اذا كانت مخالفه لعلمه.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (70, 'يجوز للقاضي أن يحكم بالبينه اذا كانت مخالفه لعلمه.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (71, 1403, 'اصول استنباط و متون فقه', '۷۱- تعریف بیع به «تملیک عین به عوض معلوم» در قانون مدنی مصداق کدام حقیقت است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (71, 'شرعی', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (71, 'عرفی', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (71, 'قانونی', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (71, 'لغوی', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (72, 1403, 'اصول استنباط و متون فقه', '۷۲- تخییر در باب تزاحم بین دو تکلیف بیانگر کدام مورد است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (72, 'حکم شرعی واقعی', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (72, 'حکم شرعی ظاهری', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (72, 'حکم عقلی واقعی', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (72, 'حکم عقلی ظاهری', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (73, 1403, 'اصول استنباط و متون فقه', '۷۳- کدام یک از موارد زیر دارای مفهوم مخالف است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (73, 'فقط وقف مالی جایز است که با بقای عین بتوان از آن منتفع شد.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (73, 'اگر کسی خانه یا بنای کسی را خراب کند باید آن را به مثل صورت اول بنا کند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (73, 'سارق محکوم به حد میشود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (73, 'هر کس حق دارد شغلی را که بدان مایل است برگزیند.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (74, 1403, 'اصول استنباط و متون فقه', '۷۴- کدام مورد از اقسام «عام مجموعی» است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (74, 'هرگاه تمام شرکا به تقسیم مال مشترک راضی باشند تقسیم به نحوی که شرکا تراضی نمایند به عمل می آید.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (74, 'حق مطالبه حد قذف به همه وارثان به جز زن و شوهر منتقل میشود و هر یک از ورثه میتواند آن را مطالبه کند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (74, 'کلیه معاملات تجار تجارتی است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (74, 'هر یک از زن و مرد میتواند برای عقد نکاح وکالت به غیر بدهد.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (75, 1403, 'اصول استنباط و متون فقه', '۷۵- اگر علت حکم همراه آن بیان نشود و مجتهد به جست وجوی آن بپردازد و سپس در هر موضوع دیگر که این علت را یافت حکم را به آن سرایت دهد، در اصطلاح چه می نامند؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (75, 'تنقیح مناط', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (75, 'تخريج مناط', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (75, 'وحدت ملاک', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (75, 'تحقیق مناط', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (76, 1403, 'اصول استنباط و متون فقه', '۷۶- تفاوت دلالت عام بر عموم و مطلق بر اطلاق در چیست؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (76, 'دلالت عام بر عموم به تبادر و دلالت مطلق بر اطلاق به اصاله الظهور است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (76, 'شمول عام نسبت به همه مصادیق افرادی یا احوالی است ولی شمول مطلق فقط افرادی است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (76, 'دلالت عام بر عموم مطابقی و دلالت مطلق بر اطلاق التزامی است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (76, 'دلالت عام بر عموم وضعی و دلالت مطلق بر اطلاق به مقدمات حکمت است.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (77, 1403, 'اصول استنباط و متون فقه', '۷۷- ماده ۱۹۵ قانون مدنی: «اگر کسی در حال مستی یا بیهوشی یا در خواب معامله نماید آن معامله به واسطه فقدان قصد باطل است.» حال اگر گفته شود معامله صغير غير ممیز باطل است، بر اساس کدام استدلال است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (77, 'قیاس اولویت', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (77, 'قياس مع الفارق', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (77, 'قیاس منصوص العله', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (77, 'قياس مستنبط العله', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (78, 1403, 'اصول استنباط و متون فقه', '۷۸- در کدام مواد قانونی زیر عدد دارای مفهوم مخالف است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (78, 'هرگاه مال غیر منقول قابل تقسیمی بین دو نفر مشترک باشد حق شفعه به وجود می آید.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (78, 'در صورتی که دو نفر به نحو اجتماع وکیل باشند به موت یکی از آنها وکالت دیگری باطل می شود.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (78, 'جمع دو خواهر در ازدواج ممنوع است اگرچه به عقد منقطع باشد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (78, 'موصی میتواند یک نفر را برای نظارت در عملیات وصی معین نماید.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (79, 1403, 'اصول استنباط و متون فقه', '۷۹- تقدم قاعده «لاضرر» بر قاعده «تسلیط» با کدام مورد مطابق است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (79, 'تخصص', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (79, 'حکومت', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (79, 'تخصيص', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (79, 'ورود', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (80, 1403, 'اصول استنباط و متون فقه', '۸۰- کدام یک از مواد قانونی زیر مفهوم ندارد؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (80, 'اسناد از حیث تنظیم تابع قانون محل تنظیم خود میباشند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (80, 'امین نمیتواند غیر از جهت حفاظت تصرفی در ودیعه کند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (80, 'هیچ کس نمی تواند طرق و شوارع عامه و کوچه هایی را که آخر آنها مسدود نیست تملک نماید.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (80, 'اطفال در صورت ارتکاب جرم مبرا از مسئولیت کیفری هستند.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (81, 1403, 'حقوق جزا', '۸۱- یک فرانسوی در خاک آلمان امضای وزیر دادگستری ایران را جعل میکند و در آلمان از آن استفاده میکند. وی در آلمان دستگیر و مجازات قانونی را تحمل میکند. حال کدام مورد در خصوص ایشان صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (81, 'مجدداً در ایران قابل محاکمه است و صرفاً در تعیین مجازات تعزیری میزان محکومیت اجرا شده در آلمان محاسبه میشود.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (81, 'با توجه به محاکمه، محکومیت و اجرای مجازات در آلمان امکان محاکمه مجدد و مجازات مضاعف وجود ندارد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (81, 'صرفا در صورتی که در ایران یافت شود یا به ایران مسترد شود امکان محاکمه و محکومیت مجدد با احتساب مجازات اجرا شده در آلمان وجود دارد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (81, 'محاکمه و محکومیت مجدد بدون در نظر گرفتن و احتساب میزان محکومیت اجرا شده در آلمان حتی به شکل غیابی امکان پذیر است.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (82, 1403, 'حقوق جزا', '۸۲- سربازی در جبهه جنگ در حالی که در محاصره دشمن است برای اینکه بیسیم در اختیار وی و اطلاعات محرمانه درون آن به دست دشمن نیفتد، بیسیم را تخریب میکند. سرباز از چه دفاعی در مقابل جرم تخریب اموال نظامی در حقوق ایران میتواند استفاده کند؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (82, 'امر آمر قانونی', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (82, 'اجبار', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (82, 'اجرای قانون اهم', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (82, 'دفاع مشروع', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (83, 1403, 'حقوق جزا', '۸۳- کدام جرایم زیر قابل گذشت محسوب میشوند؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (83, 'خیانت در امانت و سوء استفاده از سفید مهر.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (83, 'کلاهبرداری زیر یک صد میلیون تومان و سرقت زیر بیست میلیون تومان.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (83, 'توهین به زنان در معابر.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (83, 'تمامی مصادیق جرایم جعل.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (84, 1403, 'حقوق جزا', '۸۴- جرم غیر عمد که باعث صدمه به شخصی شده به شخص حقوقی منتسب است. کدام مجازاتها قابل اعمال بر شخص حقوقی است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (84, 'تنها دیه و جزای نقدی.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (84, 'شخص حقوقی برای جرایم غیر عمد مسئولیتی ندارد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (84, 'تنها جزای نقدی.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (84, 'دیه و انتشار حکم محکومیت.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (85, 1403, 'حقوق جزا', '۸۵- کدام مورد در خصوص مجازاتهای تکمیلی و تبعی، صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (85, 'عفو خصوصی مجازات تبعی را زائل کرده ولی در مجازات تکمیلی بی تاثیر است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (85, 'مجازات تکمیلی بدون حداقل و دارای حداکثر میباشد اما میزان مجازات تبعی ثابت است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (85, 'هر دو نوع مجازات قابل تخفیف هستند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (85, 'هر دو نوع مجازات در همه جرایم قابل اعمال هستند.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (86, 1403, 'حقوق جزا', '۸۶- کدام مجازات تعزیری زیر در مقام تخفیف قابل تبدیل به مجازات دیگر نیست؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (86, 'مصادره اموال', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (86, 'محرومیت از حقوق اجتماعی', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (86, 'حبس درجه ۳', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (86, 'شلاق درجه ۶', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (87, 1403, 'حقوق جزا', '۸۷- در صورت وجود سابقه محکومیت کیفری مؤثر، فرد از کدام نهاد میتواند برخوردار شود؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (87, 'حکم به معافیت از کیفر', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (87, 'تعلیق اجرای مجازات', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (87, 'آزادی مشروط', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (87, 'تعویق صدور حکم', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (88, 1403, 'حقوق جزا', '۸۸- در صورتی که مرتکب در مدت تعویق صدور حکم به دستورات دادگاه پایبندی کامل داشته باشد، پس از پایان مدت کدام یک حسب مورد قابل صدور است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (88, 'حکم به معافیت از کیفر.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (88, 'پرونده بدون هیچ تصمیمی بایگانی می شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (88, 'قرار منع تعقيب.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (88, 'قرار موقوفی.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (89, 1403, 'حقوق جزا', '۸۹- شخصی مرتکب جرم غیر عمد «الف» با کیفر ۲ تا ۱۰ سال حبس، جرایم عمدی «ب» با کیفر شش ماه حبس و «ج» با کیفر یک تا دو میلیون ریال جزای نقدی و «د» با مجازات تا ۹۹ ضربه شلاق شده است. مجازات وی چگونه تعیین می شود؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (89, 'برای جرایم «ب»، «ج» و «د» به میانگین حداقل و حداکثر تا حداکثر مجازات رأی داده و جرم الف به جهت غیر عمد بودن مشمول تعدد نشده و به حداقل مجازات حکم داده میشود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (89, 'برای جرم «الف» دادگاه حداقل مجازات را تشدید مینماید و برای جرایم «د» و «ب» میتواند حداکثر مجازات را تا یک ششم تشدید کرده و جرم «ج» مشمول تعدد جرم نمی شود.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (89, 'برای تمامی جرایم به حداکثر مجازات حکم داده و میتواند تا یک ششم حداکثر مجازات آنها را تشدید نماید.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (89, 'برای جرایم «الف»، «ب» و «د» به حداکثر مجازات حکم داده و برای جرم «ج» میتواند مجازات را تا یک ششم حداکثر تشدید نماید.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (90, 1403, 'حقوق جزا', '۹۰- مجازات معاون در اسیدپاشی چه مقدار است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (90, 'به حبس درجه ۱ یا ۲ محکوم می شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (90, 'مشابه مرتکب جرم مجازات میشود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (90, 'به مجازاتهای خاص مقرر در قانون مجازات اسید پاشی و حمایت از بزه دیدگان ناشی از آن محکوم می شود.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (90, 'طبق قواعد عمومی معاونت در قانون مجازات اسلامی مجازات میشود.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (91, 1403, 'حقوق جزا', '۹۱- «الف» مبادرت به حفاری و کاوش به قصد به دست آوردن اموال تاریخی مینماید لیکن هیچ مال تاریخی به دست نمی آورد. وصف رفتار وی چیست؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (91, 'جرم تام حفاری و کاوش.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (91, 'مرتکب جرم نشده است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (91, 'جرم عقيم.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (91, 'شروع به جرم.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (92, 1403, 'حقوق جزا', '۹۲- فردی نسبت به پلاک ثبتی متعلق به منابع طبیعی درخواست آگهی ثبتی میکند. کارمند ثبت به رغم اطلاع از وضعیت پلاک ثبتی، تصرفات مالکانه ایشان را تایید و در فرایند انتشار آگهی قرار میدهد. با طرح شکایت در مرجع قضایی، اعمال ارتکابی کارمند ثبت چه وصفی دارد؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (92, 'مشمول وصف مجرمانه گزارش خلاف واقع است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (92, 'رفتار ارتکابی در حکم کلاهبرداری است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (92, 'در حکم جعل اسناد رسمی است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (92, 'فاقد وصف مجرمانه و صرفاً تخلف انتظامی است.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (93, 1403, 'حقوق جزا', '۹۳- «الف» قصد کشتن «ب» را که محقون الدم است دارد. تیر «الف» کمانه کرده و به «ج» اصابت کرده و باعث قتل «ج» می شود. در دو فرضی که «ج» محقون الدم یا مهدورالدم باشد و با فرض اثبات این امور، کدام مورد در خصوص نوع قتل صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (93, 'اگر «ج» مهدورالدم باشد خونش هدر است و اگر محقون الدم باشد قتل عمدی محسوب می شود.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (93, 'در هر دو فرض فوق قتل شبه عمد محسوب می شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (93, 'در فرضی که «ج» مهدورالدم باشد قتل خطای محض و در فرض محقون الدم قتل شبه عمد محسوب میشود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (93, 'اگر «ج» مهدورالدم باشد خونش هدر است و اگر محقون الدم باشد، قتل شبه عمدی محسوب می شود.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (94, 1403, 'حقوق جزا', '۹۴- «الف» بدافزاری تولید کرده که کارایی ظاهری آن ضبط صدا است ولیکن پس از نصب، تمام اطلاعات سیستم رایانه ای قربانی برای «الف» ارسال میشود. در صورتی که پس از ارسال این بدافزار به «ب»، وی آن را نصب کرده و تمام اطلاعات سیستم «ب» به «الف» ارسال شود، «الف» برای کدام جرم (جرایم) زیر قابل تعقیب است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (94, 'تخریب و سرقت رایانه ای.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (94, 'سرقت رایانه ای.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (94, 'شنود غیر مجاز و سرقت رایانه ای.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (94, 'شنود غیر مجاز.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (95, 1403, 'حقوق جزا', '۹۵- «الف» مبادرت به انعقاد قراردادی برای انجام کاری با «ب» مینماید و مبلغ یک میلیارد تومان بیعانه اخذ میکند. لیکن به عمد و با وجود توانایی از انجام کار سرباز میزند. در صورتی که «ب» اظهارنامه برای عودت پول به «الف» بدهد ولیکن «الف» با یک میلیارد مذکور دو ماشین خریداری نماید، وی مرتکب چه جرمی (جرایمی) شده است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (95, 'تحصیل مال به طریق نامشروع و پولشویی.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (95, 'هیچ گونه جرمی مرتکب نشده است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (95, 'پولشویی.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (95, 'خیانت در امانت.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (96, 1403, 'حقوق جزا', '۹۶- قاضی دادگاه در جلسه رسیدگی از کارشناس رسمی دادگستری برای رفع ابهام، میزان خسارت وارده را پرسش می کند. کارشناس میزان خسارت را ۱۰۰ میلیون تومان اعلام ولی قاضی به عمد در صورت جلسه ۵۰۰ میلیون تومان درج میکند. قاضی تحت چه عنوانی قابل تعقیب است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (96, 'جعل مفادی.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (96, 'جعل مادی اسناد رسمی.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (96, 'گزارش خلاف واقع.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (96, 'اساساً مرتکب جرم نشده و صرفاً تخلف انتظامی است.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (97, 1403, 'حقوق جزا', '۹۷- بر کدام یک از اشخاص زیر مجازات کلاهبرداری اعمال نمی شود؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (97, 'اشخاصی که با یکدیگر برای بردن مال غیر تبانی کرده و بر همدیگر اقامه دعوی کنند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (97, 'شخصی که منافع ملک خود را پس از اجاره به دیگری منتقل میکند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (97, 'شخصی که با توسل به شیوههای متقلبانه مبادرت به دریافت دسته چک غیر متناسب با اوضاع مالی و اعتباری خود کرده است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (97, 'شخصی که به عنوان ثالث وارد دعوایی شده و این اقدام ناشی از تبانی با یکی از اصحاب دعوی برای بردن مال طرف دیگر باشد.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (98, 1403, 'حقوق جزا', '۹۸- آقای «الف» نماینده قانونی شرکت «ب» به جهت تسهیل در اخذ وام دولتی مرتکب رشا با مجازات تعزیری درجه ۳ میشود اما در حین رسیدگی نسبت به عملکرد خود احساس ندامت و پشیمانی کرده و توبه میکند. قاضی ندامت و اصلاح را در وی احراز می نماید. وضعیت تعیین کیفر نسبت به مرتکب و شخص حقوقی به چه نحو خواهد بود؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (98, 'دادگاه میتواند با احراز پشیمانی و توبه نماینده قانونی، مجازات شخص حقیقی و حقوقی را به صورت توامان تخفیف دهد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (98, 'در قلمرو جرایم علیه آسایش عمومی اساساً قابلیت استناد به توبه وجود ندارد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (98, 'دادگاه مکلف است با احراز پشیمانی و توبه نماینده قانونی، مجازات شخص حقیقی و حقوقی را به صورت توامان تخفیف دهد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (98, 'دادگاه میتواند فقط مجازات شخص حقیقی را تخفیف دهد و در مورد شخص حقوقی به جهت توبه از چنین اختیاری برخوردار نیست.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (99, 1403, 'حقوق جزا', '۹۹- پسر شانزده ساله ای مرتکب جرم ضرب و جرح عمدی با مجازات تعزیری درجه ۶ شده است. دادگاه مجازات تعزیری او را برای یک سال معلق میکند. در ۱۷ سالگی مرتکب جرم رانندگی بدون پروانه با مجازات تعزیری درجه ۶ میشود. کدام مورد زیر صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (99, 'امکان تخفیف مجازات جرم دوم وجود ندارد ولیکن مشمول تکرار جرم نیز نمی شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (99, 'امکان صدور قرار تعویق صدور حکم وجود دارد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (99, 'شخص به حداکثر مجازات مقرر برای جرم دوم که نسبت به نوجوانان قابل اعمال است محکوم می شود.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (99, 'به دلیل تکرار و عدم انقضای یک سال، امکان بهره از نهادهای ارفاقی در چنین وضعیتی وجود ندارد.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (100, 1403, 'حقوق جزا', '۱۰۰- مردی با جعل سند، ملک همسر خود را به عنوان مال خود معرفی و این سند مجعول را به پسر خود که با مشاهده سند تصور میکند ملک متعلق به پدرش است میفروشد و مبلغ یک میلیارد تومان دریافت می کند. رفتار پدر مشمول کدام مورد است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (100, 'اقدامات پدر نسبت به مال فرزند و برای فرزند فاقد وصف کیفری است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (100, 'مجموع اعمال ارتکابی مشمول عنوان مجرمانه تحصیل مال از طریق نامشروع است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (100, 'تعدد معنوی.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (100, 'تعدد مادی.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (101, 1403, 'آیین دادرسی کیفری', '۱۰۱- رسیدگی به جرم قتل غیر عمدی ناشی از تصادفات رانندگی و صدور حکم در خصوص این جرم در صلاحیت کدام دادگاه است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (101, 'دادگاه صلح', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (101, 'دادگاه کیفری دو', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (101, 'دادگاه کیفری یک', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (101, 'شورای حل اختلاف', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (102, 1403, 'آیین دادرسی کیفری', '۱۰۲- کدام مورد در خصوص آرای اصداری راجع به جنبه عمومی جرایم غیر عمدی ناشی از کار صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (102, 'صرفاً در صورتی که مجازات قانونی آن تعزیر درجه هشت باشد قطعی است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (102, 'در صورتی که مجازات قانونی آن تعزیر درجه شش یا بیشتر باشد قابل تجدید نظر است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (102, 'مطلقاً قابل تجدید نظر است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (102, 'قطعی و غیر قابل تجدید نظر است.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (103, 1403, 'آیین دادرسی کیفری', '۱۰۳- در کدام یک از جرایم زیر امکان جلب مطلق و بدون شرط متهم پرونده بدون ارسال احضاریه وجود ندارد؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (103, 'جرایم مستوجب سلب حیات.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (103, 'جرایم مستوجب حبس ابد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (103, 'جرایمی که مجازات قانونی آنها قطع عضو است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (103, 'جرایم مستوجب تعزیر درجه دو و سه.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (104, 1403, 'آیین دادرسی کیفری', '۱۰۴- مرجع حل اختلاف در صلاحیت بین دادگاه کیفری دو و دادگاه حقوقی واقع در حوزه قضایی یک استان کدام مرجع قضایی است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (104, 'دادگاه تجدید نظر استان.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (104, 'اساساً اختلاف در صلاحیت در فرض پرسش محقق نیست.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (104, 'دیوان عالی کشور.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (104, 'حسب مورد دیوان عالی کشور یا دادگاه تجدید نظر استان.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (105, 1403, 'آیین دادرسی کیفری', '۱۰۵- چنانچه ضابط دادگستری فاقد کارت ویژه ضابطان در ارتباط با جرایم مشهود یا در راستای اجرای دستور مقام قضایی و در مقام ضابط مرتکب جرم شود، رسیدگی به جرم ارتکابی در صلاحیت کدام مرجع قضایی است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (105, 'حسب مورد دادگاه کیفری یا دادگاه بخش.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (105, 'حسب مورد دادگاه نظامی یک یا دو.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (105, 'دادگاه نظامی یک.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (105, 'دادگاه نظامی دو.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (106, 1403, 'آیین دادرسی کیفری', '۱۰۶- در جرایم غیر قابل گذشت چنانچه پس از صدور کیفرخواست و قبل از ارسال به دادگاه، شاکی گذشت قطعی خود را اعلام کند، دادستان کدام اقدام زیر را میتواند انجام دهد؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (106, 'صدور قرار تعلیق تعقیب متهم در صورت وجود شرایط قانونی الزامی است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (106, 'ضمن عدول از کیفرخواست قرار موقوفی تعقیب متهم را صادر میکند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (106, 'در صورت فراهم بودن شرایط قانونی امکان عدول از کیفر خواست و صدور قرار تعلیق تعقیب متهم را دارد.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (106, 'امکان عدول از کیفرخواست قبلی و صدور قرار تعلیق تعقیب متهم را ندارد.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (107, 1403, 'آیین دادرسی کیفری', '۱۰۷- کدام مورد در خصوص تبعیت دادگاه رسیدگی کننده به امور حقوقی یا ضرر و زیان ناشی از جرم از رأی دادگاه کیفری صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (107, 'چنانچه رأی دادگاه کیفری قطعی باشد لازم الاتباع است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (107, 'چنانچه رای کیفری قطعی و مؤثر در ماهیت امر حقوقی باشد لازم الاتباع است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (107, 'لازم الاتباع نیست.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (107, 'مطلقاً لازم الاتباع است.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (108, 1403, 'آیین دادرسی کیفری', '۱۰۸- در کدام یک از جرایم مشهود زیر در صورت عدم حضور ضابطان دادگستری، شهروندان نمی توانند اقدامات لازم را برای جلوگیری از فرار متهم و حفظ صحنه جرم انجام دهند؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (108, 'جرایم موجب مجازات قطع عضو.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (108, 'جنایت عمدی علیه تمامیت جسمانی با میزان نصف دیه کامل یا بیش از آن.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (108, 'جرایم موجب تعزیر درجه سه.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (108, 'جرایم سیاسی و مطبوعاتی.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (109, 1403, 'آیین دادرسی کیفری', '۱۰۹- کدام یک از قرارهای دادیار باید در همان روز صدور به نظر دادستان برسد؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (109, 'صرفاً قرار بازداشت موقت متهم.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (109, 'صرفاً قرارهای نهایی دادیار.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (109, 'قرارهای نهایی دادیار و قرار تأمین منتهی به بازداشت متهم.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (109, 'فقط قرار تأمین منتهی به بازداشت متهم.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (110, 1403, 'آیین دادرسی کیفری', '۱۱۰- ضبط اموال یا اشیا از اختیارات کدام مرجع قضایی است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (110, 'دادگاه.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (110, 'حسب مورد بازپرس یا دادستان یا دادگاه.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (110, 'بازپرس.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (110, 'دادستان.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (111, 1403, 'آیین دادرسی کیفری', '۱۱۱- اگر دختر ۱۵ سالهای مرتکب جرم تعزیری درجه سه در صلاحیت ذاتی دادگاه انقلاب شود، جهت رسیدگی به جرم ارتکابی کدام دادگاه صالح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (111, 'دادگاه اطفال و نوجوانان.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (111, 'دادگاه کیفری یک ویژه رسیدگی به جرایم نوجوانان.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (111, 'دادگاه انقلاب.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (111, 'دادگاه کیفری دو.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (112, 1403, 'آیین دادرسی کیفری', '۱۱۲- کدام مورد در خصوص قرار عدم صلاحیت اصداری از دادگاه کیفری یک صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (112, 'از نظر شاکی یا مدعی خصوصی قابل تجدید نظر است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (112, 'از سوی دادستان و شاکی یا مدعی خصوصی قابل تجدید نظر است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (112, 'قطعی و غیر قابل تجدید نظر است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (112, 'صرفاً از ناحیه دادستان قابل تجدید نظر است.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (113, 1403, 'آیین دادرسی کیفری', '۱۱۳- ابتلای به جنون محکوم علیه در جرایم تعزیری پس از صدور حکم قطعی چه تأثیری بر اجرای حکم دارد؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (113, 'تا زمان افاقه اجرای حکم به تعویق می افتد.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (113, 'اجرای حکم موقوف میشود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (113, 'اجرای حکم موقوف میشود و قاضی اجرای احکام کیفری قرار موقوفی تعقیب صادر میکند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (113, 'اجرای حکم موقوف میشود و قاضی صادر کننده حکم قرار موقوفی تعقیب صادر میکند.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (114, 1403, 'آیین دادرسی کیفری', '۱۱۴- تعیین وکیل تسخیری برای اطفال و نوجوانان در کدام یک از جرایم الزامی نیست؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (114, 'تنها در جرایم تعزیری درجه ۸.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (114, 'در تمامی جرایم الزامی است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (114, 'در جرایم تعزیری درجه ۷ و ۸ و در جرایم مستلزم پرداخت دیه یا ارش به میزان خمس دیه کامل یا کمتر از آن.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (114, 'در جرایم تعزیری درجه ۷ و ۸ و در جرایم مستلزم پرداخت دیه یا ارش به میزان نصف دیه کامل یا کمتر از آن.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (115, 1403, 'آیین دادرسی کیفری', '۱۱۵- کدام مورد در خصوص صدور قرار کفالت و وثیقه در جرایم غیر عمدی صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (115, 'در صورتی که به تشخیص مقام قضایی تضمین حقوق بزه دیده به طریق دیگر امکان پذیر باشد، فقط صدور قرار وثیقه جایز نیست.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (115, 'در صورتی که به تشخیص مقام قضایی تضمین حقوق بزه دیده به طریق دیگر امکان پذیر باشد، صدور قرار کفالت و وثیقه جایز نیست.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (115, 'صدور قرار کفالت و وثیقه جایز نیست.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (115, 'صدور قرار کفالت جایز است ولی صدور قرار وثیقه جایز نیست.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (116, 1403, 'آیین دادرسی کیفری', '۱۱۶- در کدام یک از جرایم تعزیری زیر در صورت ارائه تضمین لازم برای جبران خسارات وارده، مقام قضایی میتواند فقط به صدور قرار نظارت قضایی اکتفا کند؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (116, 'جرایم تعزیری درجه ۶، ۷ و ۸.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (116, 'فقط در جرایم تعزیری درجه ۸.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (116, 'جرایم تعزیری درجه ۶ و ۷.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (116, 'جرایم تعزیری درجه ۷ و ۸.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (117, 1403, 'آیین دادرسی کیفری', '۱۱۷- کدام مورد در خصوص سوگند به عنوان یکی از ادله اثبات در امور کیفری، صحیح نیست؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (117, 'وکیل نمی تواند به جای موکل سوگند یاد کند حتی اگر در وکالت نامه چنین اختیاری داشته باشد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (117, 'وکیل در دعوی در صورتی میتواند طرف دعوا را سوگند دهد که در وکالت نامه تصریح شده باشد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (117, 'تقاضای سوگند قابل توکیل نیست.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (117, 'در حق الناس، سوگند منوط به مطالبه صاحب حق است.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (118, 1403, 'آیین دادرسی کیفری', '۱۱۸- اگر فردی در کرج متهم به ارتکاب جرم تعزیری درجه دو شود و پس از رسیدگی و صدور حکم در دادگاه کیفری یک کرج، وکیل متهم اقدام به فرجام خواهی نماید و شعبه دیوان عالی کشور به یکی از جهات قانونی متهم را قابل تعقیب نداند، چه تصمیمی اتخاذ میشود؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (118, 'پس از نقض رأی، پرونده به دادگاه هم عرضی دادگاه کیفری یک کرج ارجاع میشود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (118, 'رأی صادر شده نقض بلا ارجاع میشود.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (118, 'شعبه دیوان عالی کشور رأی صادر شده را نقض نموده و حکم برائت متهم را صادر میکند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (118, 'پرونده برای رسیدگی و صدور حکم برائت به دادگاه کیفری یک کرج ارجاع میشود.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (119, 1403, 'آیین دادرسی کیفری', '۱۱۹- در مورد احکام قطعی راجع به حقوق عامه و دعاوی مربوط به دولت، امور خیریه و اوقاف عامه و امور محجورین و غایب مفقود الاثر بی سرپرست، در چه صورتی دادستان کل کشور مراتب را جهت اعمال ماده ۴۷۷ قانون آیین دادرسی کیفری به رئیس قوه قضاییه اعلام می کند؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (119, 'صرفاً در مواردی که حکم مذکور را خلاف شرع بین تشخیص دهد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (119, 'فقط در صورتی که حکم مذکور را خلاف قانون تشخیص دهد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (119, 'چنین اختیار یا تکلیفی در قانون برای دادستان کل کشور پیش بینی نشده است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (119, 'در صورتی که حکم مذکور را خلاف شرع بین یا قانون تشخیص دهد.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (120, 1403, 'آیین دادرسی کیفری', '۱۲۰- کدام مورد با آرای وحدت رویه هیئت عمومی دیوان عالی کشور و مقررات قانونی مطابقت ندارد؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (120, 'تعیین مجازات حبس بیش از حداقل مجازات مقرر در قانون بدون ذکر علت صدور حکم از موجبات اعاده دادرسی است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (120, 'در جرایم قابل گذشت تا زمان گذشت شاکی، حق تجدید نظرخواهی دادستان نسبت به حکم برائت متهم باقی است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (120, 'قاضی ملزم به تبعیت از نظر هیئت منصفه مبنی بر بیگناهی متهم است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (120, 'صرف شکایت کیفری از قاضی رسیدگی کننده به پرونده از موجبات رد دادرس نیست.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (121, 1403, 'حقوق اساسی', '۱۲۱- به موجب قانون اساسی ابتکار بودجه کل کشور با کدام مرجع است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (121, 'دیوان محاسبات کشور', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (121, 'دولت', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (121, 'وزارت امور اقتصادی و دارایی', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (121, 'مجلس شورای اسلامی', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (122, 1403, 'حقوق اساسی', '۱۲۲- در قانون اساسی از کدام مورد به عنوان یکی از مصادیق انفال و ثروتهای عمومی یاد شده است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (122, 'مرتعی که در حریم قرار دارد.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (122, 'اموال دولتی که از غاصبین مسترد میشود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (122, 'معابر عمومی', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (122, 'نیزارها و بیشه های طبیعی', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (123, 1403, 'حقوق اساسی', '۱۲۳- طبق قانون اساسی اعمال کدام صلاحیت رئیس قوه قضائیه پس از مشورت امکان پذیر است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (123, 'تفویض اختیارات تام مالی و اداری به وزیر دادگستری', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (123, 'تفویض اختیارات استخدامی غیر قضات به وزیر دادگستری', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (123, 'تغییر سمت یا محل خدمت قاضی', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (123, 'ایجاد تشکیلات لازم در دادگستری', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (124, 1403, 'حقوق اساسی', '۱۲۴- به موجب قانون اساسی رسیدگی به کدام دعاوی زیر باید به صورت خارج از نوبت انجام گیرد؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (124, 'اعتراض به انحلال شوراهای محلی در صورت انحراف از وظایف قانونی', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (124, 'دعاوی مربوط به جرایم موضوع اصل ۴۹ قانون اساسی (ثروت های نامشروع)', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (124, 'اتهامات رئیس جمهور و معاونان وی در مورد جرایم عادی', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (124, 'جرایمی که نظامیان در مقام ضابط دادگستری مرتکب شوند.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (125, 1403, 'حقوق اساسی', '۱۲۵- در قانون اساسی به کدام یک از اصول حاکم بر رسیدگیهای قضایی تصریح شده است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (125, 'علنی بودن', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (125, 'دو درجه ای بودن', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (125, 'بی طرفی', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (125, 'تناظر', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (126, 1403, 'حقوق اساسی', '۱۲۶- منع تبذير ذيل ضوابط حاکم بر کدام یک از شئون نظام جمهوری اسلامی در قانون اساسی مورد اشاره قرار گرفته است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (126, 'سیاست خارجی', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (126, 'اقتصاد', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (126, 'امنیت ملی', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (126, 'فرهنگ', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (127, 1403, 'حقوق اساسی', '۱۲۷- کدام مورد در خصوص تفویض اختیار قانونگذاری از سوی مجلس شورای اسلامی صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (127, 'مجلس میتواند تصویب دائمی قوانین آزمایشی را به کمیسیونهای داخلی مجلس تفویض کند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (127, 'تشخیص عدم مغایرت اساسنامه های مصوب کمیسیونهای داخلی مجلس با قوانین با رئیس مجلس است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (127, 'تشخیص عدم مغایرت اساسنامه های مصوب دولت با قوانین با رئیس مجلس است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (127, 'مجلس صرفاً می تواند تصویب دائمی اساسنامه سازمانهای دولتی را به دولت تفویض کند.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (128, 1403, 'حقوق اساسی', '۱۲۸- در قانون اساسی کدام آزادی مشروط به رعایت حقوق دیگران شده است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (128, 'آزادی عقیده', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (128, 'آزادی اجتماعات', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (128, 'آزادی بیان', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (128, 'آزادی انتخاب شغل', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (129, 1403, 'حقوق اساسی', '۱۲۹- بنا به تصریح قانون اساسی مصوبات کدام مرجع نباید با متن و روح قانون مغایرت داشته باشد؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (129, 'شورای عالی امنیت ملی', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (129, 'شوراهای فرعی شورای عالی امنیت ملی', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (129, 'شوراهای محلی', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (129, 'هیئت وزیران', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (130, 1403, 'حقوق اساسی', '۱۳۰- در قانون اساسی بر ممنوعیت تبعیض در کدام مورد زیر تصریح شده است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (130, 'داشتن مسکن متناسب با نیاز', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (130, 'بهره برداری از منابع طبیعی', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (130, 'برخورداری از آموزش و بهداشت عمومی', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (130, 'استفاده از انفال و ثروت های عمومی', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (131, 1403, 'حقوق اساسی', '۱۳۱- بنا به تصریح قانون اساسی سلب کدام یک از حقوق زیر به درخواست خود شخص ذی حق امکان پذیر دانسته شده است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (131, 'حق تابعیت', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (131, 'حق دادخواهی', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (131, 'حق داشتن وکیل', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (131, 'حق آموزش رایگان', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (132, 1403, 'حقوق اساسی', '۱۳۲- کدام مورد از ابعاد حق دادخواهی در قانون اساسی به شمار نمی آید؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (132, 'در دسترس بودن دادگاه', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (132, 'حق رجوع به دادگاه های صلاحیت دار', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (132, 'دو درجه ای بودن رسیدگی', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (132, 'ممنوعیت اجبار افراد به عدم مراجعه به دادگاه صلاحیت دار', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (133, 1403, 'حقوق اساسی', '۱۳۳- شهروندی که از مصوبه دولت متضرر شده و آن را خلاف قانون میداند، همزمان نسبت به مصوبه مذکور در کمیسیون اصل ۹۰ قانون اساسی و دیوان عدالت اداری طرح شکایت میکند. کدام مورد در خصوص این اقدام صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (133, 'در چنین مواردی در چارچوب اصل ۱۳۸ قانون اساسی مرجع صلاحیت دار از سوی رئیس مجلس شورای اسلامی تعیین میشود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (133, 'هر دو مرجع مکلف به رسیدگی به این شکایت هستند.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (133, 'کمیسیون اصل ۹۰ تا زمان صدور رأی از سوی دیوان عدالت اداری با موافقت رئیس مجلس شورای اسلامی رسیدگی به موضوع را متوقف می کند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (133, 'دیوان عدالت اداری با صدور قرار توقف رسیدگی، هرگونه تصمیم گیری در این خصوص را منوط به نتیجه رسیدگی کمیسیون اصل ۹۰ می نماید.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (134, 1403, 'حقوق اساسی', '۱۳۴- کدام مورد در خصوص اعمال قوه مقننه صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (134, 'اعمال قوه مقننه در مسائل بسیار مهم سیاسی و اقتصادی و فرهنگی لزوماً از طریق همه پرسی است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (134, 'اعمال قوه مقننه صرفاً از طریق مجلس شورای اسلامی است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (134, 'اعمال قوه مقننه در جمهوری اسلامی ایران از طریق مجلس شورای اسلامی و مجمع تشخیص مصلحت نظام است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (134, 'در مسائل بسیار مهم سیاسی و اقتصادی و فرهنگی، اعمال قوه مقننه از راه همه پرسی نیز ممکن است.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (135, 1403, 'حقوق اساسی', '۱۳۵- به موجب قانون اساسی کدام مورد ضرورتاً نیاز به تصویب مجلس شورای اسلامی ندارد؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (135, 'صلح دعاوی مربوط به اموال دولتی', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (135, 'دادن وام و کمکهای بدون عوض خارجی', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (135, 'هرگونه تغییر در خطوط مرزی', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (135, 'الحاق به مقاوله نامه های بین المللی', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (136, 1403, 'حقوق اساسی', '۱۳۶- کارمند شرکت دولتی در ایامی که در مرخصی بدون حقوق به سر میبرد به عنوان مدیر عامل یک شرکت خصوصی مشغول به کار می شود. اقدام مزبور چه حکمی دارد؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (136, 'کارمندان شرکتهای دولتی تابع مقررات استخدامی خاص خود هستند و اساساً مشمول ممنوعیت جمع مشاغل نمیشوند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (136, 'صرفاً در صورتی که دولت درصدی از سهام شرکت خصوصی را داشته باشد عمل وی مشمول ممنوعیت جمع مشاغل نمی شود.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (136, 'مشمول عنوان جمع مشاغل و ممنوع است.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (136, 'با توجه به عدم دریافت حقوق در مدت مرخصی، مشمول ممنوعیت جمع مشاغل نیست.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (137, 1403, 'حقوق اساسی', '۱۳۷- شرکتی با اختراع یک دستگاه و فروش عمده آن به کارخانجات خودروسازی موجب بیکار شدن تعداد زیادی از کارگران کارخانجات مزبور میشود. کدام مورد در خصوص اقدام مذکور صحیح است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (137, 'این اقدام مغایر اصل ۴۰ قانون اساسی دایر بر ممنوعیت اضرار به غیر به واسطه اعمال حق خویش است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (137, 'با توجه به شناسایی آزادی کسب و کار در صدر اصل ۲۸ قانون اساسی، ایراد قانونی بر آن مترتب نیست.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (137, 'عمل مذکور از مصادیق ذیل اصل ۴۶ قانون اساسی مبنی بر ممنوعیت سلب کسب و کار از دیگری به بهانه مالکیت نسبت به کسب و کار خود است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (137, 'اقدام شرکت بر اساس اصل ۲۸ قانون اساسی که آزادی اشتغال را محدود به مصالح عمومی میداند، مغایر قانون اساسی است.', 1);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (138, 1403, 'حقوق اساسی', '۱۳۸- چنانچه مجلس شورای اسلامی طی مصوبه ای تعیین تکلیف استخدام کارشناسان خارجی در وزارت نیرو را در طول برنامه پنج ساله هفتم پیشرفت به هیئت وزیران واگذار نماید، مصوبه مزبور چه حکمی دارد؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (138, 'مطابق قانون اساسی است چرا که دولت میتواند در خصوص استخدام کارشناسان خارجی برای مدت موقتی که مجلس تعیین می کند تعیین تکلیف نماید.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (138, 'مطابق قانون اساسی است چرا که دولت میتواند در خصوص استخدام کارشناسان خارجی برای دستگاه خاصی که مجلس تعیین می کند تعیین تکلیف نماید.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (138, 'مغایر قانون اساسی است و هرگونه استخدام کارشناس خارجی از طرف دولت صرفاً در موارد ضرورت باید با تصویب مجلس باشد.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (138, 'اطلاق آن مغایر قانون اساسی است و استخدام کارشناس خارجی از طرف دولت صرفاً در موارد ضرورت با تصویب هیئت دولت امکان پذیر است.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (139, 1403, 'حقوق اساسی', '۱۳۹- شورای اسلامی شهری اقدام به وضع مصوبه ای کرده و به موجب آن هرگونه استخدام در شورا و شهرداری را منوط به استخدام از بین افراد بومی آن شهر نموده است. وظیفه فرماندار شهرستان مربوطه در قبال این مصوبه چیست؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (139, 'با توجه به عدم ارتباط مصوبه با حدود اختیارات شورا، مغایرت آن با قوانین و مقررات را به هیئت تطبیق مصوبات شهر و شهرستان اعلام نماید.', 1);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (139, 'به موجب قانون اساسی فرمانداران و سایر مقامات کشوری که از طرف دولت تعیین میشوند در هر حال ملزم به رعایت تصمیمات شوراها هستند.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (139, 'به موجب قانون اساسی فرماندار مادامی که مصوبه مزبور از سوی دیوان عدالت اداری ابطال نشده باشد ملزم به رعایت آن است.', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (139, 'فرماندار مادامی که مغایرت مصوبه با حدود اختیارات شوراها از سوی شورای عالی استانها تأیید نشود ملزم به رعایت آن است.', 0);
+
+INSERT INTO Questions (question_id, year, subject, question_text) VALUES (140, 1403, 'حقوق اساسی', '۱۴۰- در قانون اساسی به تعیین تکلیف کدام یک از امور مربوط به هیئت منصفه در جرایم سیاسی و مطبوعاتی در قانون تصریح نشده است؟');
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (140, 'شرایط هیئت منصفه', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (140, 'اختیارات هیئت منصفه', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (140, 'نحوه انتخاب هیئت منصفه', 0);
+INSERT INTO Options (question_id, option_text, is_correct) VALUES (140, 'نحوه نظارت بر هیئت منصفه', 1);
