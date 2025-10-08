@@ -1,6 +1,7 @@
 // src/services/apiService.ts
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+// const API_BASE_URL = import.meta.env.API_BASE_URL;
+const API_BASE_URL = 'https://hrbooteh.com/api';
 
 const getToken = (endpoint: string): string | null => {
     if (endpoint.startsWith('admin/')) {
@@ -35,19 +36,19 @@ export default apiFetch;
 // --- توابع آپلود و سازمان‌ها ---
 
 export const bulkUploadUsers = async (file: File) => {
-  const token = localStorage.getItem('adminAuthToken');
-  const formData = new FormData();
-  formData.append('file', file);
-  const response = await fetch(`${API_BASE_URL}/admin/users/bulk-upload`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}` },
-    body: formData,
-  });
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.message || 'آپلود کاربران با خطا مواجه شد');
-  }
-  return response.json();
+    const token = localStorage.getItem('adminAuthToken');
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(`${API_BASE_URL}/admin/users/bulk-upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData,
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'آپلود کاربران با خطا مواجه شد');
+    }
+    return response.json();
 };
 export const getOrganizations = async () => await apiFetch('admin/organizations');
 export const getOrganizationDetails = async (id: number) => await apiFetch(`admin/organizations/${id}`);
@@ -82,7 +83,7 @@ export const exportUserResults = async (userId: number, username: string) => {
 
 export const exportGroupResults = async (userIds: number[]) => {
     const token = getToken('admin/export');
-    
+
     const response = await fetch(`${API_BASE_URL}/admin/export/group`, {
         method: 'POST',
         headers: {

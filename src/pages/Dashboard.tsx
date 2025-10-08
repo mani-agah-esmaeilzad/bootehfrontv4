@@ -108,7 +108,7 @@ const Dashboard = () => {
           </Button>
         </div>
       );
-      
+
     // اگر همه ارزیابی‌ها تمام شده باشند، پیامی نمایش داده می‌شود
     if (!currentAssessment && assessments.length > 0 && assessments.every(a => a.status === 'completed')) {
       return (
@@ -120,7 +120,7 @@ const Dashboard = () => {
             شما تمام مراحل را تکمیل کرده‌اید. برای مشاهده نتایج می‌توانید به بخش گزارش‌ها مراجعه کنید.
           </p>
           <Button className="mt-6" onClick={() => navigate('/results')}>
-              مشاهده نتایج کلی
+            مشاهده نتایج کلی
           </Button>
         </Card>
       )
@@ -164,20 +164,20 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-hrbooteh-gradient-subtle">
-      <header className="bg-hrbooteh-surface shadow-hrbooteh-sm border-b border-hrbooteh-surface-elevated">
+      <header className="sticky top-0 bg-hrbooteh-surface/85 backdrop-blur-md border-b border-hrbooteh-surface-elevated z-40">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Logo variant="large" />
-          <Button variant="hrbooteh-ghost" size="icon-sm">
-            <User className="w-5 h-5" />
+          <Button variant="hrbooteh-ghost" size="icon-md">
+            <User className="size-6" />
           </Button>
         </div>
       </header>
-      <main className="container mx-auto px-4 py-8 max-w-2xl mx-auto">
+      <main className="container mx-auto px-4 py-8 max-w-2xl">
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold text-hrbooteh-text-primary mb-4">
-            مسیر ارزیابی شما در hrbooteh
+            مسیر ارزیابی شما
           </h1>
-          <p className="text-hrbooteh-text-secondary text-lg">
+          <p className="text-hrbooteh-text-secondary text-md">
             شما در حال طی کردن یک مسیر جامع ارزیابی مهارت‌های حرفه‌ای هستید
           </p>
         </div>

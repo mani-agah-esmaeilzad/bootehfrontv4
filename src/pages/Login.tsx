@@ -32,7 +32,7 @@ const Login = () => {
         // We no longer save the token in localStorage.
         // Instead, we set a simple flag to indicate the user is logged in.
         localStorage.setItem('isLoggedIn', 'true');
-        
+
         toast.success("ورود با موفقیت انجام شد!");
         navigate('/dashboard');
       } else {
@@ -46,7 +46,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-hrbooteh-gradient-subtle flex items-center justify-center p-4">
+    <div className="min-h-screen bg-hrbooteh-gradient-subtle flex items-center justify-center p-0 md:p-4">
       <Card className="w-full max-w-md shadow-hrbooteh-lg border-0 bg-hrbooteh-surface">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
@@ -83,7 +83,7 @@ const Login = () => {
                 </Button>
               </div>
             </div>
-            <Button type="submit" variant="hrbooteh-gradient" size="lg" className="w-full" disabled={isLoading}>
+            <Button type="submit" variant="hrbooteh-gradient" size="md" className="w-full" disabled={isLoading}>
               {isLoading ? <LoaderCircle className="animate-spin" /> : 'ورود'}
             </Button>
           </form>

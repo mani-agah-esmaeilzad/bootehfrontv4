@@ -82,14 +82,14 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-hrbooteh-gradient-subtle flex items-center justify-center p-4">
+    <div className="min-h-screen bg-hrbooteh-gradient-subtle flex items-center justify-center p-0 md:p-4">
       <Card className="w-full max-w-lg shadow-hrbooteh-lg border-0 bg-hrbooteh-surface overflow-hidden">
         <CardHeader className="text-center pb-2">
           <div className="flex justify-center mb-4">
             <Logo variant="large" />
           </div>
           <CardTitle className="text-2xl font-bold text-hrbooteh-text-primary">
-            ثبت‌نام در hrbooteh
+            ثبت‌نام
           </CardTitle>
           <CardDescription className="text-hrbooteh-text-secondary">
             حساب کاربری خود را ایجاد کنید و مسیر ارزیابی را شروع کنید
@@ -134,27 +134,27 @@ const Register = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="phoneNumber">شماره تماس (اختیاری)</Label>
+                <Label htmlFor="phoneNumber">شماره تماس</Label>
                 <Input id="phoneNumber" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="age">سن (اختیاری)</Label>
+                <Label htmlFor="age">سن</Label>
                 <Input id="age" name="age" type="number" value={formData.age} onChange={handleChange} />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="educationLevel">سطح تحصیلات (اختیاری)</Label>
+                <Label htmlFor="educationLevel">سطح تحصیلات</Label>
                 <Input id="educationLevel" name="educationLevel" value={formData.educationLevel} onChange={handleChange} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="workExperience">شغل (اختیاری)</Label>
+                <Label htmlFor="workExperience">شغل</Label>
                 <Input id="workExperience" name="workExperience" value={formData.workExperience} onChange={handleChange} />
               </div>
             </div>
 
-            <Button type="submit" variant="hrbooteh-gradient" size="lg" className="w-full mt-6" disabled={isLoading}>
+            <Button type="submit" variant="hrbooteh-gradient" size="md" className="w-full mt-10" disabled={isLoading}>
               {isLoading ? <LoaderCircle className="animate-spin" /> : 'ثبت‌نام'}
             </Button>
           </form>

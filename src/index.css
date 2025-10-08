@@ -9,44 +9,54 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* Brand Colors */
-    --hrbooteh-primary: 217 100% 54%;     /* #2563EB - Main brand blue */
+    --hrbooteh-primary: 217 100% 54%;
+    /* #2563EB - Main brand blue */
     --hrbooteh-primary-foreground: 0 0% 100%;
-    --hrbooteh-primary-hover: 217 100% 48%; 
-    --hrbooteh-accent: 172 86% 40%;       /* #14B8A6 - Teal accent */
+    --hrbooteh-primary-hover: 217 100% 48%;
+    --hrbooteh-accent: 172 86% 40%;
+    /* #14B8A6 - Teal accent */
     --hrbooteh-accent-foreground: 0 0% 100%;
-    
+
     /* Background System */
-    --hrbooteh-background: 210 33% 97%;   /* #F8FAFC - Main background */
-    --hrbooteh-surface: 0 0% 100%;        /* Pure white for cards */
+    --hrbooteh-background: 210 33% 97%;
+    /* #F8FAFC - Main background */
+    --hrbooteh-surface: 0 0% 100%;
+    /* Pure white for cards */
     --hrbooteh-surface-elevated: 210 22% 95%;
-    
+
     /* Text System */
-    --hrbooteh-text-primary: 220 14% 12%; /* #1E293B - Main text */
-    --hrbooteh-text-secondary: 215 16% 47%; /* #64748B - Secondary text */
+    --hrbooteh-text-primary: 220 14% 12%;
+    /* #1E293B - Main text */
+    --hrbooteh-text-secondary: 215 16% 47%;
+    /* #64748B - Secondary text */
     --hrbooteh-text-muted: 215 14% 70%;
-    
+
     /* Success & Status */
-    --hrbooteh-success: 142 76% 36%;      /* Green for completed */
+    --hrbooteh-success: 142 76% 36%;
+    /* Green for completed */
     --hrbooteh-success-foreground: 0 0% 100%;
-    --hrbooteh-warning: 38 92% 50%;       /* Orange for current */
+    --hrbooteh-warning: 38 92% 50%;
+    /* Orange for current */
     --hrbooteh-warning-foreground: 220 14% 12%;
-    
+
     /* Chat System */
-    --hrbooteh-chat-ai: 0 0% 100%;        /* White for AI messages */
+    --hrbooteh-chat-ai: 0 0% 100%;
+    /* White for AI messages */
     --hrbooteh-chat-ai-border: 215 28% 89%;
-    --hrbooteh-chat-user: 217 100% 54%;   /* Blue for user messages */
+    --hrbooteh-chat-user: 217 100% 54%;
+    /* Blue for user messages */
     --hrbooteh-chat-user-foreground: 0 0% 100%;
-    
+
     /* Gradients */
     --hrbooteh-gradient-primary: linear-gradient(135deg, hsl(217 100% 54%), hsl(172 86% 40%));
     --hrbooteh-gradient-subtle: linear-gradient(180deg, hsl(210 33% 99%), hsl(210 33% 97%));
     --hrbooteh-gradient-success: linear-gradient(135deg, hsl(142 76% 36%), hsl(142 76% 45%));
-    
+
     /* Shadows */
     --hrbooteh-shadow-sm: 0 1px 2px 0 hsl(220 14% 12% / 0.05);
     --hrbooteh-shadow-md: 0 4px 6px -1px hsl(220 14% 12% / 0.1), 0 2px 4px -1px hsl(220 14% 12% / 0.06);
     --hrbooteh-shadow-lg: 0 10px 15px -3px hsl(217 100% 54% / 0.1), 0 4px 6px -2px hsl(217 100% 54% / 0.05);
-    
+
     /* Animations */
     --hrbooteh-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --hrbooteh-transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
@@ -93,7 +103,7 @@ All colors MUST be HSL.
     --hrbooteh-text-muted: 215 14% 45%;
     --hrbooteh-chat-ai: 220 14% 15%;
     --hrbooteh-chat-ai-border: 220 14% 25%;
-    
+
     --background: var(--hrbooteh-background);
     --foreground: var(--hrbooteh-text-primary);
     --card: var(--hrbooteh-surface);
@@ -112,6 +122,14 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: var(--hrbooteh-text-primary);
     --sidebar-border: 220 14% 25%;
   }
+}
+
+html,
+body,
+#app {
+  overscroll-behavior-y: none;
+  touch-action: pan-x pan-y;
+  padding-top: env(safe-area-inset-top)
 }
 
 @layer base {
