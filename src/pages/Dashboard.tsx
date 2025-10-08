@@ -1,12 +1,21 @@
 // src/pages/Dashboard.tsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
-import { ProgressTimeline, TimelineStep } from "@/components/ui/progress-timeline";
-import { ArrowLeft, User, LoaderCircle, AlertTriangle } from "lucide-react";
+import { AssessmentMap, AssessmentMapStep } from "@/components/ui/assessment-map";
+import {
+  ArrowLeft,
+  User,
+  LoaderCircle,
+  AlertTriangle,
+  Sparkles,
+  Rocket,
+  Trophy,
+  Lock,
+} from "lucide-react";
 import apiFetch from "@/services/apiService";
 import { toast } from "sonner";
 
@@ -74,17 +83,41 @@ const Dashboard = () => {
     }
   };
 
-  // Steps برای Timeline
-  const timelineSteps: TimelineStep[] = assessments.map((a) => ({
+  const statusPriority: Record<Assessment["status"], number> = {
+    locked: 1,
+    completed: 2,
+    current: 3,
+  };
+
+  const dedupedAssessments = useMemo(() => {
+    const map = new Map<string, Assessment>();
+    assessments.forEach((assessment) => {
+      const key = assessment.stringId || String(assessment.id);
+      const existing = map.get(key);
+      if (!existing || statusPriority[assessment.status] >= statusPriority[existing.status]) {
+        map.set(key, assessment);
+      }
+    });
+    return Array.from(map.values());
+  }, [assessments]);
+
+  // مراحل برای نقشه مارپیچ
+  const mapSteps: AssessmentMapStep[] = dedupedAssessments.map((a) => ({
     id: a.stringId || String(a.id),
     title: a.title,
     description: a.description,
-    status: a.status, // از status به‌روز شده استفاده می‌کند
+    status: a.status,
   }));
 
-  // *** تغییر اصلی اینجا اعمال شد ***
-  // به جای "pending" به دنبال "current" می‌گردد
-  const currentAssessment = assessments.find((a) => a.status === "current");
+  const currentAssessment = dedupedAssessments.find((a) => a.status === "current");
+  const totalCount = dedupedAssessments.length;
+  const completedCount = dedupedAssessments.filter((a) => a.status === "completed").length;
+  const lockedCount = dedupedAssessments.filter((a) => a.status === "locked").length;
+  const availableCount = dedupedAssessments.filter((a) => a.status !== "locked").length;
+  const remainingCount = Math.max(totalCount - completedCount, 0);
+  const progressPercent = totalCount ? Math.round((completedCount / totalCount) * 100) : 0;
+
+  const formatNumber = (value: number) => value.toLocaleString("fa-IR");
 
   // رندر محتوا
   const renderContent = () => {
@@ -95,90 +128,183 @@ const Dashboard = () => {
 
     if (error)
       return (
-        <div className="text-center p-10 bg-destructive/10 rounded-lg">
-          <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
-          <p className="mt-4 text-destructive font-semibold">خطا در دریافت اطلاعات</p>
-          <p className="text-hrbooteh-text-secondary mt-2">{error}</p>
-          <Button
-            variant="destructive"
-            className="mt-4"
-            onClick={fetchAssessments}
-          >
+        <Card className="border border-red-100 bg-white p-8 text-center text-slate-700 shadow-sm">
+          <AlertTriangle className="mx-auto h-12 w-12 text-red-500" />
+          <p className="mt-4 text-lg font-semibold text-slate-900">خطا در دریافت اطلاعات</p>
+          <p className="mt-2 text-sm text-slate-500">{error}</p>
+          <Button variant="destructive" className="mt-6" onClick={fetchAssessments}>
             تلاش مجدد
           </Button>
-        </div>
+        </Card>
       );
       
     // اگر همه ارزیابی‌ها تمام شده باشند، پیامی نمایش داده می‌شود
-    if (!currentAssessment && assessments.length > 0 && assessments.every(a => a.status === 'completed')) {
+    if (!currentAssessment && dedupedAssessments.length > 0 && dedupedAssessments.every((a) => a.status === "completed")) {
       return (
-        <Card className="p-8 shadow-hrbooteh-lg border-0 bg-hrbooteh-surface mb-8 text-center">
-          <h2 className="text-xl font-semibold text-hrbooteh-text-primary mb-4">
+        <Card className="rounded-3xl border border-emerald-100 bg-white p-10 text-center shadow-sm">
+          <h2 className="text-2xl font-bold text-slate-900">
             مسیر ارزیابی شما با موفقیت به پایان رسید!
           </h2>
-          <p className="text-hrbooteh-text-secondary">
+          <p className="mt-3 text-sm text-slate-500">
             شما تمام مراحل را تکمیل کرده‌اید. برای مشاهده نتایج می‌توانید به بخش گزارش‌ها مراجعه کنید.
           </p>
-          <Button className="mt-6" onClick={() => navigate('/results')}>
-              مشاهده نتایج کلی
+          <Button
+            variant="secondary"
+            className="mt-6 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+            onClick={() => navigate('/results')}
+          >
+            مشاهده نتایج کلی
           </Button>
         </Card>
-      )
+      );
     }
 
-    return (
-      <>
-        <Card className="p-8 shadow-hrbooteh-lg border-0 bg-hrbooteh-surface mb-8">
-          <h2 className="text-xl font-semibold text-hrbooteh-text-primary mb-6 text-center">
-            وضعیت پیشرفت شما
-          </h2>
-          <ProgressTimeline steps={timelineSteps} />
-        </Card>
+    const stats = [
+      {
+        label: "مرحله‌های تکمیل‌شده",
+        value: `${formatNumber(completedCount)}${totalCount ? ` از ${formatNumber(totalCount)}` : ""}`,
+        icon: Trophy,
+      },
+      {
+        label: "مرحله‌های در دسترس",
+        value: formatNumber(availableCount),
+        icon: Rocket,
+      },
+      {
+        label: "مرحله‌های قفل",
+        value: formatNumber(lockedCount),
+        icon: Lock,
+      },
+      {
+        label: "درصد پیشرفت",
+        value: `${formatNumber(progressPercent)}٪`,
+        icon: Sparkles,
+      },
+    ];
 
-        {currentAssessment && (
-          <div className="text-center">
-            <Button
-              variant="hrbooteh-gradient"
-              size="xl"
-              onClick={() => handleStartAssessment(currentAssessment.id)}
-              disabled={!!startingAssessmentId}
-              className="min-w-[300px] group"
-            >
-              {startingAssessmentId === currentAssessment.id ? (
-                <LoaderCircle className="animate-spin" />
-              ) : (
-                <ArrowLeft className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+    return (
+      <div className="space-y-12">
+        <section className="rounded-3xl border border-slate-200 bg-white/90 p-10 shadow-sm">
+          <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1 text-sm font-medium text-slate-500">
+                <Sparkles className="h-4 w-4 text-amber-500" />
+                مسیر ارزیابی شما
+              </span>
+              <h2 className="mt-6 text-3xl font-bold leading-tight text-slate-900">
+                {currentAssessment
+                  ? `مرحله «${currentAssessment.title}» منتظر شماست!`
+                  : "همه‌چیز برای شروع سفر مهارتی آماده است"}
+              </h2>
+              <p className="mt-4 max-w-xl text-sm leading-relaxed text-slate-500">
+                روند ارزیابی شما به شکلی ساده و مرحله‌ای نمایش داده می‌شود. هر بخش را تکمیل کنید تا مرحله بعدی آزاد شود
+                و مسیر خود را به آرامی پیش ببرید.
+              </p>
+            </div>
+            <div className="flex flex-col items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-6 py-6 text-center">
+              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                مراحل باقی‌مانده
+              </span>
+              <span className="text-4xl font-bold text-slate-900">
+                {formatNumber(remainingCount)}
+              </span>
+              <Button
+                variant="secondary"
+                size="lg"
+                onClick={() => currentAssessment && handleStartAssessment(currentAssessment.id)}
+                disabled={!currentAssessment || !!startingAssessmentId}
+                className="w-full rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 disabled:bg-slate-100 disabled:text-slate-400"
+              >
+                {startingAssessmentId === currentAssessment?.id ? (
+                  <LoaderCircle className="mr-2 h-5 w-5 animate-spin" />
+                ) : (
+                  <ArrowLeft className="ml-2 h-5 w-5" />
+                )}
+                {currentAssessment ? "شروع مرحله‌ی بعدی" : "در انتظار آزاد شدن مراحل"}
+              </Button>
+              {currentAssessment && (
+                <p className="text-xs text-slate-500">
+                  آماده برای شروع: {currentAssessment.title}
+                </p>
               )}
-              {startingAssessmentId === currentAssessment.id
-                ? "در حال شروع..."
-                : "شروع ارزیابی بعدی"}
-            </Button>
-            <p className="text-hrbooteh-text-secondary mt-4">
-              آماده برای شروع: {currentAssessment.title}
-            </p>
+            </div>
           </div>
-        )}
-      </>
+        </section>
+
+        <section className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+          {stats.map((stat) => {
+            const Icon = stat.icon;
+            return (
+              <div
+                key={stat.label}
+                className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+              >
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <span className="text-2xl font-semibold text-slate-900">{stat.value}</span>
+                  </div>
+                  <p className="text-sm text-slate-500">{stat.label}</p>
+                </div>
+              </div>
+            );
+          })}
+        </section>
+
+        <Card className="rounded-3xl border border-slate-200 bg-white p-10 shadow-sm">
+          <h3 className="mb-4 text-center text-2xl font-bold text-slate-900">
+            نقشه‌ی مارپیچ ارزیابی
+          </h3>
+          <p className="mb-8 text-center text-sm text-slate-500">
+            هر حباب نماینده‌ی یک مرحله است. با تکمیل هر مرحله، مرحله‌ی بعدی باز می‌شود و مسیر شما ادامه پیدا می‌کند.
+          </p>
+          <AssessmentMap
+            steps={mapSteps}
+            onStepSelect={(step) => {
+              const selectedAssessment = dedupedAssessments.find(
+                (assessment) => (assessment.stringId || String(assessment.id)) === step.id
+              );
+
+              if (!selectedAssessment) return;
+
+              if (selectedAssessment.status === "current") {
+                handleStartAssessment(selectedAssessment.id);
+              } else if (selectedAssessment.status === "completed") {
+                toast.info("این مرحله پیش‌تر تکمیل شده است. نتایج در بخش گزارش‌ها در دسترس است.");
+              } else {
+                toast.info("برای دسترسی به این مرحله ابتدا مرحله‌های قبلی را تکمیل کنید.");
+              }
+            }}
+          />
+        </Card>
+      </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-hrbooteh-gradient-subtle">
-      <header className="bg-hrbooteh-surface shadow-hrbooteh-sm border-b border-hrbooteh-surface-elevated">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+    <div className="min-h-screen bg-[#f7f9fc] text-slate-900">
+      <header className="border-b border-slate-200 bg-white/80 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5">
           <Logo variant="large" />
-          <Button variant="hrbooteh-ghost" size="icon-sm">
-            <User className="w-5 h-5" />
+          <Button
+            variant="outline"
+            size="icon"
+            className="rounded-full border-slate-200 text-slate-600 hover:bg-slate-100"
+          >
+            <User className="h-5 w-5" />
           </Button>
         </div>
       </header>
-      <main className="container mx-auto px-4 py-8 max-w-2xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold text-hrbooteh-text-primary mb-4">
-            مسیر ارزیابی شما در hrbooteh
+      <main className="mx-auto w-full max-w-6xl px-6 py-12">
+        <div className="mb-12 flex flex-col gap-3">
+          <h1 className="text-3xl font-bold leading-tight text-slate-900">
+            داشبورد ارزیابی 
           </h1>
-          <p className="text-hrbooteh-text-secondary text-lg">
-            شما در حال طی کردن یک مسیر جامع ارزیابی مهارت‌های حرفه‌ای هستید
+          <p className="max-w-2xl text-sm leading-relaxed text-slate-500">
+            یک نمای ساده و روشن از مراحل ارزیابی شما؛ مسیر را قدم به قدم جلو بروید و هر زمان آماده شدید وارد مرحله
+            بعدی شوید.
           </p>
         </div>
         {renderContent()}
