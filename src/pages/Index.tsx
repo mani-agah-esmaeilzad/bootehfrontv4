@@ -587,8 +587,28 @@ const Index = () => {
             <span>شرایط استفاده</span>
             <span>حمایت</span>
           </div>
+          {footerLinks.map((column) => (
+            <div key={column.title} className="space-y-3 text-sm">
+              <p className="text-sm font-semibold text-slate-900">{column.title}</p>
+              <ul className="space-y-2 text-slate-500">
+                {column.items.map((item) => (
+                  <li key={item} className="transition hover:text-slate-900">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
-      </footer>
+        <div className="mx-auto mt-10 flex w-full max-w-6xl flex-col items-center justify-between gap-4 border-t border-purple-100/60 px-4 pt-6 text-xs text-slate-400 md:flex-row md:px-6">
+          <p>© {new Date().getFullYear()} بوته. تمام حقوق محفوظ است.</p>
+          <div className="flex gap-4">
+            <span>حریم خصوصی</span>
+            <span>شرایط استفاده</span>
+            <span>حمایت</span>
+          </div>
+        </section>
+      </main>
     </div>
   );
 };
