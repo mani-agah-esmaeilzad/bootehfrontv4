@@ -17,16 +17,18 @@ const clamp = (value: number, min: number, max: number) => Math.min(Math.max(val
 
 export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
   const nodePositions = useMemo(() => {
-    const angleStep = 1.35; // Radians between nodes to mimic a spiral turn
-    const baseRadius = 18;
-    const radiusGrowth = 6;
-    const verticalSpacing = 150;
+    const baseRadius = 14;
+    const radiusGrowth = 9;
+    const verticalSpacing = 160;
+    const waveMagnitude = 24;
 
     return steps.map((step, index) => {
-      const angle = index * angleStep;
+      const turn = index * 0.85;
       const dynamicRadius = baseRadius + index * radiusGrowth;
-      const x = clamp(50 + Math.cos(angle) * dynamicRadius, 8, 92);
-      const y = 120 + index * verticalSpacing + Math.sin(angle) * 22;
+      const sinusoidal = Math.sin(turn * 1.65) * waveMagnitude;
+      const cosineOffset = Math.cos(turn * 0.8) * (waveMagnitude * 0.8);
+      const x = clamp(50 + sinusoidal + Math.cos(turn) * dynamicRadius * 0.4, 6, 94);
+      const y = 120 + index * verticalSpacing + cosineOffset;
 
       return {
         step,
@@ -36,6 +38,83 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
       };
     });
   }, [steps]);
+
+  const pathCommands = useMemo(() => {
+    if (!nodePositions.length) return "";
+
+    return nodePositions
+      .map((point, i, arr) => {
+        if (i === 0) {
+          return `M ${point.x} ${point.y}`;
+        }
+
+        const prev = arr[i - 1];
+        const midX = (prev.x + point.x) / 2;
+        const controlOffset = (point.y - prev.y) / 3;
+
+        return `C ${midX} ${prev.y + controlOffset}, ${midX} ${point.y - controlOffset}, ${point.x} ${point.y}`;
+      })
+      .join(" ");
+  }, [nodePositions]);
+
+  const accentPathCommands = useMemo(() => {
+    if (!nodePositions.length) return [] as string[];
+
+    return [10, -10].map((offset) =>
+      nodePositions
+        .map((point, i, arr) => {
+          const y = point.y + offset;
+
+          if (i === 0) {
+            return `M ${point.x} ${y}`;
+          }
+
+          const prev = arr[i - 1];
+          const prevY = prev.y + offset;
+          const midX = (prev.x + point.x) / 2;
+
+          return `Q ${midX} ${(prevY + y) / 2}, ${point.x} ${y}`;
+        })
+        .join(" ")
+    );
+  }, [nodePositions]);
+
+  const lastCompletedIndex = useMemo(() => {
+    let completedIndex = -1;
+    nodePositions.forEach(({ step, index }) => {
+      if (step.status === "completed") {
+        completedIndex = index;
+      }
+    });
+    return completedIndex;
+  }, [nodePositions]);
+
+  const currentIndex = useMemo(
+    () => nodePositions.find(({ step }) => step.status === "current")?.index ?? -1,
+    [nodePositions]
+  );
+
+  const activeIndex = currentIndex !== -1 ? currentIndex : lastCompletedIndex;
+
+  const progressCommands = useMemo(() => {
+    if (activeIndex < 0) return "";
+
+    const sliced = nodePositions.slice(0, activeIndex + 1);
+
+    return sliced
+      .map((point, i, arr) => {
+        if (i === 0) {
+          return `M ${point.x} ${point.y}`;
+        }
+
+        const prev = arr[i - 1];
+        const midX = (prev.x + point.x) / 2;
+        const controlOffset = (point.y - prev.y) / 3;
+
+        return `C ${midX} ${prev.y + controlOffset}, ${midX} ${point.y - controlOffset}, ${point.x} ${point.y}`;
+      })
+      .join(" ");
+  }, [activeIndex, nodePositions]);
 
   if (!steps.length) {
     return (
@@ -62,6 +141,11 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
               <stop offset="0%" stopColor="rgba(124,58,237,0.35)" />
               <stop offset="100%" stopColor="rgba(124,58,237,0.12)" />
             </linearGradient>
+            <linearGradient id="mapProgressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="rgba(139,92,246,0.95)" />
+              <stop offset="50%" stopColor="rgba(167,139,250,0.9)" />
+              <stop offset="100%" stopColor="rgba(59,130,246,0.92)" />
+            </linearGradient>
             <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur stdDeviation="12" result="coloredBlur" />
               <feMerge>
@@ -69,26 +153,65 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
+            <filter id="accentGlow" x="-150%" y="-150%" width="400%" height="400%">
+              <feGaussianBlur stdDeviation="22" result="accentBlur" />
+              <feMerge>
+                <feMergeNode in="accentBlur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
           </defs>
           <path
-            d={nodePositions
-              .map((point, i, arr) => {
-                if (i === 0) {
-                  return `M ${point.x} ${point.y}`;
-                }
-                const prev = arr[i - 1];
-                const midX = (prev.x + point.x) / 2;
-                return `C ${midX} ${prev.y}, ${midX} ${point.y}, ${point.x} ${point.y}`;
-              })
-              .join(" ")}
+            d={pathCommands}
             fill="none"
             stroke="url(#mapPathGradient)"
+            strokeWidth={8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity={0.65}
+            filter="url(#softGlow)"
+          />
+          {accentPathCommands.map((accentPath, index) => (
+            <path
+              key={`accent-${index}`}
+              d={accentPath}
+              fill="none"
+              stroke="rgba(139,92,246,0.2)"
+              strokeWidth={2}
+              strokeDasharray="12 16"
+              strokeLinecap="round"
+              opacity={0.5 - index * 0.2}
+            />
+          ))}
+          <path
+            d={progressCommands}
+            fill="none"
+            stroke="url(#mapProgressGradient)"
             strokeWidth={5}
             strokeLinecap="round"
             strokeLinejoin="round"
-            opacity={0.85}
-            filter="url(#softGlow)"
+            filter="url(#accentGlow)"
           />
+          {nodePositions.map((point) => (
+            <g key={`orbit-${point.step.id}`}>
+              <circle
+                cx={point.x}
+                cy={point.y}
+                r={17}
+                fill="url(#mapPathGradient)"
+                opacity={0.18}
+              />
+              <circle
+                cx={point.x}
+                cy={point.y}
+                r={27}
+                stroke="rgba(148,163,184,0.2)"
+                strokeWidth={0.6}
+                strokeDasharray="6 9"
+                fill="none"
+              />
+            </g>
+          ))}
         </svg>
       </div>
 
