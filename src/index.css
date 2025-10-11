@@ -148,3 +148,21 @@ body,
     direction: rtl;
   }
 }
+@layer utilities {
+  @keyframes avatar-wiggle {
+    0%,
+    100% {
+      transform: rotate(0deg) translate3d(0, 0, 0);
+    }
+    30% {
+      transform: rotate(3deg) translate3d(1px, -1px, 0);
+    }
+    60% {
+      transform: rotate(-3deg) translate3d(-1px, 1px, 0);
+    }
+  }
+
+  .animate-avatar-wiggle {
+    animation: avatar-wiggle 1.15s ease-in-out infinite;
+  }
+}
