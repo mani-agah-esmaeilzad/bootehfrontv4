@@ -521,6 +521,35 @@ const Index = () => {
               hello@hrbooteh.com
             </a>
           </div>
+          <div>
+            <h4 className="text-sm font-semibold uppercase tracking-widest text-hrbooteh-text-primary">About</h4>
+            <ul className="mt-4 space-y-3 text-sm">
+              <li>About</li>
+              <li>Blog</li>
+              <li>For Team Leads</li>
+              <li>For Teachers</li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold uppercase tracking-widest text-hrbooteh-text-primary">Use Cases</h4>
+            <ul className="mt-4 space-y-3 text-sm">
+              <li>Recruiting</li>
+              <li>Performance</li>
+              <li>Culture</li>
+              <li>Growth</li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold uppercase tracking-widest text-hrbooteh-text-primary">Contact</h4>
+            <ul className="mt-4 space-y-3 text-sm">
+              <li>hello@hrbooteh.com</li>
+              <li>+351 445 485</li>
+              <li>Porto, Portugal</li>
+            </ul>
+          </div>
+        </div>
+        <div className="mt-12 border-t border-hrbooteh-surface-elevated pt-6 text-center text-sm">
+          © {new Date().getFullYear()} HRbooteh. All rights reserved.
         </div>
       </footer>
     </div>
