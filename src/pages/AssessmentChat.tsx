@@ -277,6 +277,84 @@ const AssessmentChat = () => {
     };
   });
 
+  const personaMeta = {
+    user: {
+      name: "شما",
+      avatar: avatarUser,
+      badge: "شرکت‌کننده",
+      accent: "from-sky-400 to-sky-500",
+      bubble: "bg-sky-50/90 text-sky-800 border-sky-100",
+      glow: "shadow-[0_10px_30px_-12px_rgba(56,189,248,0.65)]",
+      layout: "center",
+    },
+    narrator: {
+      name: "راوی",
+      avatar: avatarNarrator,
+      badge: "نقال سناریو",
+      accent: "from-emerald-400 to-teal-500",
+      bubble: "bg-emerald-50/90 text-emerald-800 border-emerald-100",
+      glow: "shadow-[0_10px_30px_-12px_rgba(16,185,129,0.65)]",
+      layout: "left",
+    },
+    proctor: {
+      name: "مبصر",
+      avatar: avatarProctor,
+      badge: "ناظر آزمون",
+      accent: "from-amber-400 to-orange-500",
+      bubble: "bg-amber-50/90 text-amber-900 border-amber-100",
+      glow: "shadow-[0_10px_30px_-12px_rgba(245,158,11,0.65)]",
+      layout: "right",
+    },
+    ai: {
+      name: "مشاور",
+      avatar: avatarNarrator,
+      badge: "دستیار",
+      accent: "from-indigo-400 to-purple-500",
+      bubble: "bg-indigo-50/90 text-indigo-800 border-indigo-100",
+      glow: "shadow-[0_10px_30px_-12px_rgba(129,140,248,0.65)]",
+      layout: "left",
+    },
+  } as const;
+
+  const resolvePersonaKey = (message: ChatMessage) => {
+    if (message.sender === "user") return "user" as const;
+    if (message.personaName?.includes("مبصر")) return "proctor" as const;
+    if (message.personaName?.includes("راوی")) return "narrator" as const;
+    return "ai" as const;
+  };
+
+  const resolvePersonaMeta = (message: ChatMessage) => personaMeta[resolvePersonaKey(message)];
+
+  const getLayoutClasses = (layout: (typeof personaMeta)[keyof typeof personaMeta]["layout"]) => {
+    const base = "order-1 flex flex-col gap-3 text-right";
+
+    switch (layout) {
+      case "left":
+        return cn(base, "md:col-start-1 md:justify-self-end md:pr-6");
+      case "right":
+        return cn(base, "md:col-start-3 md:justify-self-start md:pl-6");
+      default:
+        return cn(base, "md:col-span-3 md:col-start-2 md:max-w-xl md:justify-self-center");
+    }
+  };
+
+  const personaCards = avatars.map((avatar) => {
+    const cardMeta =
+      avatar.role === "user"
+        ? personaMeta.user
+        : avatar.role === "proctor"
+        ? personaMeta.proctor
+        : personaMeta.narrator;
+
+    const normalizedTyping = activeTyping ?? "";
+    const isActive =
+      (avatar.role === "user" && isUserTurn) ||
+      normalizedTyping.includes(cardMeta.name) ||
+      (normalizedTyping === "مشاور" && cardMeta.name === "راوی");
+
+    return { ...avatar, meta: cardMeta, isActive };
+  });
+
   return (
     <div className="relative flex min-h-[100dvh] w-full justify-center overflow-hidden bg-gradient-to-br from-[#f8f7ff] via-[#eef2ff] to-[#f5fbff] px-4 py-8 text-slate-900 sm:px-6 lg:px-10">
       <div className="pointer-events-none absolute -left-32 top-24 h-72 w-72 rounded-full bg-indigo-200/35 blur-3xl" />
