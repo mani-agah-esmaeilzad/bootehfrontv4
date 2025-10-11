@@ -237,7 +237,7 @@ const AssessmentChat = () => {
   });
 
   return (
-    <div className="relative flex min-h-screen w-full justify-center overflow-hidden bg-gradient-to-br from-[#f9fbff] via-[#eef4ff] to-[#f4fbff] px-3 py-8 text-slate-900 sm:px-4 sm:py-10">
+    <div className="relative flex min-h-[100dvh] w-full justify-center overflow-x-hidden bg-gradient-to-br from-[#f9fbff] via-[#eef4ff] to-[#f4fbff] px-3 py-8 text-slate-900 sm:px-4 sm:py-10">
       <div className="pointer-events-none absolute -left-32 top-24 h-72 w-72 rounded-full bg-sky-200/40 blur-3xl" />
       <div className="pointer-events-none absolute -right-20 -bottom-32 h-80 w-80 rounded-full bg-emerald-200/40 blur-3xl" />
       <div className="pointer-events-none absolute left-1/2 top-0 h-32 w-[90%] -translate-x-1/2 rounded-full bg-white/60 blur-2xl" />
@@ -297,7 +297,7 @@ const AssessmentChat = () => {
         <section className="relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-3xl border border-white/60 bg-white/80 p-4 shadow-xl sm:rounded-[2.5rem] sm:p-6">
           <div className="pointer-events-none absolute inset-x-12 top-0 hidden h-32 rounded-b-[60%] bg-gradient-to-b from-white/80 to-transparent md:block" />
           <div className="pointer-events-none absolute inset-y-8 left-1/2 hidden w-[3px] -translate-x-1/2 rounded-full bg-gradient-to-b from-sky-200 via-sky-300 to-emerald-200 md:block" />
-          <div className="relative flex flex-1 min-h-0 flex-col gap-8 overflow-y-auto px-1 py-4 sm:gap-10 sm:px-2 sm:py-6">
+          <div className="relative flex flex-1 min-h-0 flex-col gap-8 overflow-y-auto px-1 py-4 pb-24 sm:gap-10 sm:px-2 sm:py-6 sm:pb-24">
             {messages.map((msg, index) => {
               const meta = resolvePersonaMeta(msg);
               const layoutClasses = getLayoutClasses(meta.layout);
@@ -370,7 +370,7 @@ const AssessmentChat = () => {
           </div>
         </section>
 
-        <footer className="sticky bottom-0 z-10 mt-auto sm:bottom-1">
+        <footer className="sticky bottom-0 z-10 mt-auto sm:bottom-3 md:bottom-6">
           <div className="rounded-3xl border border-white/70 bg-white/90 p-2.5 shadow-2xl backdrop-blur sm:rounded-full sm:p-3">
             <div className="flex items-center gap-2.5 sm:gap-3">
               <Button
