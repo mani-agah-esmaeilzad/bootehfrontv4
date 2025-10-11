@@ -7,14 +7,15 @@ import { Card } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
 import { AssessmentMap, AssessmentMapStep } from "@/components/ui/assessment-map";
 import {
-  ArrowLeft,
-  User,
-  LoaderCircle,
   AlertTriangle,
-  Sparkles,
-  Rocket,
-  Trophy,
+  ArrowLeft,
+  Clock3,
+  LoaderCircle,
   Lock,
+  Rocket,
+  Sparkles,
+  Trophy,
+  User,
 } from "lucide-react";
 import apiFetch from "@/services/apiService";
 import { toast } from "sonner";
@@ -123,38 +124,55 @@ const Dashboard = () => {
   const renderContent = () => {
     if (isLoading)
       return (
-        <LoaderCircle className="animate-spin mx-auto h-12 w-12 text-hrbooteh-primary" />
+        <div className="flex items-center justify-center py-24">
+          <LoaderCircle className="h-12 w-12 animate-spin text-purple-500" />
+        </div>
       );
 
     if (error)
       return (
-        <Card className="border border-red-100 bg-white p-8 text-center text-slate-700 shadow-sm">
-          <AlertTriangle className="mx-auto h-12 w-12 text-red-500" />
-          <p className="mt-4 text-lg font-semibold text-slate-900">خطا در دریافت اطلاعات</p>
-          <p className="mt-2 text-sm text-slate-500">{error}</p>
-          <Button variant="destructive" className="mt-6" onClick={fetchAssessments}>
+        <Card className="rounded-3xl border border-purple-200/80 bg-white/95 p-10 text-center shadow-[0_16px_60px_rgba(124,58,237,0.12)]">
+          <AlertTriangle className="mx-auto h-12 w-12 text-purple-500" />
+          <p className="mt-5 text-lg font-semibold text-slate-900">خطا در دریافت اطلاعات</p>
+          <p className="mt-2 text-sm leading-relaxed text-slate-500">{error}</p>
+          <Button
+            className="mt-6 rounded-full bg-gradient-to-l from-purple-600 to-purple-500 px-6 py-2 text-white shadow-[0_12px_30px_rgba(124,58,237,0.35)] hover:from-purple-700 hover:to-purple-600"
+            onClick={fetchAssessments}
+          >
             تلاش مجدد
           </Button>
         </Card>
       );
 
-    // اگر همه ارزیابی‌ها تمام شده باشند، پیامی نمایش داده می‌شود
-    if (!currentAssessment && dedupedAssessments.length > 0 && dedupedAssessments.every((a) => a.status === "completed")) {
+    const finishedAll =
+      !currentAssessment &&
+      dedupedAssessments.length > 0 &&
+      dedupedAssessments.every((a) => a.status === "completed");
+
+    if (finishedAll) {
       return (
-        <Card className="rounded-3xl border border-emerald-100 bg-white p-10 text-center shadow-sm">
-          <h2 className="text-2xl font-bold text-slate-900">
-            مسیر ارزیابی شما با موفقیت به پایان رسید!
-          </h2>
-          <p className="mt-3 text-sm text-slate-500">
-            شما تمام مراحل را تکمیل کرده‌اید. برای مشاهده نتایج می‌توانید به بخش گزارش‌ها مراجعه کنید.
+        <Card className="rounded-[32px] border border-purple-200/80 bg-white/95 p-12 text-center shadow-[0_24px_80px_rgba(124,58,237,0.16)]">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+            <Trophy className="h-8 w-8" />
+          </div>
+          <h2 className="text-3xl font-bold text-slate-900">مسیر ارزیابی شما کامل شد!</h2>
+          <p className="mt-4 text-sm leading-relaxed text-slate-500">
+            تمام مرحله‌ها با موفقیت طی شده‌اند. برای مشاهده گزارش جامع می‌توانید به نتایج نهایی سر بزنید و پیشنهادهای بعدی را دریافت کنید.
           </p>
-          <Button
-            variant="secondary"
-            className="mt-6 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-            onClick={() => navigate('/results')}
-          >
-            مشاهده نتایج کلی
-          </Button>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Button
+              className="rounded-full border border-purple-200 bg-white px-6 py-2 text-sm font-semibold text-purple-600 transition hover:bg-purple-50"
+              onClick={() => navigate('/results')}
+            >
+              مشاهده گزارش کامل
+            </Button>
+            <Button
+              className="rounded-full bg-gradient-to-l from-purple-600 to-purple-500 px-6 py-2 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(124,58,237,0.28)] hover:from-purple-700 hover:to-purple-600"
+              onClick={fetchAssessments}
+            >
+              شروع دوباره مسیر
+            </Button>
+          </div>
         </Card>
       );
     }
@@ -164,147 +182,179 @@ const Dashboard = () => {
         label: "مرحله‌های تکمیل‌شده",
         value: `${formatNumber(completedCount)}${totalCount ? ` از ${formatNumber(totalCount)}` : ""}`,
         icon: Trophy,
+        accent: "bg-purple-100/80 text-purple-600",
       },
       {
         label: "مرحله‌های در دسترس",
         value: formatNumber(availableCount),
         icon: Rocket,
+        accent: "bg-purple-100/60 text-purple-600",
       },
       {
         label: "مرحله‌های قفل",
         value: formatNumber(lockedCount),
         icon: Lock,
+        accent: "bg-slate-100 text-slate-500",
       },
       {
         label: "درصد پیشرفت",
         value: `${formatNumber(progressPercent)}٪`,
         icon: Sparkles,
+        accent: "bg-purple-100/80 text-purple-600",
       },
     ];
 
     return (
       <div className="space-y-12">
-        <section className="rounded-3xl border border-slate-200 bg-white/90 p-10 shadow-sm">
-          <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
-            <div>
-              <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-1 text-sm font-medium text-slate-500">
-                <Sparkles className="h-4 w-4 text-amber-500" />
-                مسیر ارزیابی شما
+        <section className="relative overflow-hidden rounded-[32px] border border-purple-200/60 bg-white/90 p-10 shadow-[0_20px_70px_rgba(124,58,237,0.12)]">
+          <div className="pointer-events-none absolute inset-0">
+            <svg className="absolute -left-20 top-12 h-64 w-64 text-purple-200" viewBox="0 0 200 200" fill="none">
+              <path
+                d="M10 180 Q80 40 190 120"
+                stroke="currentColor"
+                strokeWidth="14"
+                strokeLinecap="round"
+                strokeOpacity="0.3"
+              />
+            </svg>
+            <div className="absolute -top-32 right-12 h-56 w-56 rounded-full bg-gradient-to-br from-purple-500/10 via-white to-purple-500/10 blur-3xl" />
+          </div>
+
+          <div className="relative flex flex-col gap-10 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-6">
+              <span className="inline-flex items-center gap-2 rounded-full border border-purple-200/80 bg-white/80 px-4 py-1 text-xs font-semibold text-purple-600">
+                <Sparkles className="h-4 w-4" />
+                مسیر ارزیابی فعال
               </span>
-              <h2 className="mt-6 text-3xl font-bold leading-tight text-slate-900">
-                {currentAssessment
-                  ? `مرحله «${currentAssessment.title}» منتظر شماست!`
-                  : "همه‌چیز برای شروع سفر مهارتی آماده است"}
-              </h2>
-              <p className="mt-4 max-w-xl text-sm leading-relaxed text-slate-500">
-                روند ارزیابی شما به شکلی ساده و مرحله‌ای نمایش داده می‌شود. هر بخش را تکمیل کنید تا مرحله بعدی آزاد شود
-                و مسیر خود را به آرامی پیش ببرید.
-              </p>
+              <div className="space-y-4">
+                <h2 className="text-3xl font-bold leading-tight text-slate-900">
+                  {currentAssessment
+                    ? `مرحله «${currentAssessment.title}» آماده آغاز است`
+                    : "برای مرحله بعدی آماده شوید"}
+                </h2>
+                <p className="max-w-xl text-sm leading-relaxed text-slate-500">
+                  نقشه خمیدهٔ ارزیابی به شما کمک می‌کند هر نقش را در جای خود ببینید. هر بار که مرحله‌ای را تکمیل کنید، مسیر روشن‌تر می‌شود و پیشنهادهای تازه‌ای ظاهر خواهند شد.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                <div className="inline-flex items-center gap-2 rounded-full border border-purple-100/80 bg-white/80 px-3 py-1">
+                  <Trophy className="h-4 w-4 text-purple-500" />
+                  {formatNumber(completedCount)} مرحله تمام شده
+                </div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-purple-100/80 bg-white/80 px-3 py-1">
+                  <Clock3 className="h-4 w-4 text-purple-500" />
+                  {formatNumber(remainingCount)} مرحله باقی مانده
+                </div>
+              </div>
             </div>
-            <div className="flex flex-col items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-6 py-6 text-center">
-              <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                مراحل باقی‌مانده
-              </span>
-              <span className="text-4xl font-bold text-slate-900">
-                {formatNumber(remainingCount)}
-              </span>
+
+            <div className="relative flex flex-col items-center gap-5 rounded-[28px] border border-purple-200/80 bg-white/80 px-8 py-8 text-center shadow-[0_12px_45px_rgba(124,58,237,0.1)]">
+              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-purple-600 text-white shadow-[0_18px_50px_rgba(124,58,237,0.35)]">
+                <span className="text-3xl font-bold">{formatNumber(progressPercent)}%</span>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-slate-900">پیشرفت کل مسیر</p>
+                <p className="text-xs text-slate-500">{formatNumber(completedCount)} از {formatNumber(totalCount)} مرحله باز شده‌اند.</p>
+              </div>
               <Button
-                variant="secondary"
-                size="lg"
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-l from-purple-600 to-purple-500 px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(124,58,237,0.28)] hover:from-purple-700 hover:to-purple-600 disabled:cursor-not-allowed disabled:from-purple-300 disabled:to-purple-300"
                 onClick={() => currentAssessment && handleStartAssessment(currentAssessment.id)}
                 disabled={!currentAssessment || !!startingAssessmentId}
-                className="w-full rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 disabled:bg-slate-100 disabled:text-slate-400"
               >
                 {startingAssessmentId === currentAssessment?.id ? (
-                  <LoaderCircle className="mr-2 h-5 w-5 animate-spin" />
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
                 ) : (
-                  <ArrowLeft className="ml-2 h-5 w-5" />
+                  <ArrowLeft className="h-4 w-4" />
                 )}
-                {currentAssessment ? "شروع مرحله‌ی بعدی" : "در انتظار آزاد شدن مراحل"}
+                {currentAssessment ? "ورود به مرحلهٔ بعد" : "منتظر آزاد شدن مرحله جدید"}
               </Button>
-              {currentAssessment && (
-                <p className="text-xs text-slate-500">
-                  آماده برای شروع: {currentAssessment.title}
-                </p>
+              {completedCount > 0 && (
+                <Button
+                  variant="ghost"
+                  className="text-xs font-semibold text-purple-600 hover:bg-purple-50"
+                  onClick={() => navigate('/results')}
+                >
+                  مشاهده گزارش‌های قبلی
+                </Button>
               )}
             </div>
           </div>
         </section>
 
-        <section className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           {stats.map((stat) => {
             const Icon = stat.icon;
             return (
               <div
                 key={stat.label}
-                className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+                className="rounded-[24px] border border-purple-100/60 bg-white/90 p-6 shadow-[0_14px_45px_rgba(124,58,237,0.08)] transition hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(124,58,237,0.12)]"
               >
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <span className="text-2xl font-semibold text-slate-900">{stat.value}</span>
+                <div className="flex items-center justify-between gap-4">
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${stat.accent}`}>
+                    <Icon className="h-5 w-5" />
                   </div>
-                  <p className="text-sm text-slate-500">{stat.label}</p>
+                  <span className="text-2xl font-bold text-slate-900">{stat.value}</span>
                 </div>
+                <p className="mt-4 text-sm leading-relaxed text-slate-500">{stat.label}</p>
               </div>
             );
           })}
         </section>
 
-        <Card className="rounded-3xl border border-slate-200 bg-white p-10 shadow-sm">
-          <h3 className="mb-4 text-center text-2xl font-bold text-slate-900">
-            نقشه‌ی مارپیچ ارزیابی
-          </h3>
-          <p className="mb-8 text-center text-sm text-slate-500">
-            هر حباب نماینده‌ی یک مرحله است. با تکمیل هر مرحله، مرحله‌ی بعدی باز می‌شود و مسیر شما ادامه پیدا می‌کند.
-          </p>
-          <AssessmentMap
-            steps={mapSteps}
-            onStepSelect={(step) => {
-              const selectedAssessment = dedupedAssessments.find(
-                (assessment) => (assessment.stringId || String(assessment.id)) === step.id
-              );
+        <section className="rounded-[32px] border border-purple-200/80 bg-gradient-to-b from-white/95 via-purple-50/60 to-white/95 p-10 shadow-[0_20px_70px_rgba(124,58,237,0.12)]">
+          <div className="mx-auto max-w-3xl text-center">
+            <h3 className="text-2xl font-bold text-slate-900">نقشهٔ خمیدهٔ ارزیابی</h3>
+            <p className="mt-3 text-sm leading-relaxed text-slate-500">
+              حباب‌ها مسیر شما را در یک نگاه نشان می‌دهند. روی هر مرحله کلیک کنید تا وارد گفتگو شوید یا پیشرفت گذشته را مرور کنید.
+            </p>
+          </div>
+          <div className="mt-10">
+            <AssessmentMap
+              steps={mapSteps}
+              onStepSelect={(step) => {
+                const selectedAssessment = dedupedAssessments.find(
+                  (assessment) => (assessment.stringId || String(assessment.id)) === step.id
+                );
 
-              if (!selectedAssessment) return;
+                if (!selectedAssessment) return;
 
-              if (selectedAssessment.status === "current") {
-                handleStartAssessment(selectedAssessment.id);
-              } else if (selectedAssessment.status === "completed") {
-                toast.info("این مرحله پیش‌تر تکمیل شده است. نتایج در بخش گزارش‌ها در دسترس است.");
-              } else {
-                toast.info("برای دسترسی به این مرحله ابتدا مرحله‌های قبلی را تکمیل کنید.");
-              }
-            }}
-          />
-        </Card>
+                if (selectedAssessment.status === "current") {
+                  handleStartAssessment(selectedAssessment.id);
+                } else if (selectedAssessment.status === "completed") {
+                  toast.info("این مرحله پیش‌تر تکمیل شده است. نتایج در بخش گزارش‌ها در دسترس است.");
+                } else {
+                  toast.info("برای دسترسی به این مرحله ابتدا مرحله‌های قبلی را تکمیل کنید.");
+                }
+              }}
+            />
+          </div>
+        </section>
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f9fc] text-slate-900">
-      <header className="border-b border-slate-200 bg-white/80 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5">
+    <div className="min-h-screen bg-gradient-to-b from-white via-purple-50/40 to-white text-slate-900">
+      <header className="border-b border-purple-100/80 bg-white/80 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
           <Logo variant="large" />
           <Button
-            variant="outline"
             size="icon"
-            className="rounded-full border-slate-200 text-slate-600 hover:bg-slate-100"
+            className="rounded-full border border-purple-100 bg-white/70 text-slate-600 shadow-[0_10px_30px_rgba(124,58,237,0.12)] transition hover:bg-purple-50"
           >
             <User className="h-5 w-5" />
           </Button>
         </div>
       </header>
       <main className="mx-auto w-full max-w-6xl px-6 py-12">
-        <div className="mb-12 flex flex-col gap-3">
-          <h1 className="text-3xl font-bold leading-tight text-slate-900">
-            داشبورد ارزیابی
-          </h1>
+        <div className="mb-10 flex flex-col gap-4">
+          <div className="inline-flex items-center gap-2 self-start rounded-full border border-purple-100/80 bg-white/80 px-4 py-1 text-xs font-semibold text-purple-600">
+            <Sparkles className="h-4 w-4" />
+            مسیرهای فعال شما
+          </div>
+          <h1 className="text-4xl font-bold leading-tight text-slate-900">داشبورد ارزیابی</h1>
           <p className="max-w-2xl text-sm leading-relaxed text-slate-500">
-            یک نمای ساده و روشن از مراحل ارزیابی شما؛ مسیر را قدم به قدم جلو بروید و هر زمان آماده شدید وارد مرحله
-            بعدی شوید.
+            همهٔ ارزیابی‌های شما در اینجا جمع شده‌اند؛ از این نما می‌توانید مسیر خمیده را دنبال کنید، مرحلهٔ بعد را شروع کنید و گزارش‌های گذشته را در یک نگاه مرور نمایید.
           </p>
         </div>
         {renderContent()}
