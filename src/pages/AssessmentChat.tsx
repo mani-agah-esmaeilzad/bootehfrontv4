@@ -329,7 +329,7 @@ const AssessmentChat = () => {
               <div className="pointer-events-none absolute inset-[10%] rounded-full border border-dashed border-white/50" />
               <div className="pointer-events-none absolute inset-[5%] rounded-full border border-white/30" />
               <div className="pointer-events-none absolute inset-[20%] rounded-full bg-gradient-to-b from-white/35 via-white/10 to-transparent" />
-              <div className="absolute inset-[18%] flex flex-col overflow-hidden rounded-full border border-white/60 bg-white/80 shadow-[0_20px_45px_-30px_rgba(15,23,42,0.45)] backdrop-blur">
+              <div className="absolute inset-[26%] sm:inset-[22%] lg:inset-[18%] z-20 flex flex-col overflow-hidden rounded-full border border-white/60 bg-white/85 shadow-[0_20px_45px_-30px_rgba(15,23,42,0.45)] backdrop-blur">
                 <div className="pointer-events-none absolute inset-x-12 top-0 h-16 bg-gradient-to-b from-white/80 via-white/40 to-transparent" />
                 <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-6 py-6 pb-16 text-right sm:px-8 sm:py-8">
                   {messages.map((msg, index) => {
@@ -385,7 +385,7 @@ const AssessmentChat = () => {
               const avatarSrc = persona.avatar?.src ?? persona.meta.avatar;
               const avatarName = persona.avatar?.name ?? persona.meta.name;
               return (
-                <div key={persona.key} className="absolute top-1/2 left-1/2">
+                <div key={persona.key} className="absolute top-1/2 left-1/2 z-10">
                   <div
                     style={{ transform: persona.transform }}
                     className={cn(
