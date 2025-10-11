@@ -45,7 +45,7 @@ const AssessmentChat = () => {
   const [isUserTyping, setIsUserTyping] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
   const userTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -75,29 +75,45 @@ const AssessmentChat = () => {
 
   // Speech Recognition
   useEffect(() => {
-    if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = "fa-IR";
+    if (typeof window === "undefined") return;
 
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            setInputValue((prev) => prev + transcript);
-          }
-        }
-      };
+    const SpeechRecognitionClass =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-      recognition.onend = () => setIsRecording(false);
-
-      recognitionRef.current = recognition;
-    } else {
+    if (!SpeechRecognitionClass) {
       toast.error("مرورگر شما از Speech Recognition پشتیبانی نمی‌کند.");
+      return;
     }
+
+    const recognition = new SpeechRecognitionClass();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "fa-IR";
+
+    recognition.onresult = (event: any) => {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0]?.transcript ?? "";
+        if (!transcript) continue;
+        if (event.results[i].isFinal) {
+          setInputValue((prev) => prev + transcript);
+        }
+      }
+    };
+
+    recognition.onend = () => setIsRecording(false);
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop?.();
+        } catch (error) {
+          console.error("Speech recognition stop error", error);
+        }
+        recognitionRef.current = null;
+      }
+    };
   }, []);
 
   const handleSendMessage = async () => {
@@ -125,26 +141,36 @@ const AssessmentChat = () => {
         body: JSON.stringify({ message: userMessage.text, session_id: assessmentState.sessionId }),
       });
 
-      if (response?.success && typeof response.data?.reply === "string") {
-        const aiReply = response.data.reply;
-        const endSignal = "[END_ASSESSMENT]";
+      if (!response?.success) {
+        throw new Error(response?.message || "پاسخ نامعتبر از سرور دریافت شد");
+      }
 
-        const aiMessage: ChatMessage = {
-          id: Date.now(),
-          text: aiReply.replace(endSignal, "").trim(),
-          sender: "ai",
-          personaName: response.data.personaName,
-        };
+      const apiResponses = Array.isArray(response.data?.responses)
+        ? (response.data.responses as Array<{ senderName: string; text: string }>)
+        : [];
 
-        setMessages((prev) => [...prev, aiMessage]);
+      if (apiResponses.length > 0) {
+        const sanitized = apiResponses
+          .filter((item) => typeof item.text === "string" && item.text.trim().length > 0)
+          .map((item, index) => ({
+            id: Date.now() + index,
+            text: item.text.trim(),
+            sender: "ai" as const,
+            personaName: item.senderName,
+          }));
 
-        if (aiReply.includes(endSignal)) {
-          toast.info("ارزیابی به پایان رسید. در حال انتقال...");
-          setTimeout(() => navigate(`/supplementary/${id}`), 2500);
+        if (sanitized.length > 0) {
+          setMessages((prev) => [...prev, ...sanitized]);
         }
+
+      }
+
+      if (response.data?.isComplete) {
+        toast.info("ارزیابی به پایان رسید. در حال انتقال...");
+        setTimeout(() => navigate(`/supplementary/${id}`), 2500);
       }
     } catch (error: any) {
-      toast.error(error.message || "خطا در ارتباط با سرور");
+      toast.error(error?.message || "خطا در ارتباط با سرور");
       setMessages((prev) => prev.filter((msg) => msg.id !== userMessage.id));
     } finally {
       setActiveTyping(null);
@@ -275,84 +301,6 @@ const AssessmentChat = () => {
       isTyping,
       transform,
     };
-  });
-
-  const personaMeta = {
-    user: {
-      name: "شما",
-      avatar: avatarUser,
-      badge: "شرکت‌کننده",
-      accent: "from-sky-400 to-sky-500",
-      bubble: "bg-sky-50/90 text-sky-800 border-sky-100",
-      glow: "shadow-[0_10px_30px_-12px_rgba(56,189,248,0.65)]",
-      layout: "center",
-    },
-    narrator: {
-      name: "راوی",
-      avatar: avatarNarrator,
-      badge: "نقال سناریو",
-      accent: "from-emerald-400 to-teal-500",
-      bubble: "bg-emerald-50/90 text-emerald-800 border-emerald-100",
-      glow: "shadow-[0_10px_30px_-12px_rgba(16,185,129,0.65)]",
-      layout: "left",
-    },
-    proctor: {
-      name: "مبصر",
-      avatar: avatarProctor,
-      badge: "ناظر آزمون",
-      accent: "from-amber-400 to-orange-500",
-      bubble: "bg-amber-50/90 text-amber-900 border-amber-100",
-      glow: "shadow-[0_10px_30px_-12px_rgba(245,158,11,0.65)]",
-      layout: "right",
-    },
-    ai: {
-      name: "مشاور",
-      avatar: avatarNarrator,
-      badge: "دستیار",
-      accent: "from-indigo-400 to-purple-500",
-      bubble: "bg-indigo-50/90 text-indigo-800 border-indigo-100",
-      glow: "shadow-[0_10px_30px_-12px_rgba(129,140,248,0.65)]",
-      layout: "left",
-    },
-  } as const;
-
-  const resolvePersonaKey = (message: ChatMessage) => {
-    if (message.sender === "user") return "user" as const;
-    if (message.personaName?.includes("مبصر")) return "proctor" as const;
-    if (message.personaName?.includes("راوی")) return "narrator" as const;
-    return "ai" as const;
-  };
-
-  const resolvePersonaMeta = (message: ChatMessage) => personaMeta[resolvePersonaKey(message)];
-
-  const getLayoutClasses = (layout: (typeof personaMeta)[keyof typeof personaMeta]["layout"]) => {
-    const base = "order-1 flex flex-col gap-3 text-right";
-
-    switch (layout) {
-      case "left":
-        return cn(base, "md:col-start-1 md:justify-self-end md:pr-6");
-      case "right":
-        return cn(base, "md:col-start-3 md:justify-self-start md:pl-6");
-      default:
-        return cn(base, "md:col-span-3 md:col-start-2 md:max-w-xl md:justify-self-center");
-    }
-  };
-
-  const personaCards = avatars.map((avatar) => {
-    const cardMeta =
-      avatar.role === "user"
-        ? personaMeta.user
-        : avatar.role === "proctor"
-        ? personaMeta.proctor
-        : personaMeta.narrator;
-
-    const normalizedTyping = activeTyping ?? "";
-    const isActive =
-      (avatar.role === "user" && isUserTurn) ||
-      normalizedTyping.includes(cardMeta.name) ||
-      (normalizedTyping === "مشاور" && cardMeta.name === "راوی");
-
-    return { ...avatar, meta: cardMeta, isActive };
   });
 
   return (
