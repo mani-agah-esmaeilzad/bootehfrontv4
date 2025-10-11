@@ -82,13 +82,10 @@ const AssessmentChat = () => {
       recognition.lang = "fa-IR";
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let interimTranscript = "";
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
             setInputValue((prev) => prev + transcript);
-          } else {
-            interimTranscript += transcript;
           }
         }
       };
@@ -161,109 +158,248 @@ const AssessmentChat = () => {
   const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
   const isUserTurn = lastMessage ? lastMessage.sender === "ai" : Boolean(assessmentState);
 
+  const personaMeta = {
+    user: {
+      name: "شما",
+      avatar: avatarUser,
+      badge: "شرکت‌کننده",
+      accent: "from-sky-400 to-sky-500",
+      bubble: "bg-sky-50/90 text-sky-800 border-sky-100",
+      glow: "shadow-[0_10px_30px_-12px_rgba(56,189,248,0.65)]",
+      layout: "center",
+    },
+    narrator: {
+      name: "راوی",
+      avatar: avatarNarrator,
+      badge: "نقال سناریو",
+      accent: "from-emerald-400 to-teal-500",
+      bubble: "bg-emerald-50/90 text-emerald-800 border-emerald-100",
+      glow: "shadow-[0_10px_30px_-12px_rgba(16,185,129,0.65)]",
+      layout: "left",
+    },
+    proctor: {
+      name: "مبصر",
+      avatar: avatarProctor,
+      badge: "ناظر آزمون",
+      accent: "from-amber-400 to-orange-500",
+      bubble: "bg-amber-50/90 text-amber-900 border-amber-100",
+      glow: "shadow-[0_10px_30px_-12px_rgba(245,158,11,0.65)]",
+      layout: "right",
+    },
+    ai: {
+      name: "مشاور",
+      avatar: avatarNarrator,
+      badge: "دستیار",
+      accent: "from-indigo-400 to-purple-500",
+      bubble: "bg-indigo-50/90 text-indigo-800 border-indigo-100",
+      glow: "shadow-[0_10px_30px_-12px_rgba(129,140,248,0.65)]",
+      layout: "left",
+    },
+  } as const;
+
+  const resolvePersonaKey = (message: ChatMessage) => {
+    if (message.sender === "user") return "user" as const;
+    if (message.personaName?.includes("مبصر")) return "proctor" as const;
+    if (message.personaName?.includes("راوی")) return "narrator" as const;
+    return "ai" as const;
+  };
+
+  const resolvePersonaMeta = (message: ChatMessage) => personaMeta[resolvePersonaKey(message)];
+
+  const getLayoutClasses = (layout: (typeof personaMeta)[keyof typeof personaMeta]["layout"]) => {
+    const base = "order-1 flex flex-col gap-3 text-right";
+
+    switch (layout) {
+      case "left":
+        return cn(base, "md:col-start-1 md:justify-self-end md:pr-6");
+      case "right":
+        return cn(base, "md:col-start-3 md:justify-self-start md:pl-6");
+      default:
+        return cn(base, "md:col-span-3 md:col-start-2 md:max-w-xl md:justify-self-center");
+    }
+  };
+
+  const personaCards = avatars.map((avatar) => {
+    const cardMeta =
+      avatar.role === "user"
+        ? personaMeta.user
+        : avatar.role === "proctor"
+        ? personaMeta.proctor
+        : personaMeta.narrator;
+
+    const normalizedTyping = activeTyping ?? "";
+    const isActive =
+      (avatar.role === "user" && isUserTurn) ||
+      normalizedTyping.includes(cardMeta.name) ||
+      (normalizedTyping === "مشاور" && cardMeta.name === "راوی");
+
+    return { ...avatar, meta: cardMeta, isActive };
+  });
+
   return (
-    <div className="relative flex h-screen w-full items-center justify-center bg-[#f7f9fc] text-slate-900">
-      <style>{`
-        @keyframes chat-wiggle {
-          0%, 100% { transform: translateY(0); }
-          25% { transform: translateY(-2px); }
-          75% { transform: translateY(2px); }
-        }
-      `}</style>
-      {/* آواتارها */}
-      <div className="relative h-[95vmin] w-[95vmin] max-h-4xl max-w-4xl">
-        {avatars.map((avatar, index) => {
-          const angle = (index * 120 - 90) * (Math.PI / 180);
-          const radius = 45;
-          const x = 50 + radius * Math.cos(angle);
-          const y = 50 + radius * Math.sin(angle);
-          const isTyping = activeTyping === avatar.name;
-          const shouldWiggle =
-            (avatar.role === "user" && isUserTurn) ||
-            (avatar.role === "narrator" && activeTyping === avatar.name);
+    <div className="relative flex min-h-[100dvh] w-full justify-center overflow-x-hidden bg-gradient-to-br from-[#f9fbff] via-[#eef4ff] to-[#f4fbff] px-3 py-8 text-slate-900 sm:px-4 sm:py-10">
+      <div className="pointer-events-none absolute -left-32 top-24 h-72 w-72 rounded-full bg-sky-200/40 blur-3xl" />
+      <div className="pointer-events-none absolute -right-20 -bottom-32 h-80 w-80 rounded-full bg-emerald-200/40 blur-3xl" />
+      <div className="pointer-events-none absolute left-1/2 top-0 h-32 w-[90%] -translate-x-1/2 rounded-full bg-white/60 blur-2xl" />
 
-          return (
+      <div className="relative z-10 flex w-full max-w-5xl flex-1 min-h-0 flex-col gap-6 sm:gap-8">
+        <header className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-3 md:gap-5 md:overflow-visible md:pb-0">
+          {personaCards.map((persona) => (
             <div
-              key={avatar.name}
+              key={persona.name}
               className={cn(
-                "absolute flex flex-col items-center gap-2 transition-all duration-500",
-                isTyping && "scale-[1.05]"
+                "group relative min-w-[220px] flex-1 snap-center overflow-hidden rounded-3xl border border-white/60 bg-white/80 p-4 text-right shadow-lg transition-transform duration-300 sm:min-w-[240px] sm:p-5",
+                persona.isActive ? "scale-[1.02] border-sky-200/80 shadow-xl" : "hover:scale-[1.01]"
               )}
-              style={{ left: `${x}%`, top: `${y}%`, transform: "translate(-50%, -50%)" }}
             >
-              <div className={cn(shouldWiggle && "animate-[chat-wiggle_0.9s_ease-in-out_infinite]")}>
-                <Avatar className="h-16 w-16 border border-slate-200 bg-white shadow-sm">
-                  <AvatarImage src={avatar.src} alt={avatar.name} />
-                  <AvatarFallback>{avatar.name[0]}</AvatarFallback>
-                </Avatar>
+              <div
+                className={cn(
+                  "absolute -right-16 -top-16 h-32 w-32 rounded-full opacity-70 blur-2xl transition-opacity",
+                  `bg-gradient-to-br ${persona.meta.accent}`,
+                  persona.isActive ? "opacity-80" : "opacity-40"
+                )}
+              />
+              <div className="relative flex items-center justify-between gap-3 sm:gap-4">
+                <div className="flex flex-col items-end gap-1.5 sm:gap-2">
+                  <span className="rounded-full bg-white/70 px-3 py-1 text-[11px] font-semibold text-slate-500 shadow-sm">
+                    {persona.meta.badge}
+                  </span>
+                  <h2 className="text-lg font-bold text-slate-800">{persona.name}</h2>
+                  <p className="text-xs text-slate-500">
+                    {persona.role === "user"
+                      ? "پاسخ‌گوی اصلی جلسه"
+                      : persona.role === "proctor"
+                      ? "نقش داور و ناظر گفتگو"
+                      : "مدیریت جریان روایت"}
+                  </p>
+                </div>
+                <div
+                  className={cn(
+                    "relative flex h-14 w-14 items-center justify-center rounded-2xl border border-white/70 bg-white shadow-md sm:h-16 sm:w-16",
+                    persona.meta.glow
+                  )}
+                >
+                  <Avatar className="h-11 w-11 border border-white/70 sm:h-12 sm:w-12">
+                    <AvatarImage src={persona.src} alt={persona.name} />
+                    <AvatarFallback>{persona.name[0]}</AvatarFallback>
+                  </Avatar>
+                  {persona.isActive && (
+                    <span className="absolute -bottom-2 rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-sky-600 shadow">
+                      فعال
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="text-center text-xs font-medium text-slate-500">{avatar.name}</div>
             </div>
-          );
-        })}
+          ))}
+        </header>
 
-        {/* دایره پیام‌ها */}
-        <div className="absolute left-1/2 top-1/2 flex h-[60%] w-[60%] -translate-x-1/2 -translate-y-1/2 items-center justify-center">
-          <div className="flex h-full w-full items-center justify-center rounded-full border border-slate-200 bg-white/80 shadow-sm backdrop-blur">
-            <div className="flex h-[82%] w-[82%] flex-col items-center overflow-hidden rounded-full px-6 py-6">
-              <div className="flex w-full flex-1 flex-col items-center gap-3 overflow-y-auto pe-3 text-center">
-                {messages.map((msg) => (
-                  <div key={msg.id} className="flex justify-center">
+        <section className="relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-3xl border border-white/60 bg-white/80 p-4 shadow-xl sm:rounded-[2.5rem] sm:p-6">
+          <div className="pointer-events-none absolute inset-x-12 top-0 hidden h-32 rounded-b-[60%] bg-gradient-to-b from-white/80 to-transparent md:block" />
+          <div className="pointer-events-none absolute inset-y-8 left-1/2 hidden w-[3px] -translate-x-1/2 rounded-full bg-gradient-to-b from-sky-200 via-sky-300 to-emerald-200 md:block" />
+          <div className="relative flex flex-1 min-h-0 flex-col gap-8 overflow-y-auto px-1 py-4 pb-24 sm:gap-10 sm:px-2 sm:py-6 sm:pb-24">
+            {messages.map((msg, index) => {
+              const meta = resolvePersonaMeta(msg);
+              const layoutClasses = getLayoutClasses(meta.layout);
+              const stepAccent = ["border-sky-200 text-sky-500", "border-emerald-200 text-emerald-500", "border-amber-200 text-amber-500"];
+              const stepClass = stepAccent[index % stepAccent.length];
+
+              return (
+                <div key={msg.id} className="relative grid gap-3 text-sm md:grid-cols-[1fr_auto_1fr] md:items-center md:gap-x-4">
+                  <div className={cn("order-2 flex items-center justify-end md:order-none md:col-start-2 md:row-span-1 md:justify-center")}
+                  >
+                    <div className="relative flex h-10 w-10 items-center justify-center sm:h-12 sm:w-12">
+                      <span className="absolute inset-0 rounded-full border-4 border-white/70 bg-white/80" />
+                      <span className={cn("relative flex h-8 w-8 items-center justify-center rounded-full border text-[11px] font-bold shadow sm:h-9 sm:w-9 sm:text-xs", stepClass)}>
+                        {index + 1}
+                      </span>
+                    </div>
+                  </div>
+                  <div className={layoutClasses}>
+                    <div className="flex flex-wrap items-center justify-end gap-1 text-[11px] text-slate-400 sm:text-xs">
+                      <span>{meta.name}</span>
+                      <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
+                      <span>نوبت #{index + 1}</span>
+                    </div>
                     <div
                       className={cn(
-                        "max-w-[75%] rounded-3xl border px-5 py-3 text-sm leading-relaxed shadow-sm",
-                        msg.sender === "user"
-                          ? "border-sky-100 bg-sky-50 text-sky-700"
-                          : "border-slate-200 bg-white text-slate-600"
+                        "relative w-full rounded-3xl border px-4 py-3 text-[13px] leading-relaxed shadow-md sm:px-5 sm:py-4",
+                        meta.bubble
                       )}
                     >
-                      {msg.personaName && <strong>{msg.personaName}: </strong>}
-                      {msg.text}
+                      <span className="absolute -right-3 top-1/2 hidden h-6 w-6 -translate-y-1/2 rounded-full border border-white/70 bg-white shadow md:flex" />
+                      <div className="flex items-start gap-2 sm:gap-3">
+                        <Avatar className="mt-0.5 h-8 w-8 border border-white/80 shadow-sm sm:mt-1 sm:h-9 sm:w-9">
+                          <AvatarImage src={meta.avatar} alt={meta.name} />
+                          <AvatarFallback>{meta.name[0]}</AvatarFallback>
+                        </Avatar>
+                        <p className="flex-1 whitespace-pre-line text-right text-slate-700">{msg.text}</p>
+                      </div>
                     </div>
                   </div>
-                ))}
-                {activeTyping && (
-                  <div className="flex justify-center">
-                    <div className="rounded-3xl border border-slate-200 bg-white px-5 py-3 text-sm text-slate-400 shadow-sm">
-                      ...
+                </div>
+              );
+            })}
+            {activeTyping && (
+              <div className="relative grid gap-3 text-sm md:grid-cols-[1fr_auto_1fr] md:items-center md:gap-x-4">
+                <div className="order-2 flex items-center justify-end md:order-none md:col-start-2 md:justify-center">
+                  <div className="relative flex h-10 w-10 items-center justify-center sm:h-12 sm:w-12">
+                    <span className="absolute inset-0 animate-pulse rounded-full border-4 border-white/70 bg-white/70" />
+                    <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-sky-400 to-emerald-400 text-[11px] font-semibold text-white shadow sm:h-9 sm:w-9 sm:text-xs">
+                      در حال
+                    </span>
+                  </div>
+                </div>
+                <div className="order-1 flex flex-col items-center gap-3 text-right md:col-start-2 md:order-none md:max-w-xl">
+                  <div className="flex flex-wrap items-center justify-end gap-1 text-[11px] text-slate-400 sm:text-xs">
+                    <span>{activeTyping}</span>
+                    <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
+                    <span>در حال پاسخ</span>
+                  </div>
+                  <div className="flex w-full flex-col items-center rounded-3xl border border-slate-200/70 bg-white/80 px-4 py-3 text-[13px] text-slate-500 shadow-md sm:px-5 sm:py-4">
+                    <div className="flex gap-2">
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" />
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:150ms]" />
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:300ms]" />
                     </div>
                   </div>
-                )}
-                <div ref={messagesEndRef} />
+                </div>
               </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        </section>
+
+        <footer className="sticky bottom-0 z-10 mt-auto sm:bottom-3 md:bottom-6">
+          <div className="rounded-3xl border border-white/70 bg-white/90 p-2.5 shadow-2xl backdrop-blur sm:rounded-full sm:p-3">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <Button
+                onClick={toggleRecording}
+                size="icon"
+                className={cn(
+                  "h-11 w-11 rounded-full border border-slate-200 bg-slate-100 text-slate-600 transition-all duration-300 hover:scale-105 hover:bg-slate-200 sm:h-12 sm:w-12",
+                  isRecording && "border-sky-300 bg-sky-50 text-sky-600 shadow-[0_10px_25px_-15px_rgba(56,189,248,1)]"
+                )}
+              >
+                <Mic className="h-5 w-5" />
+              </Button>
+              <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                placeholder="اینجا بنویسید و مسیر گفتگو را ادامه دهید..."
+                className="h-11 flex-1 rounded-full border-none bg-transparent text-right text-sm text-slate-600 focus-visible:ring-0 sm:h-12"
+              />
+              <Button
+                onClick={handleSendMessage}
+                size="icon"
+                className="h-11 w-11 rounded-full bg-gradient-to-br from-sky-500 to-emerald-500 text-white shadow-lg transition-all duration-300 hover:scale-105 hover:from-sky-500 hover:to-teal-500 sm:h-12 sm:w-12"
+              >
+                <Send className="h-5 w-5" />
+              </Button>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* ورودی پیام و میکروفون */}
-      <div className="fixed bottom-6 left-1/2 w-full max-w-2xl -translate-x-1/2 px-4">
-        <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white p-2 shadow-lg">
-          <Input
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-            placeholder="پیام خود را بنویسید..."
-            className="h-12 flex-1 rounded-full border-none bg-transparent px-5 text-right text-sm text-slate-600 focus-visible:ring-0"
-          />
-          <Button
-            onClick={handleSendMessage}
-            size="icon"
-            className="h-12 w-12 rounded-full bg-sky-500 text-white hover:bg-sky-600"
-          >
-            <Send className="h-5 w-5" />
-          </Button>
-          <Button
-            onClick={toggleRecording}
-            size="icon"
-            className={cn(
-              "h-12 w-12 rounded-full border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200",
-              isRecording && "border-sky-200 bg-sky-50 text-sky-600"
-            )}
-          >
-            <Mic className="h-5 w-5" />
-          </Button>
-        </div>
+        </footer>
       </div>
     </div>
   );
