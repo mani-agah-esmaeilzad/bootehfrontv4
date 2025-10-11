@@ -37,6 +37,7 @@ export const AssessmentProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await apiFetch('assessment/status');
       if (response.success) {
+        // const data = Array.isArray(response.data) ? response.data : [];
         setAssessments(response.data);
       } else {
         throw new Error(response.message || 'خطا در دریافت اطلاعات ارزیابی‌ها');
@@ -61,21 +62,21 @@ export const AssessmentProvider = ({ children }: { children: ReactNode }) => {
 
   const updateAssessmentStatus = (id: string, status: Assessment['status']) => {
     setAssessments(prev => {
-      const newAssessments = prev.map(assessment => 
+      const newAssessments = prev.map(assessment =>
         assessment.stringId === id ? { ...assessment, status } : assessment
       );
-      
+
       if (status === 'completed') {
         const currentIndex = newAssessments.findIndex(a => a.stringId === id);
         if (currentIndex !== -1 && currentIndex < newAssessments.length - 1 && newAssessments[currentIndex + 1].status === 'locked') {
           newAssessments[currentIndex + 1].status = 'current';
         }
       }
-      
+
       return newAssessments;
     });
   };
-  
+
   const getCurrentAssessmentIndex = () => {
     return assessments.findIndex(a => a.status === 'current');
   };

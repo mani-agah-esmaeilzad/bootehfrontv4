@@ -137,7 +137,7 @@ const Dashboard = () => {
           </Button>
         </Card>
       );
-      
+
     // اگر همه ارزیابی‌ها تمام شده باشند، پیامی نمایش داده می‌شود
     if (!currentAssessment && dedupedAssessments.length > 0 && dedupedAssessments.every((a) => a.status === "completed")) {
       return (
@@ -300,7 +300,7 @@ const Dashboard = () => {
       <main className="mx-auto w-full max-w-6xl px-6 py-12">
         <div className="mb-12 flex flex-col gap-3">
           <h1 className="text-3xl font-bold leading-tight text-slate-900">
-            داشبورد ارزیابی 
+            داشبورد ارزیابی
           </h1>
           <p className="max-w-2xl text-sm leading-relaxed text-slate-500">
             یک نمای ساده و روشن از مراحل ارزیابی شما؛ مسیر را قدم به قدم جلو بروید و هر زمان آماده شدید وارد مرحله
