@@ -44,8 +44,9 @@ const AssessmentChat = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isUserTyping, setIsUserTyping] = useState(false);
   const [viewport, setViewport] = useState<"mobile" | "tablet" | "desktop">("desktop");
+  const [isHistoryView, setIsHistoryView] = useState(false);
 
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const messageScrollRef = useRef<HTMLDivElement | null>(null);
   const recognitionRef = useRef<any>(null);
   const userTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -71,8 +72,11 @@ const AssessmentChat = () => {
   }, [id, navigate]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (isHistoryView) return;
+    const container = messageScrollRef.current;
+    if (!container) return;
+    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+  }, [messages, isHistoryView]);
 
   // Speech Recognition
   useEffect(() => {
@@ -271,6 +275,21 @@ const AssessmentChat = () => {
 
   const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
 
+  const handleMessagesScroll = () => {
+    const container = messageScrollRef.current;
+    if (!container) return;
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const isAtBottom = scrollHeight - (scrollTop + clientHeight) < 24;
+    setIsHistoryView(!isAtBottom);
+  };
+
+  const scrollToLatest = () => {
+    const container = messageScrollRef.current;
+    if (!container) return;
+    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    setIsHistoryView(false);
+  };
+
   const personaMeta = {
     user: {
       name: "شما",
@@ -328,9 +347,9 @@ const AssessmentChat = () => {
   };
 
   const orbitMap = {
-    narrator: { angle: -18, radius: { mobile: 50, tablet: 58, desktop: 66 } },
-    proctor: { angle: 210, radius: { mobile: 52, tablet: 60, desktop: 68 } },
-    user: { angle: 120, radius: { mobile: 54, tablet: 62, desktop: 70 } },
+    narrator: { angle: -20, radius: { mobile: 72, tablet: 76, desktop: 80 } },
+    proctor: { angle: 215, radius: { mobile: 74, tablet: 78, desktop: 82 } },
+    user: { angle: 125, radius: { mobile: 76, tablet: 80, desktop: 84 } },
   } as const;
 
   const lastPersonaKey = lastMessage ? resolvePersonaKey(lastMessage) : null;
@@ -361,11 +380,11 @@ const AssessmentChat = () => {
   });
 
   return (
-    <div className="relative flex min-h-[100dvh] w-full justify-center overflow-hidden bg-gradient-to-br from-[#f8f7ff] via-[#eef2ff] to-[#f5fbff] px-4 py-8 text-slate-900 sm:px-6 lg:px-10">
-      <div className="pointer-events-none absolute -left-40 top-16 h-80 w-80 rounded-full bg-indigo-200/35 blur-3xl" />
-      <div className="pointer-events-none absolute -right-24 -bottom-36 h-96 w-96 rounded-full bg-sky-200/35 blur-3xl" />
-      <div className="pointer-events-none absolute left-1/2 top-12 h-36 w-[82%] -translate-x-1/2 rounded-full bg-white/60 blur-2xl" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.18),transparent_58%)]" />
+    <div className="relative flex min-h-[100dvh] w-full justify-center overflow-hidden bg-gradient-to-b from-[#dcd5ff] via-[#ede9ff] to-[#f8f7ff] px-4 py-10 text-slate-900 sm:px-6 lg:px-10">
+      <div className="pointer-events-none absolute -left-36 top-16 h-80 w-80 rounded-full bg-violet-300/35 blur-3xl" />
+      <div className="pointer-events-none absolute -right-28 -bottom-40 h-[420px] w-[420px] rounded-full bg-sky-200/40 blur-3xl" />
+      <div className="pointer-events-none absolute left-1/2 top-10 h-40 w-[78%] -translate-x-1/2 rounded-full bg-white/70 blur-2xl" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(124,58,237,0.18),transparent_60%)]" />
 
       <div className="relative z-10 flex w-full max-w-6xl flex-1 min-h-0 flex-col items-center gap-8 sm:gap-10">
         <header className="flex flex-col items-center gap-3 text-center sm:gap-4">
@@ -407,55 +426,72 @@ const AssessmentChat = () => {
                   </linearGradient>
                 </defs>
               </svg>
-              <div className="absolute left-1/2 top-1/2 z-40 flex h-[68%] w-[72%] min-h-[320px] max-h-[520px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[44px] border border-white/70 bg-white/90 shadow-[0_20px_45px_-30px_rgba(15,23,42,0.45)] backdrop-blur">
-                <div className="pointer-events-none absolute inset-x-10 top-0 h-16 bg-gradient-to-b from-white/85 via-white/50 to-transparent" />
-                <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-6 py-6 pb-16 text-right sm:px-8 sm:py-8">
-                  {messages.map((msg, index) => {
-                    const meta = resolvePersonaMeta(msg);
-                    const isLatest = messages.length - 1 === index;
-                    return (
-                      <div
-                        key={msg.id}
-                        className={cn(
-                          "relative ms-auto flex max-w-full flex-col gap-2 rounded-[28px] border px-4 py-3 text-sm leading-7 shadow-sm transition-all sm:px-5 sm:py-4",
-                          meta.bubble,
-                          isLatest && "scale-[1.01] border-white/80 shadow-lg"
-                        )}
-                      >
-                        <div className="flex items-center justify-between text-[11px] text-slate-400 sm:text-xs">
-                          <div className="flex items-center gap-2">
-                            <span>#{index + 1}</span>
-                            <span className="inline-block h-1 w-1 rounded-full bg-slate-300" />
-                            <span>{meta.badge}</span>
-                          </div>
-                          <div className="flex items-center gap-2 font-semibold text-slate-500">
-                            <span>{meta.name}</span>
-                            <Avatar className="h-8 w-8 border border-white/70 shadow-sm">
-                              <AvatarImage src={meta.avatar} alt={meta.name} />
-                              <AvatarFallback>{meta.name[0]}</AvatarFallback>
-                            </Avatar>
-                          </div>
-                        </div>
-                        <p className="whitespace-pre-line text-[13px] leading-relaxed text-slate-700 sm:text-sm">{msg.text}</p>
-                      </div>
-                    );
-                  })}
-                  {activeTyping && typingMeta && (
-                    <div className="mx-auto flex items-center gap-3 rounded-full border border-dashed border-slate-200/70 bg-white/70 px-4 py-2 text-xs text-slate-500 shadow-sm">
-                      <Avatar className="h-7 w-7 border border-white/70 shadow-sm">
-                        <AvatarImage src={typingMeta.avatar} alt={typingMeta.name} />
-                        <AvatarFallback>{typingMeta.name[0]}</AvatarFallback>
-                      </Avatar>
-                      <span>{activeTyping} در حال پاسخ…</span>
-                      <div className="flex items-center gap-1 text-slate-400">
-                        <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" />
-                        <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:150ms]" />
-                        <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:300ms]" />
-                      </div>
-                    </div>
+              <div className="absolute left-1/2 top-1/2 z-40 flex aspect-square w-[88%] min-w-[260px] max-w-[520px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-full border border-white/70 bg-white/90 shadow-[0_25px_60px_-35px_rgba(15,23,42,0.55)] backdrop-blur sm:w-[80%]">
+                <div className="pointer-events-none absolute inset-[10%] rounded-full border border-dashed border-violet-100/80" />
+                <div className="pointer-events-none absolute inset-[18%] rounded-full border border-white/50" />
+                <div className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white via-white/60 to-white/30 opacity-80" />
+                <div
+                  ref={messageScrollRef}
+                  onScroll={handleMessagesScroll}
+                  className="relative z-10 flex flex-1 flex-col overflow-y-auto px-6 pb-14 pt-10 text-center sm:px-10 sm:pt-14"
+                >
+                  {!isHistoryView && (
+                    <div className="pointer-events-none absolute inset-x-4 top-0 z-30 h-24 bg-gradient-to-b from-white via-white/70 to-transparent sm:inset-x-6" />
                   )}
-                  <div ref={messagesEndRef} />
+                  <div className="flex min-h-full flex-col items-center justify-end gap-6">
+                    {messages.map((msg, index) => {
+                      const meta = resolvePersonaMeta(msg);
+                      const isLatest = messages.length - 1 === index;
+                      return (
+                        <div
+                          key={msg.id}
+                          className={cn(
+                            "relative mx-auto flex w-full max-w-[88%] flex-col items-center gap-3 rounded-[32px] border px-6 py-5 text-sm leading-7 shadow-sm transition-all sm:px-7 sm:py-6",
+                            meta.bubble,
+                            isLatest && "scale-[1.01] border-white/80 shadow-lg"
+                          )}
+                        >
+                          <div className="flex flex-col items-center gap-1 text-[11px] text-slate-400 sm:text-xs">
+                            <div className="flex items-center gap-2 font-semibold text-slate-600">
+                              <span>{meta.name}</span>
+                              <Avatar className="h-9 w-9 border border-white/70 shadow-sm">
+                                <AvatarImage src={meta.avatar} alt={meta.name} />
+                                <AvatarFallback>{meta.name[0]}</AvatarFallback>
+                              </Avatar>
+                            </div>
+                            <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] text-slate-400 shadow-sm">{meta.badge}</span>
+                          </div>
+                          <p className="whitespace-pre-line text-[13px] leading-relaxed text-slate-700 sm:text-sm">{msg.text}</p>
+                        </div>
+                      );
+                    })}
+                    {activeTyping && typingMeta && (
+                      <div className="mx-auto flex items-center justify-center gap-3 rounded-full border border-dashed border-slate-200/70 bg-white/80 px-4 py-2 text-xs text-slate-500 shadow-sm">
+                        <Avatar className="h-8 w-8 border border-white/70 shadow-sm">
+                          <AvatarImage src={typingMeta.avatar} alt={typingMeta.name} />
+                          <AvatarFallback>{typingMeta.name[0]}</AvatarFallback>
+                        </Avatar>
+                        <span>{activeTyping} در حال پاسخ…</span>
+                        <div className="flex items-center gap-1 text-slate-400">
+                          <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" />
+                          <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:150ms]" />
+                          <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:300ms]" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
+                {isHistoryView && (
+                  <div className="pointer-events-auto absolute bottom-10 left-1/2 z-40 -translate-x-1/2">
+                    <Button
+                      size="sm"
+                      onClick={scrollToLatest}
+                      className="rounded-full bg-gradient-to-r from-violet-500 to-purple-500 px-5 text-[13px] font-semibold text-white shadow-lg hover:from-violet-500 hover:to-purple-400"
+                    >
+                      مشاهده پیام جدید
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -467,7 +503,7 @@ const AssessmentChat = () => {
                   <div
                     style={{ transform: persona.transform }}
                     className={cn(
-                      "flex w-[100px] flex-col items-center gap-2.5 text-center text-[11px] font-medium transition-all duration-500 sm:w-[120px] sm:text-xs",
+                      "flex w-[88px] flex-col items-center gap-2 text-center text-[10px] font-medium transition-all duration-500 sm:w-[112px] sm:text-xs",
                       persona.isSpeaking ? "text-slate-700" : "text-slate-500"
                     )}
                   >
