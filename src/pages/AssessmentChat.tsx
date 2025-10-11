@@ -43,6 +43,7 @@ const AssessmentChat = () => {
   const [activeTyping, setActiveTyping] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isUserTyping, setIsUserTyping] = useState(false);
+  const [viewport, setViewport] = useState<"mobile" | "tablet" | "desktop">("desktop");
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const recognitionRef = useRef<any>(null);
@@ -116,6 +117,28 @@ const AssessmentChat = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const resolveViewport = () => {
+      const width = window.innerWidth;
+      if (width < 640) return "mobile" as const;
+      if (width < 1024) return "tablet" as const;
+      return "desktop" as const;
+    };
+
+    const updateViewport = () => {
+      setViewport((current) => {
+        const next = resolveViewport();
+        return current === next ? current : next;
+      });
+    };
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
+
   const handleSendMessage = async () => {
     if (!inputValue.trim() || !assessmentState) return;
 
@@ -145,24 +168,56 @@ const AssessmentChat = () => {
         throw new Error(response?.message || "پاسخ نامعتبر از سرور دریافت شد");
       }
 
-      const apiResponses = Array.isArray(response.data?.responses)
-        ? (response.data.responses as Array<{ senderName: string; text: string }>)
-        : [];
+      const rawResponses = response.data?.responses;
+      const normalizedResponses: Array<{ senderName?: string; text?: string }> = [];
 
-      if (apiResponses.length > 0) {
-        const sanitized = apiResponses
-          .filter((item) => typeof item.text === "string" && item.text.trim().length > 0)
-          .map((item, index) => ({
-            id: Date.now() + index,
-            text: item.text.trim(),
-            sender: "ai" as const,
-            personaName: item.senderName,
-          }));
+      if (Array.isArray(rawResponses)) {
+        normalizedResponses.push(...rawResponses);
+      } else if (rawResponses && typeof rawResponses === "object") {
+        normalizedResponses.push(rawResponses as { senderName?: string; text?: string });
+      } else if (typeof rawResponses === "string") {
+        normalizedResponses.push({ text: rawResponses });
+      }
 
-        if (sanitized.length > 0) {
-          setMessages((prev) => [...prev, ...sanitized]);
-        }
+      const fallbackText =
+        typeof response.data?.message === "string"
+          ? response.data.message
+          : typeof response.data?.text === "string"
+          ? response.data.text
+          : null;
 
+      const sanitized = normalizedResponses
+        .filter((item) => typeof item?.text === "string" && item.text.trim().length > 0)
+        .map((item, index) => ({
+          id: Date.now() + index,
+          text: item.text.trim(),
+          sender: "ai" as const,
+          personaName: item.senderName ?? assessmentState.personaName ?? "مشاور",
+        }));
+
+      const directPersonaName =
+        typeof rawResponses === "object" && rawResponses !== null && "senderName" in rawResponses
+          ? ((rawResponses as { senderName?: string }).senderName ?? assessmentState.personaName ?? "مشاور")
+          : assessmentState.personaName ?? "مشاور";
+
+      const directText =
+        typeof rawResponses === "string"
+          ? rawResponses
+          : typeof rawResponses === "object" && rawResponses !== null && "text" in rawResponses
+          ? ((rawResponses as { text?: string }).text ?? fallbackText)
+          : fallbackText;
+
+      if (sanitized.length === 0 && typeof directText === "string" && directText.trim().length > 0) {
+        sanitized.push({
+          id: Date.now(),
+          text: directText.trim(),
+          sender: "ai" as const,
+          personaName: directPersonaName,
+        });
+      }
+
+      if (sanitized.length > 0) {
+        setMessages((prev) => [...prev, ...sanitized]);
       }
 
       if (response.data?.isComplete) {
@@ -273,9 +328,9 @@ const AssessmentChat = () => {
   };
 
   const orbitMap = {
-    narrator: { angle: -25, radius: 46 },
-    proctor: { angle: 215, radius: 44 },
-    user: { angle: 120, radius: 48 },
+    narrator: { angle: -18, radius: { mobile: 50, tablet: 58, desktop: 66 } },
+    proctor: { angle: 210, radius: { mobile: 52, tablet: 60, desktop: 68 } },
+    user: { angle: 120, radius: { mobile: 54, tablet: 62, desktop: 70 } },
   } as const;
 
   const lastPersonaKey = lastMessage ? resolvePersonaKey(lastMessage) : null;
@@ -288,9 +343,11 @@ const AssessmentChat = () => {
     const config = orbitMap[key];
     const isSpeaking = lastPersonaKey === key;
     const isTyping = (typingPersonaKey ?? (isUserTyping ? "user" : null)) === key;
-    const transform = `translate(${Math.cos((config.angle * Math.PI) / 180) * config.radius}%, ${Math.sin(
+    const radiusSet = config.radius;
+    const radiusValue = radiusSet[viewport] ?? radiusSet.desktop;
+    const transform = `translate(${Math.cos((config.angle * Math.PI) / 180) * radiusValue}%, ${Math.sin(
       (config.angle * Math.PI) / 180
-    ) * config.radius}%) translate(-50%, -50%)`;
+    ) * radiusValue}%) translate(-50%, -50%)`;
 
     return {
       key,
@@ -305,9 +362,10 @@ const AssessmentChat = () => {
 
   return (
     <div className="relative flex min-h-[100dvh] w-full justify-center overflow-hidden bg-gradient-to-br from-[#f8f7ff] via-[#eef2ff] to-[#f5fbff] px-4 py-8 text-slate-900 sm:px-6 lg:px-10">
-      <div className="pointer-events-none absolute -left-32 top-24 h-72 w-72 rounded-full bg-indigo-200/35 blur-3xl" />
-      <div className="pointer-events-none absolute -right-20 -bottom-32 h-80 w-80 rounded-full bg-sky-200/35 blur-3xl" />
-      <div className="pointer-events-none absolute left-1/2 top-10 h-32 w-[80%] -translate-x-1/2 rounded-full bg-white/60 blur-2xl" />
+      <div className="pointer-events-none absolute -left-40 top-16 h-80 w-80 rounded-full bg-indigo-200/35 blur-3xl" />
+      <div className="pointer-events-none absolute -right-24 -bottom-36 h-96 w-96 rounded-full bg-sky-200/35 blur-3xl" />
+      <div className="pointer-events-none absolute left-1/2 top-12 h-36 w-[82%] -translate-x-1/2 rounded-full bg-white/60 blur-2xl" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.18),transparent_58%)]" />
 
       <div className="relative z-10 flex w-full max-w-6xl flex-1 min-h-0 flex-col items-center gap-8 sm:gap-10">
         <header className="flex flex-col items-center gap-3 text-center sm:gap-4">
@@ -323,14 +381,34 @@ const AssessmentChat = () => {
         </header>
 
         <section className="relative flex w-full flex-1 min-h-0 flex-col items-center">
-          <div className="relative flex w-full flex-1 min-h-[420px] items-center justify-center">
-            <div className="relative aspect-square w-full max-w-[620px]">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/70 via-white/30 to-white/10 shadow-[0_25px_80px_-40px_rgba(79,70,229,0.45)] backdrop-blur-xl" />
-              <div className="pointer-events-none absolute inset-[10%] rounded-full border border-dashed border-white/50" />
-              <div className="pointer-events-none absolute inset-[5%] rounded-full border border-white/30" />
-              <div className="pointer-events-none absolute inset-[20%] rounded-full bg-gradient-to-b from-white/35 via-white/10 to-transparent" />
-              <div className="absolute inset-[26%] sm:inset-[22%] lg:inset-[18%] z-20 flex flex-col overflow-hidden rounded-full border border-white/60 bg-white/85 shadow-[0_20px_45px_-30px_rgba(15,23,42,0.45)] backdrop-blur">
-                <div className="pointer-events-none absolute inset-x-12 top-0 h-16 bg-gradient-to-b from-white/80 via-white/40 to-transparent" />
+          <div className="relative flex w-full flex-1 min-h-[440px] items-center justify-center">
+            <div className="relative aspect-square w-full max-w-[640px] sm:max-w-[560px] md:max-w-[600px]">
+              <div className="absolute inset-0 rounded-[48px] bg-gradient-to-br from-white/65 via-white/15 to-transparent shadow-[0_25px_80px_-40px_rgba(79,70,229,0.45)] backdrop-blur-xl" />
+              <div className="pointer-events-none absolute inset-[6%] rounded-[48px] border border-dashed border-white/60" />
+              <div className="pointer-events-none absolute inset-[12%] rounded-[48px] border border-white/40" />
+              <div className="pointer-events-none absolute inset-[18%] rounded-[48px] bg-gradient-to-b from-white/40 via-transparent to-transparent" />
+              <svg
+                className="pointer-events-none absolute inset-0"
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+              >
+                <path
+                  d="M10 70 C30 40, 70 60, 90 30"
+                  fill="none"
+                  stroke="url(#orbitGradient)"
+                  strokeWidth="1.2"
+                  strokeDasharray="4 3"
+                  opacity="0.5"
+                />
+                <defs>
+                  <linearGradient id="orbitGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="rgba(129,140,248,0.65)" />
+                    <stop offset="100%" stopColor="rgba(56,189,248,0.45)" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div className="absolute left-1/2 top-1/2 z-40 flex h-[68%] w-[72%] min-h-[320px] max-h-[520px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[44px] border border-white/70 bg-white/90 shadow-[0_20px_45px_-30px_rgba(15,23,42,0.45)] backdrop-blur">
+                <div className="pointer-events-none absolute inset-x-10 top-0 h-16 bg-gradient-to-b from-white/85 via-white/50 to-transparent" />
                 <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-6 py-6 pb-16 text-right sm:px-8 sm:py-8">
                   {messages.map((msg, index) => {
                     const meta = resolvePersonaMeta(msg);
@@ -339,7 +417,7 @@ const AssessmentChat = () => {
                       <div
                         key={msg.id}
                         className={cn(
-                          "relative ms-auto flex max-w-full flex-col gap-2 rounded-3xl border px-4 py-3 text-sm leading-7 shadow-sm transition-all sm:px-5 sm:py-4",
+                          "relative ms-auto flex max-w-full flex-col gap-2 rounded-[28px] border px-4 py-3 text-sm leading-7 shadow-sm transition-all sm:px-5 sm:py-4",
                           meta.bubble,
                           isLatest && "scale-[1.01] border-white/80 shadow-lg"
                         )}
@@ -385,23 +463,23 @@ const AssessmentChat = () => {
               const avatarSrc = persona.avatar?.src ?? persona.meta.avatar;
               const avatarName = persona.avatar?.name ?? persona.meta.name;
               return (
-                <div key={persona.key} className="absolute top-1/2 left-1/2 z-10">
+                <div key={persona.key} className="absolute top-1/2 left-1/2 z-30">
                   <div
                     style={{ transform: persona.transform }}
                     className={cn(
-                      "flex w-[120px] flex-col items-center gap-3 text-center text-xs font-medium transition-all duration-500",
+                      "flex w-[100px] flex-col items-center gap-2.5 text-center text-[11px] font-medium transition-all duration-500 sm:w-[120px] sm:text-xs",
                       persona.isSpeaking ? "text-slate-700" : "text-slate-500"
                     )}
                   >
                     <div
                       className={cn(
-                        "relative flex h-16 w-16 items-center justify-center rounded-2xl border border-white/70 bg-white/90 shadow-md backdrop-blur",
+                        "relative flex h-14 w-14 items-center justify-center rounded-2xl border border-white/70 bg-white/90 shadow-md backdrop-blur sm:h-16 sm:w-16",
                         persona.meta.glow,
                         persona.isTyping && "animate-avatar-wiggle",
                         persona.isSpeaking && "ring-2 ring-violet-300 ring-offset-2 ring-offset-white"
                       )}
                     >
-                      <Avatar className="h-14 w-14 border border-white/70 shadow-sm">
+                      <Avatar className="h-12 w-12 border border-white/70 shadow-sm sm:h-14 sm:w-14">
                         <AvatarImage src={avatarSrc} alt={avatarName} />
                         <AvatarFallback>{avatarName[0]}</AvatarFallback>
                       </Avatar>
@@ -416,8 +494,8 @@ const AssessmentChat = () => {
                         </span>
                       )}
                     </div>
-                    <span className="text-sm font-bold text-slate-700">{persona.meta.name}</span>
-                    <span className="text-[10px] text-slate-400">{persona.meta.badge}</span>
+                    <span className="text-sm font-bold text-slate-700 sm:text-base">{persona.meta.name}</span>
+                    <span className="text-[10px] text-slate-400 sm:text-xs">{persona.meta.badge}</span>
                   </div>
                 </div>
               );
