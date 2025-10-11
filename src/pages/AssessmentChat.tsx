@@ -242,7 +242,7 @@ const AssessmentChat = () => {
       <div className="pointer-events-none absolute -right-20 -bottom-32 h-80 w-80 rounded-full bg-emerald-200/40 blur-3xl" />
       <div className="pointer-events-none absolute left-1/2 top-0 h-32 w-[90%] -translate-x-1/2 rounded-full bg-white/60 blur-2xl" />
 
-      <div className="relative z-10 flex w-full max-w-5xl flex-col gap-6 sm:gap-8">
+      <div className="relative z-10 flex w-full max-w-5xl flex-1 min-h-0 flex-col gap-6 sm:gap-8">
         <header className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-3 md:gap-5 md:overflow-visible md:pb-0">
           {personaCards.map((persona) => (
             <div
@@ -294,10 +294,10 @@ const AssessmentChat = () => {
           ))}
         </header>
 
-        <section className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/80 p-4 shadow-xl sm:rounded-[2.5rem] sm:p-6">
+        <section className="relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-3xl border border-white/60 bg-white/80 p-4 shadow-xl sm:rounded-[2.5rem] sm:p-6">
           <div className="pointer-events-none absolute inset-x-12 top-0 hidden h-32 rounded-b-[60%] bg-gradient-to-b from-white/80 to-transparent md:block" />
           <div className="pointer-events-none absolute inset-y-8 left-1/2 hidden w-[3px] -translate-x-1/2 rounded-full bg-gradient-to-b from-sky-200 via-sky-300 to-emerald-200 md:block" />
-          <div className="relative flex max-h-[calc(100vh-280px)] flex-col gap-8 overflow-y-auto px-1 py-4 sm:gap-10 sm:px-2 sm:py-6 md:max-h-[60vh]">
+          <div className="relative flex flex-1 min-h-0 flex-col gap-8 overflow-y-auto px-1 py-4 sm:gap-10 sm:px-2 sm:py-6">
             {messages.map((msg, index) => {
               const meta = resolvePersonaMeta(msg);
               const layoutClasses = getLayoutClasses(meta.layout);
@@ -370,7 +370,7 @@ const AssessmentChat = () => {
           </div>
         </section>
 
-        <footer className="sticky bottom-0 z-10">
+        <footer className="sticky bottom-0 z-10 mt-auto sm:bottom-1">
           <div className="rounded-3xl border border-white/70 bg-white/90 p-2.5 shadow-2xl backdrop-blur sm:rounded-full sm:p-3">
             <div className="flex items-center gap-2.5 sm:gap-3">
               <Button
