@@ -524,8 +524,8 @@ const Index = () => {
             <span>شرایط استفاده</span>
             <span>حمایت</span>
           </div>
-        </div>
-      </footer>
+        </section>
+      </main>
     </div>
   );
 };
