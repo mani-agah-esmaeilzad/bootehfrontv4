@@ -446,32 +446,34 @@ const AssessmentChat = () => {
                         <div
                           key={msg.id}
                           className={cn(
-                            "relative mx-auto flex w-full max-w-[88%] flex-col items-center gap-3 rounded-[32px] border px-6 py-5 text-sm leading-7 shadow-sm transition-all sm:px-7 sm:py-6",
+                            "relative mx-auto flex w-full max-w-[82%] flex-col items-center gap-3 rounded-[28px] border px-6 py-5 text-sm leading-7 shadow-sm transition-all sm:max-w-[68%] sm:px-7 sm:py-6",
                             meta.bubble,
                             isLatest && "scale-[1.01] border-white/80 shadow-lg"
                           )}
                         >
-                          <div className="flex flex-col items-center gap-1 text-[11px] text-slate-400 sm:text-xs">
-                            <div className="flex items-center gap-2 font-semibold text-slate-600">
-                              <span>{meta.name}</span>
-                              <Avatar className="h-9 w-9 border border-white/70 shadow-sm">
-                                <AvatarImage src={meta.avatar} alt={meta.name} />
-                                <AvatarFallback>{meta.name[0]}</AvatarFallback>
-                              </Avatar>
-                            </div>
-                            <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] text-slate-400 shadow-sm">{meta.badge}</span>
+                          <div
+                            className={cn(
+                              "pointer-events-none absolute left-1/2 top-0 h-1 w-20 -translate-x-1/2 rounded-full bg-gradient-to-r",
+                              meta.accent
+                            )}
+                          />
+                          <div className="flex items-center gap-3 text-xs font-semibold text-slate-500 sm:text-sm">
+                            <span className="inline-flex items-center justify-center rounded-full bg-white/70 px-3 py-1 shadow-sm">
+                              {meta.name}
+                            </span>
                           </div>
-                          <p className="whitespace-pre-line text-[13px] leading-relaxed text-slate-700 sm:text-sm">{msg.text}</p>
+                          <p className="whitespace-pre-line text-[13px] leading-relaxed text-slate-700 sm:text-sm">
+                            {msg.text}
+                          </p>
                         </div>
                       );
                     })}
                     {activeTyping && typingMeta && (
-                      <div className="mx-auto flex items-center justify-center gap-3 rounded-full border border-dashed border-slate-200/70 bg-white/80 px-4 py-2 text-xs text-slate-500 shadow-sm">
-                        <Avatar className="h-8 w-8 border border-white/70 shadow-sm">
-                          <AvatarImage src={typingMeta.avatar} alt={typingMeta.name} />
-                          <AvatarFallback>{typingMeta.name[0]}</AvatarFallback>
-                        </Avatar>
-                        <span>{activeTyping} در حال پاسخ…</span>
+                      <div className="mx-auto flex items-center justify-center gap-3 rounded-full border border-dashed border-slate-200/70 bg-white/85 px-5 py-2 text-xs text-slate-500 shadow-sm">
+                        <span className="inline-flex items-center gap-2 font-semibold text-slate-500">
+                          <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-r from-violet-500 to-purple-500" />
+                          {activeTyping} در حال پاسخ…
+                        </span>
                         <div className="flex items-center gap-1 text-slate-400">
                           <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" />
                           <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:150ms]" />
