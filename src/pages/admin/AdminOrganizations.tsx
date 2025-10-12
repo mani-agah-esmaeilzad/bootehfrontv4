@@ -23,13 +23,14 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import apiFetch from "@/services/apiService";
 import { getOrganizations, deleteOrganization, createOrganization } from "@/services/apiService";
+import { QuestionnaireCategory } from "@/constants/questionnaireCategories";
 
 // Interfaces
 interface Organization {
     id: number; name: string; slug: string; created_at: string;
     user_count: number; questionnaire_count: number;
 }
-interface Questionnaire { id: number; name: string; }
+interface Questionnaire { id: number; title?: string; name?: string; category?: QuestionnaireCategory; }
 interface User { id: number; username: string; first_name: string; last_name: string; }
 
 // --- کامپوننت مودال برای ایجاد سازمان جدید ---
@@ -111,12 +112,18 @@ const NewOrganizationModal = ({ onOrganizationCreated }: { onOrganizationCreated
                             <div className="space-y-2">
                                 <Label>انتخاب پرسشنامه‌ها</Label>
                                 <ScrollArea className="h-60 rounded-md border p-2">
-                                    {questionnaires.map(q => (
-                                        <div key={q.id} className="flex items-center space-x-2 space-x-reverse p-2">
-                                            <Checkbox id={`q-${q.id}`} onCheckedChange={() => handleCheckboxChange(q.id, selectedQuestionnaires, setSelectedQuestionnaires)} />
-                                            <Label htmlFor={`q-${q.id}`} className="cursor-pointer">{q.name}</Label>
-                                        </div>
-                                    ))}
+                                    {questionnaires.map(q => {
+                                        const label = q.title ?? q.name ?? "بدون عنوان";
+                                        return (
+                                            <div key={q.id} className="flex items-center space-x-2 space-x-reverse p-2">
+                                                <Checkbox id={`q-${q.id}`} onCheckedChange={() => handleCheckboxChange(q.id, selectedQuestionnaires, setSelectedQuestionnaires)} />
+                                                <Label htmlFor={`q-${q.id}`} className="cursor-pointer flex flex-col">
+                                                    <span>{label}</span>
+                                                    {q.category && <span className="text-xs text-muted-foreground">{q.category}</span>}
+                                                </Label>
+                                            </div>
+                                        );
+                                    })}
                                 </ScrollArea>
                             </div>
                             <div className="space-y-2">

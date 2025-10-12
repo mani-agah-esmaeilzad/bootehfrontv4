@@ -14,9 +14,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import apiFetch from "@/services/apiService";
 import { LoaderCircle, ArrowRight } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { QUESTIONNAIRE_CATEGORIES } from "@/constants/questionnaireCategories";
 
 const questionnaireSchema = z.object({
   name: z.string().min(3, { message: "نام پرسشنامه حداقل باید ۳ کاراکتر باشد." }),
+  category: z.enum(QUESTIONNAIRE_CATEGORIES, { errorMap: () => ({ message: "یک دسته‌بندی معتبر انتخاب کنید." }) }),
   welcome_message: z.string().min(10, { message: "پیام خوشامدگویی حداقل باید ۱۰ کاراکتر باشد." }),
   persona_name: z.string().min(2, { message: "نام نقش AI حداقل باید ۲ کاراکتر باشد." }),
   persona_prompt: z.string().min(20, { message: "پرامپت شخصیت AI حداقل باید ۲۰ کاراکتر باشد." }),
@@ -34,6 +37,18 @@ const EditQuestionnaire = () => {
   const [isLoading, setIsLoading] = useState(true);
   const form = useForm<z.infer<typeof questionnaireSchema>>({
     resolver: zodResolver(questionnaireSchema),
+    defaultValues: {
+      name: "",
+      category: QUESTIONNAIRE_CATEGORIES[0],
+      welcome_message: "",
+      persona_name: "",
+      persona_prompt: "",
+      analysis_prompt: "",
+      has_timer: false,
+      timer_duration: null,
+      secondary_persona_name: "",
+      secondary_persona_prompt: "",
+    },
   });
 
   useEffect(() => {
@@ -42,7 +57,23 @@ const EditQuestionnaire = () => {
       try {
         const response = await apiFetch(`admin/questionnaires/${id}`);
         if (response.success && response.data) {
-          form.reset(response.data);
+          const data = response.data;
+          const isValidCategory = (value: unknown): value is typeof QUESTIONNAIRE_CATEGORIES[number] =>
+            typeof value === "string" && QUESTIONNAIRE_CATEGORIES.includes(value as typeof QUESTIONNAIRE_CATEGORIES[number]);
+          const resolvedCategory = isValidCategory(data.category) ? data.category : QUESTIONNAIRE_CATEGORIES[0];
+
+          form.reset({
+            name: data.title ?? "",
+            category: resolvedCategory,
+            welcome_message: data.welcome_message ?? "",
+            persona_name: data.persona_name ?? "",
+            persona_prompt: data.persona_prompt ?? "",
+            analysis_prompt: data.analysis_prompt ?? "",
+            has_timer: data.has_timer ?? false,
+            timer_duration: data.timer_duration ?? null,
+            secondary_persona_name: data.secondary_persona_name ?? "",
+            secondary_persona_prompt: data.secondary_persona_prompt ?? "",
+          });
         } else {
           throw new Error("پرسشنامه یافت نشد.");
         }
@@ -91,6 +122,26 @@ const EditQuestionnaire = () => {
               </CardHeader>
               <CardContent className="space-y-6">
                 <FormField control={form.control} name="name" render={({ field }) => ( <FormItem> <FormLabel>نام پرسشنامه</FormLabel> <FormControl><Input {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
+                <FormField control={form.control} name="category" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>دسته‌بندی</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="یک دسته‌بندی انتخاب کنید" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {QUESTIONNAIRE_CATEGORIES.map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}/>
                 <FormField control={form.control} name="welcome_message" render={({ field }) => ( <FormItem> <FormLabel>پیام خوشامدگویی</FormLabel> <FormControl><Textarea {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
               </CardContent>
             </Card>

@@ -18,12 +18,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { QuestionnaireCategory } from "@/constants/questionnaireCategories";
 
 interface Questionnaire {
   id: number;
   title: string; // The backend sends 'title' now
   description: string;
   display_order: number;
+  category: QuestionnaireCategory;
 }
 
 const AdminQuestionnaires = () => {
@@ -88,6 +90,7 @@ const AdminQuestionnaires = () => {
                 <TableRow>
                   <TableHead>عنوان پرسشنامه</TableHead>
                   <TableHead>توضیحات</TableHead>
+                  <TableHead>دسته‌بندی</TableHead>
                   <TableHead className="w-[120px]">عملیات</TableHead>
                 </TableRow>
               </TableHeader>
@@ -96,9 +99,8 @@ const AdminQuestionnaires = () => {
                   <TableRow key={q.id}>
                     {/* *** FINAL FIX APPLIED HERE: Using 'q.title' instead of 'q.name' *** */}
                     <TableCell className="font-medium">{q.title}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-sm truncate">
-                      {q.description}
-                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground max-w-sm truncate">{q.description}</TableCell>
+                    <TableCell>{q.category}</TableCell>
                     <TableCell className="text-left">
                       <div className="flex gap-2">
                         <Button variant="outline" size="icon" onClick={() => navigate(`/admin/questionnaires/edit/${q.id}`)}>

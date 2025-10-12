@@ -129,6 +129,54 @@ const chartGallery = [
   },
 ];
 
+const personalityAssessments = [
+  {
+    id: "mbti",
+    title: "MBTI – نقشه تیپ‌های تعاملی",
+    tagline: "روایت تیپ ۱۶گانه در میدان واقعی سازمان",
+    description:
+      "نسخه بوته‌ای MBTI فقط به پرسشنامه ختم نمی‌شود؛ سناریوهای زنده نشان می‌دهند هر تیپ در گفتگوهای چالشی، ارائه‌ها و بحران‌ها چگونه تصمیم می‌گیرد.",
+    reportName: "گزارش «هم‌نوردی تیمی»",
+    highlights: ["سازگارترین هم‌تیمی‌ها برای هر تیپ", "نقاط تنش با مدیر مستقیم", "پیشنهادهای کوچینگ ۱۴ روزه"],
+  },
+  {
+    id: "neo-pi-r",
+    title: "NEO PI-R – مدل پنج‌عاملی شخصیت",
+    tagline: "اندازه‌گیری علمی پنج بعد شخصیت در تنش‌های بومی",
+    description:
+      "با ترکیب داده‌های رفتاری و گفت‌وگوهای ساختاری، پنج عامل اصلی شخصیت (OCEAN) را در موقعیت‌های واقعی شرکت‌های ایرانی ارزیابی می‌کنیم.",
+    reportName: "گزارش «پروفایل تطبیق‌پذیری»",
+    highlights: ["شاخص ریسک فرسودگی", "نقشه محرک‌های انگیزشی", "مسیر رشد اختصاصی هر بعد"],
+  },
+  {
+    id: "enneagram",
+    title: "Enneagram – ۹ نیمرخ انگیزشی",
+    tagline: "کشف انگیزه‌های عمیق و واکنش در فشار",
+    description:
+      "داستان‌های تعاملی، پیکربندی سه‌گانه (قلب، ذهن، غریزه) را روشن می‌کنند و تله‌های رشد هر تیپ را به‌صورت عملی نمایش می‌دهند.",
+    reportName: "گزارش «قطب‌نمای رشد»",
+    highlights: ["هشدارهای استرس و افت عملکرد", "هم‌تیمی‌های مکمل پیشنهادی", "تمرین‌های تمرکز روزانه"],
+  },
+  {
+    id: "disc",
+    title: "DISC – پویایی رفتار حرفه‌ای",
+    tagline: "تحلیل Dominance، Influence، Steadiness و Compliance در نقش‌های سازمانی",
+    description:
+      "با شبیه‌سازی‌های چندلایه مشخص می‌کنیم در تعامل با مدیران، مشتریان و همکاران چه زمانی سبک رفتاری خود را تغییر می‌دهید.",
+    reportName: "گزارش «ضریب هم‌افزایی»",
+    highlights: ["استراتژی مذاکره پیشنهادی", "چک‌لیست جلسات پرریسک", "نمودار سازگاری بین‌فردی"],
+  },
+  {
+    id: "cliftonstrengths",
+    title: "CliftonStrengths – معماری نقاط قوت",
+    tagline: "تبدیل ۳۴ تم نقاط قوت به نقشه اقدام سازمانی",
+    description:
+      "خروجی این ارزیابی تنها فهرست نقاط قوت نیست؛ برنامه عملیاتی برای بهره‌برداری از ترکیب تم‌ها در پروژه‌های کلیدی ارائه می‌شود.",
+    reportName: "گزارش «معمار توانمندی»",
+    highlights: ["پیشنهاد نقش‌های طلایی", "برنامه توسعه ۳۰ روزه", "پلن هم‌افزایی با سایر اعضای تیم"],
+  },
+];
+
 const insightStories = [
   {
     title: "گزارش آمادگی تیم",
@@ -183,6 +231,9 @@ const Index = () => {
               </a>
               <a className="transition hover:text-slate-900" href="#path">
                 مسیر
+              </a>
+              <a className="transition hover:text-slate-900" href="#personality">
+                آزمون‌های شخصیتی
               </a>
               <a className="transition hover:text-slate-900" href="#insights">
                 بینش‌ها
@@ -464,6 +515,66 @@ const Index = () => {
         </section>
 
         <section
+          id="personality"
+          className="mx-auto w-full max-w-6xl px-4 md:px-6"
+        >
+          <div className="rounded-[32px] border border-purple-100 bg-white/90 px-6 py-16 shadow-sm backdrop-blur md:px-12">
+            <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
+              <div className="max-w-2xl space-y-4 text-right">
+                <h2 className="text-3xl font-bold text-slate-900">آزمون‌های شخصیتی اختصاصی بوته</h2>
+                <p className="text-base leading-7 text-slate-600">
+                  پنج مسیر مکمل برای شناخت عمیق‌تر تیپ شخصیتی، الگوی رفتاری و نقاط قوت تیم‌ها. هر آزمون با سناریوهای
+                  بومی، تحلیل داده‌محور و گزارش‌های اختصاصی ارائه می‌شود تا تجربه‌ای فراتر از نسخه‌های کلاسیک داشته باشید.
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                className="text-sm font-semibold text-purple-600 hover:text-purple-700"
+                onClick={() => navigate("/personality")}
+              >
+                مشاهده پنل آزمون‌ها
+              </Button>
+            </div>
+            <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {personalityAssessments.map((assessment, index) => (
+                <div
+                  key={assessment.id}
+                  className="flex h-full flex-col justify-between rounded-3xl border border-purple-100 bg-gradient-to-br from-white via-white to-purple-50/60 p-7 shadow-sm transition hover:-translate-y-1 hover:border-purple-200"
+                >
+                  <div className="space-y-3 text-right">
+                    <span className="inline-flex items-center gap-2 rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
+                      مرحله {index + 1}
+                    </span>
+                    <h3 className="text-xl font-semibold text-slate-900">{assessment.title}</h3>
+                    <p className="text-sm font-medium text-purple-700">{assessment.tagline}</p>
+                    <p className="text-sm leading-7 text-slate-600">{assessment.description}</p>
+                  </div>
+                  <div className="mt-6 space-y-3 rounded-2xl border border-purple-100 bg-white/80 p-4">
+                    <p className="text-sm font-semibold text-slate-900">{assessment.reportName}</p>
+                    <ul className="space-y-2 text-xs leading-6 text-slate-600">
+                      {assessment.highlights.map((item) => (
+                        <li key={item} className="flex items-start gap-2">
+                          <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-purple-500" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                    <Button
+                      variant="ghost"
+                      className="mt-4 flex items-center justify-end gap-2 text-purple-600 hover:text-purple-700"
+                      onClick={() => navigate(`/personality/${assessment.id}`)}
+                    >
+                      مشاهده بیشتر
+                      <ArrowUpRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section
           id="insights"
           className="relative overflow-hidden border-y border-purple-100/70 bg-gradient-to-tr from-purple-50 via-white to-white py-20"
         >
@@ -542,7 +653,6 @@ const Index = () => {
           </div>
         </section>
       </main>
-
       <footer className="border-t border-purple-100/60 bg-white/90 py-12">
         <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 md:grid-cols-[1.1fr_1fr_1fr_1fr] md:px-6">
           <div className="space-y-5 text-right">
@@ -580,6 +690,7 @@ const Index = () => {
             </div>
           ))}
         </div>
+
         <div className="mx-auto mt-10 flex w-full max-w-6xl flex-col items-center justify-between gap-4 border-t border-purple-100/60 px-4 pt-6 text-xs text-slate-400 md:flex-row md:px-6">
           <p>© {new Date().getFullYear()} بوته. تمام حقوق محفوظ است.</p>
           <div className="flex gap-4">
@@ -587,28 +698,8 @@ const Index = () => {
             <span>شرایط استفاده</span>
             <span>حمایت</span>
           </div>
-          {footerLinks.map((column) => (
-            <div key={column.title} className="space-y-3 text-sm">
-              <p className="text-sm font-semibold text-slate-900">{column.title}</p>
-              <ul className="space-y-2 text-slate-500">
-                {column.items.map((item) => (
-                  <li key={item} className="transition hover:text-slate-900">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
         </div>
-        <div className="mx-auto mt-10 flex w-full max-w-6xl flex-col items-center justify-between gap-4 border-t border-purple-100/60 px-4 pt-6 text-xs text-slate-400 md:flex-row md:px-6">
-          <p>© {new Date().getFullYear()} بوته. تمام حقوق محفوظ است.</p>
-          <div className="flex gap-4">
-            <span>حریم خصوصی</span>
-            <span>شرایط استفاده</span>
-            <span>حمایت</span>
-          </div>
-        </section>
-      </main>
+      </footer>
     </div>
   );
 };

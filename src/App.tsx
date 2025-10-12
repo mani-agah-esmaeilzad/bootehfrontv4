@@ -14,6 +14,8 @@ import Results from './pages/Results';
 import SupplementaryQuestions from './pages/SupplementaryQuestions';
 import NotFound from './pages/NotFound';
 import OrgPanel from './pages/OrgPanel';
+import PersonalityAssessments from './pages/PersonalityAssessments';
+import PersonalityAssessmentDetail from './pages/PersonalityAssessmentDetail';
 
 // Admin Pages
 import AdminLogin from './pages/admin/AdminLogin';
@@ -23,9 +25,11 @@ import AdminUsers from './pages/admin/AdminUsers';
 import AdminUserDetail from './pages/admin/AdminUserDetail';
 import AdminQuestionnaires from './pages/admin/AdminQuestionnaires';
 import EditQuestionnaire from './pages/admin/EditQuestionnaire';
+import NewQuestionnaire from './pages/admin/NewQuestionnaire';
 import AdminReports from './pages/admin/AdminReports';
 import AdminReportDetail from './pages/admin/AdminReportDetail';
 import AdminOrganizations from './pages/admin/AdminOrganizations';
+import AdminPersonalityAssessments from './pages/admin/AdminPersonalityAssessments';
 
 // --- Route Protection Components ---
 
@@ -50,6 +54,8 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/org/:slug" element={<OrgPanel />} />
+          <Route path="/personality" element={<PersonalityAssessments />} />
+          <Route path="/personality/:slug" element={<PersonalityAssessmentDetail />} />
 
           {/* ====== Private User Routes ====== */}
           <Route element={<UserPrivateRoute />}>
@@ -67,11 +73,12 @@ function App() {
               <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="/admin/users/:id" element={<AdminUserDetail />} />
               <Route path="/admin/questionnaires" element={<AdminQuestionnaires />} />
-              <Route path="/admin/questionnaires/new" element={<EditQuestionnaire />} /> 
+              <Route path="/admin/questionnaires/new" element={<NewQuestionnaire />} /> 
               <Route path="/admin/questionnaires/edit/:id" element={<EditQuestionnaire />} />
               <Route path="/admin/reports" element={<AdminReports />} />
               <Route path="/admin/reports/:id" element={<AdminReportDetail />} />
               <Route path="/admin/organizations" element={<AdminOrganizations />} />
+              <Route path="/admin/personality-tests" element={<AdminPersonalityAssessments />} />
             </Route>
           </Route>
 

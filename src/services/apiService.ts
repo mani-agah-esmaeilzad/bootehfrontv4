@@ -118,3 +118,26 @@ export const exportGroupResults = async (userIds: number[]) => {
 export const getUserDetails = async (userId: number) => {
     return await apiFetch(`admin/users/${userId}`);
 };
+
+// --- آزمون‌های شخصیتی ---
+
+export const getPersonalityTests = async () => await apiFetch('personality-tests');
+export const getPersonalityTest = async (slug: string) => await apiFetch(`personality-tests/${slug}`);
+
+type PersonalityTestPayload = {
+    name: string;
+    slug: string;
+    tagline: string;
+    description: string;
+    report_name: string;
+    highlights: string[];
+    is_active: boolean;
+};
+
+export const adminGetPersonalityTests = async () => await apiFetch('admin/personality-tests');
+export const adminCreatePersonalityTest = async (data: PersonalityTestPayload) =>
+    await apiFetch('admin/personality-tests', { method: 'POST', body: JSON.stringify(data) });
+export const adminUpdatePersonalityTest = async (id: number, data: PersonalityTestPayload) =>
+    await apiFetch(`admin/personality-tests/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export const adminDeletePersonalityTest = async (id: number) =>
+    await apiFetch(`admin/personality-tests/${id}`, { method: 'DELETE' });
