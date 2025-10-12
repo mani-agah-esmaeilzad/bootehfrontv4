@@ -141,3 +141,8 @@ export const adminUpdatePersonalityTest = async (id: number, data: PersonalityTe
     await apiFetch(`admin/personality-tests/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 export const adminDeletePersonalityTest = async (id: number) =>
     await apiFetch(`admin/personality-tests/${id}`, { method: 'DELETE' });
+
+export const registerForPersonalityTest = async (
+    slug: string,
+    data: { full_name: string; email: string; phone?: string; organization?: string; notes?: string }
+) => await apiFetch(`personality-tests/${slug}/register`, { method: 'POST', body: JSON.stringify(data) });
