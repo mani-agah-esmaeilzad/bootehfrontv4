@@ -16,6 +16,8 @@ import NotFound from './pages/NotFound';
 import OrgPanel from './pages/OrgPanel';
 import PersonalityAssessments from './pages/PersonalityAssessments';
 import PersonalityAssessmentDetail from './pages/PersonalityAssessmentDetail';
+import PersonalityChat from './pages/PersonalityChat';
+import PersonalityResultsPage from './pages/PersonalityResults';
 
 // Admin Pages
 import AdminLogin from './pages/admin/AdminLogin';
@@ -56,6 +58,8 @@ function App() {
           <Route path="/org/:slug" element={<OrgPanel />} />
           <Route path="/personality" element={<PersonalityAssessments />} />
           <Route path="/personality/:slug" element={<PersonalityAssessmentDetail />} />
+          <Route path="/personality/:slug/chat" element={<PersonalityChat />} />
+          <Route path="/personality/results" element={<PersonalityResultsPage />} />
 
           {/* ====== Private User Routes ====== */}
           <Route element={<UserPrivateRoute />}>

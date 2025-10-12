@@ -49,10 +49,15 @@ const PersonalityAssessments = () => {
             <p className="text-xs font-semibold text-purple-600">پنل آزمون‌های شخصیتی بوته</p>
             <h1 className="text-2xl font-bold md:text-3xl">سفر پنج‌گانه شناخت شخصیت حرفه‌ای</h1>
           </div>
-          <Button variant="ghost" className="flex items-center gap-2 text-slate-600 hover:text-slate-900" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-4 w-4" />
-            بازگشت
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={() => navigate("/personality/results")}>
+              گزارش‌های من
+            </Button>
+            <Button variant="ghost" className="flex items-center gap-2 text-slate-600 hover:text-slate-900" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4" />
+              بازگشت
+            </Button>
+          </div>
         </div>
       </header>
 

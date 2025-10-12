@@ -6,23 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, LoaderCircle, Sparkles, Tag } from "lucide-react";
 import { getPersonalityTest } from "@/services/apiService";
 import { toast } from "sonner";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { registerForPersonalityTest } from "@/services/apiService";
 
-type PersonalityTestDetail = {
+interface PersonalityTestDetail {
   id: number;
   name: string;
   slug: string;
@@ -30,33 +15,13 @@ type PersonalityTestDetail = {
   description: string;
   report_name: string;
   highlights: string[];
-};
-
-const enrollmentSchema = z.object({
-  full_name: z.string().min(3, { message: "نام کامل باید حداقل ۳ کاراکتر باشد." }),
-  email: z.string().email({ message: "ایمیل معتبر نیست." }),
-  phone: z.string().optional(),
-  organization: z.string().optional(),
-  notes: z.string().optional(),
-});
+}
 
 const PersonalityAssessmentDetail = () => {
   const navigate = useNavigate();
   const { slug } = useParams<{ slug: string }>();
   const [test, setTest] = useState<PersonalityTestDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-
-  const form = useForm<z.infer<typeof enrollmentSchema>>({
-    resolver: zodResolver(enrollmentSchema),
-    defaultValues: {
-      full_name: "",
-      email: "",
-      phone: "",
-      organization: "",
-      notes: "",
-    },
-  });
 
   useEffect(() => {
     if (!slug) return;
@@ -78,20 +43,6 @@ const PersonalityAssessmentDetail = () => {
     fetchTest();
   }, [slug]);
 
-  const isSubmitting = form.formState.isSubmitting;
-
-  const handleSubmit = async (values: z.infer<typeof enrollmentSchema>) => {
-    if (!test) return;
-    try {
-      await registerForPersonalityTest(test.slug, values);
-      toast.success("درخواست شما با موفقیت ثبت شد. تیم بوته به زودی با شما ارتباط می‌گیرد.");
-      setIsDialogOpen(false);
-      form.reset();
-    } catch (error: any) {
-      toast.error(error.message || "ثبت درخواست با مشکل مواجه شد.");
-    }
-  };
-
   const highlights = useMemo(() => test?.highlights ?? [], [test]);
 
   if (isLoading) {
@@ -100,7 +51,7 @@ const PersonalityAssessmentDetail = () => {
         <LoaderCircle className="h-10 w-10 animate-spin text-purple-500" />
       </div>
     );
-    }
+  }
 
   if (!test) {
     return (
@@ -111,6 +62,26 @@ const PersonalityAssessmentDetail = () => {
     );
   }
 
+  const handleStart = () => {
+    const isLoggedIn = !!localStorage.getItem("isLoggedIn") || !!localStorage.getItem("isAdminLoggedIn");
+    if (!isLoggedIn) {
+      toast.info("برای شروع آزمون ابتدا وارد حساب کاربری خود شوید.");
+      navigate("/login", { state: { redirectTo: `/personality/${test.slug}/chat` } });
+      return;
+    }
+    navigate(`/personality/${test.slug}/chat`);
+  };
+
+  const handleViewResults = () => {
+    const isLoggedIn = !!localStorage.getItem("isLoggedIn") || !!localStorage.getItem("isAdminLoggedIn");
+    if (!isLoggedIn) {
+      toast.info("برای مشاهده گزارش‌های قبلی ابتدا وارد شوید.");
+      navigate("/login", { state: { redirectTo: "/personality/results" } });
+      return;
+    }
+    navigate("/personality/results");
+  };
+
   return (
     <div dir="rtl" className="min-h-screen bg-white text-slate-900">
       <header className="border-b border-purple-100/60 bg-white/80 backdrop-blur">
@@ -119,14 +90,18 @@ const PersonalityAssessmentDetail = () => {
             <p className="text-xs font-semibold text-purple-600">آزمون شخصیتی</p>
             <h1 className="text-2xl font-bold md:text-3xl">{test.name}</h1>
           </div>
-          <div className="flex items-center gap-3">
-            <Button
-              className="bg-purple-600 text-white hover:bg-purple-700"
-              onClick={() => setIsDialogOpen(true)}
-            >
-              شرکت در این آزمون
+          <div className="flex flex-wrap items-center gap-3">
+            <Button className="bg-purple-600 text-white hover:bg-purple-700" onClick={handleStart}>
+              شروع آزمون
             </Button>
-            <Button variant="ghost" className="flex items-center gap-2 text-slate-600 hover:text-slate-900" onClick={() => navigate("/personality")}>
+            <Button variant="outline" onClick={handleViewResults}>
+              گزارش‌های من
+            </Button>
+            <Button
+              variant="ghost"
+              className="flex items-center gap-2 text-slate-600 hover:text-slate-900"
+              onClick={() => navigate("/personality")}
+            >
               <ArrowLeft className="h-4 w-4" />
               بازگشت
             </Button>
@@ -162,16 +137,13 @@ const PersonalityAssessmentDetail = () => {
 
         <section className="rounded-[32px] border border-purple-100 bg-slate-900 px-8 py-12 text-white shadow-sm">
           <div className="space-y-4 text-center">
-            <h3 className="text-2xl font-semibold md:text-3xl">آماده شروع آزمون هستید؟</h3>
+            <h3 className="text-2xl font-semibold md:text-3xl">چگونه کار می‌کند؟</h3>
             <p className="mx-auto max-w-2xl text-sm leading-7 text-slate-200 md:text-base md:leading-8">
-              تیم بوتـه برای هر آزمون سناریوهایی آماده کرده است که می‌توانید در یک دموی هدایت‌شده تجربه کنید. اگر می‌خواهید این آزمون را برای تیم خود فعال کنید، کافی است درخواست دمو ثبت نمایید.
+              گفتگوی تعاملی با کوچ اختصاصی آغاز می‌شود، سپس براساس پاسخ‌های تو یک گزارش ساختاریافته شامل جمع‌بندی، نقاط قوت و پیشنهادهای توسعه تولید می‌گردد. در پایان می‌توانی گزارش را در بخش «گزارش‌های من» مشاهده کنی.
             </p>
             <div className="flex flex-col justify-center gap-3 sm:flex-row">
-              <Button
-                className="bg-purple-500 px-6 py-3 text-base font-semibold text-white hover:bg-purple-600"
-                onClick={() => setIsDialogOpen(true)}
-              >
-                شروع آزمون همین حالا
+              <Button className="bg-purple-500 px-6 py-3 text-base font-semibold text-white hover:bg-purple-600" onClick={handleStart}>
+                شروع گفتگو
               </Button>
               <Button
                 variant="ghost"
@@ -184,94 +156,6 @@ const PersonalityAssessmentDetail = () => {
           </div>
         </section>
       </main>
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>ثبت‌نام برای آزمون {test.name}</DialogTitle>
-            <DialogDescription>
-              اطلاعات خود را وارد کنید تا لینک و زمان‌بندی آزمون برای شما ارسال شود.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-5">
-              <FormField
-                control={form.control}
-                name="full_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>نام و نام خانوادگی</FormLabel>
-                    <FormControl>
-                      <Input placeholder="مثال: سارا موسوی" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>ایمیل</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="example@email.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>شماره تماس (اختیاری)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="مثال: 0912xxxxxxx" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="organization"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>نام سازمان یا شرکت (اختیاری)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="مثال: شرکت فناوران پویا" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>توضیحات تکمیلی (اختیاری)</FormLabel>
-                    <FormControl>
-                      <Textarea rows={4} placeholder="انتظارات یا سوالات خود را بنویسید..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  انصراف
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : "ثبت درخواست"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

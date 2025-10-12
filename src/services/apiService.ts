@@ -142,7 +142,20 @@ export const adminUpdatePersonalityTest = async (id: number, data: PersonalityTe
 export const adminDeletePersonalityTest = async (id: number) =>
     await apiFetch(`admin/personality-tests/${id}`, { method: 'DELETE' });
 
-export const registerForPersonalityTest = async (
-    slug: string,
-    data: { full_name: string; email: string; phone?: string; organization?: string; notes?: string }
-) => await apiFetch(`personality-tests/${slug}/register`, { method: 'POST', body: JSON.stringify(data) });
+export const startPersonalityTest = async (slug: string) =>
+    await apiFetch(`personality/start/${slug}`, { method: 'POST' });
+
+export const sendPersonalityMessage = async (sessionId: string, message: string) =>
+    await apiFetch(`personality/chat/${sessionId}`, {
+        method: 'POST',
+        body: JSON.stringify({ message }),
+    });
+
+export const finishPersonalityTest = async (sessionId: string) =>
+    await apiFetch(`personality/finish/${sessionId}`, { method: 'POST' });
+
+export const getPersonalityResults = async () =>
+    await apiFetch('personality/results');
+
+export const getPersonalityResult = async (sessionId: string) =>
+    await apiFetch(`personality/results/${sessionId}`);
