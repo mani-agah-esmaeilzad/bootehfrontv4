@@ -159,3 +159,6 @@ export const getPersonalityResults = async () =>
 
 export const getPersonalityResult = async (sessionId: string) =>
     await apiFetch(`personality/results/${sessionId}`);
+
+export const adminGetPersonalityResults = async () =>
+    await apiFetch('admin/personality-tests/results');
