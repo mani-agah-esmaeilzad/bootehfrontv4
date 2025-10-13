@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 
 export interface AssessmentMapStep {
@@ -6,6 +7,8 @@ export interface AssessmentMapStep {
   title: string;
   description?: string;
   status: "completed" | "current" | "locked";
+  category?: string;
+  accentColor?: string;
 }
 
 interface AssessmentMapProps {
@@ -14,6 +17,21 @@ interface AssessmentMapProps {
 }
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+const DEFAULT_ACCENT = "#6366F1";
+
+const hexToRgba = (hex: string, alpha: number) => {
+  const sanitized = hex.replace('#', '');
+  const normalized = sanitized.length === 3 ? sanitized.split('').map((ch) => ch + ch).join('') : sanitized;
+  const bigint = parseInt(normalized, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const truncateText = (value: string, maxLength = 22) =>
+  value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
 
 export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
   const nodePositions = useMemo(() => {
@@ -57,64 +75,22 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
       .join(" ");
   }, [nodePositions]);
 
-  const accentPathCommands = useMemo(() => {
-    if (!nodePositions.length) return [] as string[];
+  const segments = useMemo(() => {
+    if (nodePositions.length < 2) return [] as { d: string; color: string; status: AssessmentMapStep["status"] }[];
 
-    return [10, -10].map((offset) =>
-      nodePositions
-        .map((point, i, arr) => {
-          const y = point.y + offset;
+    return nodePositions.slice(1).map((point, idx) => {
+      const prev = nodePositions[idx];
+      const midX = (prev.x + point.x) / 2;
+      const controlOffset = (point.y - prev.y) / 3;
+      const d = `M ${prev.x} ${prev.y} C ${midX} ${prev.y + controlOffset}, ${midX} ${point.y - controlOffset}, ${point.x} ${point.y}`;
 
-          if (i === 0) {
-            return `M ${point.x} ${y}`;
-          }
-
-          const prev = arr[i - 1];
-          const prevY = prev.y + offset;
-          const midX = (prev.x + point.x) / 2;
-
-          return `Q ${midX} ${(prevY + y) / 2}, ${point.x} ${y}`;
-        })
-        .join(" ")
-    );
-  }, [nodePositions]);
-
-  const lastCompletedIndex = useMemo(() => {
-    let completedIndex = -1;
-    nodePositions.forEach(({ step, index }) => {
-      if (step.status === "completed") {
-        completedIndex = index;
-      }
+      return {
+        d,
+        color: point.step.accentColor ?? DEFAULT_ACCENT,
+        status: point.step.status,
+      };
     });
-    return completedIndex;
   }, [nodePositions]);
-
-  const currentIndex = useMemo(
-    () => nodePositions.find(({ step }) => step.status === "current")?.index ?? -1,
-    [nodePositions]
-  );
-
-  const activeIndex = currentIndex !== -1 ? currentIndex : lastCompletedIndex;
-
-  const progressCommands = useMemo(() => {
-    if (activeIndex < 0) return "";
-
-    const sliced = nodePositions.slice(0, activeIndex + 1);
-
-    return sliced
-      .map((point, i, arr) => {
-        if (i === 0) {
-          return `M ${point.x} ${point.y}`;
-        }
-
-        const prev = arr[i - 1];
-        const midX = (prev.x + point.x) / 2;
-        const controlOffset = (point.y - prev.y) / 3;
-
-        return `C ${midX} ${prev.y + controlOffset}, ${midX} ${point.y - controlOffset}, ${point.x} ${point.y}`;
-      })
-      .join(" ");
-  }, [activeIndex, nodePositions]);
 
   if (!steps.length) {
     return (
@@ -171,41 +147,40 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
             opacity={0.65}
             filter="url(#softGlow)"
           />
-          {accentPathCommands.map((accentPath, index) => (
-            <path
-              key={`accent-${index}`}
-              d={accentPath}
-              fill="none"
-              stroke="rgba(139,92,246,0.2)"
-              strokeWidth={2}
-              strokeDasharray="12 16"
-              strokeLinecap="round"
-              opacity={0.5 - index * 0.2}
-            />
-          ))}
-          <path
-            d={progressCommands}
-            fill="none"
-            stroke="url(#mapProgressGradient)"
-            strokeWidth={5}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            filter="url(#accentGlow)"
-          />
+          {segments.map((segment, index) => {
+            const strokeWidth = segment.status === "locked" ? 4 : 6;
+            const opacity = segment.status === "locked" ? 0.25 : segment.status === "completed" ? 0.9 : 0.75;
+            const dash = segment.status === "locked" ? "6 12" : undefined;
+
+            return (
+              <path
+                key={`segment-${index}`}
+                d={segment.d}
+                fill="none"
+                stroke={segment.color}
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeDasharray={dash}
+                opacity={opacity}
+                filter={segment.status === "current" ? "url(#accentGlow)" : undefined}
+              />
+            );
+          })}
           {nodePositions.map((point) => (
             <g key={`orbit-${point.step.id}`}>
               <circle
                 cx={point.x}
                 cy={point.y}
-                r={17}
-                fill="url(#mapPathGradient)"
-                opacity={0.18}
+                r={18}
+                fill={hexToRgba(point.step.accentColor ?? DEFAULT_ACCENT, 0.15)}
+                opacity={0.4}
               />
               <circle
                 cx={point.x}
                 cy={point.y}
                 r={27}
-                stroke="rgba(148,163,184,0.2)"
+                stroke={hexToRgba(point.step.accentColor ?? DEFAULT_ACCENT, 0.25)}
                 strokeWidth={0.6}
                 strokeDasharray="6 9"
                 fill="none"
@@ -216,9 +191,43 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
       </div>
 
       {nodePositions.map(({ step, index, x, y }) => {
+        const accent = step.accentColor ?? DEFAULT_ACCENT;
         const isLocked = step.status === "locked";
         const isCurrent = step.status === "current";
         const isCompleted = step.status === "completed";
+
+        const buttonStyle: CSSProperties = {
+          borderColor: accent,
+          background: isLocked
+            ? "rgba(255,255,255,0.75)"
+            : isCompleted
+            ? hexToRgba(accent, 0.15)
+            : "rgba(255,255,255,0.95)",
+          color: isLocked ? "#94A3B8" : isCurrent || isCompleted ? accent : "#475569",
+          boxShadow: isLocked
+            ? "none"
+            : isCurrent
+            ? `0 22px 60px ${hexToRgba(accent, 0.35)}`
+            : `0 18px 45px ${hexToRgba(accent, 0.18)}`,
+        };
+
+        const indexStyle: CSSProperties = {
+          borderColor: isLocked ? "rgba(148,163,184,0.45)" : accent,
+          backgroundColor: isLocked
+            ? "rgba(148,163,184,0.15)"
+            : isCurrent
+            ? hexToRgba(accent, 0.25)
+            : hexToRgba(accent, 0.12),
+          color: isLocked ? "#94A3B8" : accent,
+        };
+
+        const titleStyle: CSSProperties = {
+          color: isLocked ? "#94A3B8" : "#1E293B",
+        };
+
+        const descriptionStyle: CSSProperties = {
+          color: isLocked ? "#94A3B8" : "#64748B",
+        };
 
         return (
           <div
@@ -234,37 +243,31 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
             }}
           >
             <div
-              className={cn(
-                "pointer-events-none absolute inset-0 -z-10 h-28 w-28 rounded-full bg-gradient-to-br from-purple-500/10 via-white to-purple-500/20 blur-2xl transition-opacity",
-                isCurrent ? "opacity-100" : "opacity-0"
-              )}
+              className="pointer-events-none absolute inset-0 -z-10 h-28 w-28 rounded-full blur-2xl transition-opacity"
+              style={{
+                background: `radial-gradient(circle at center, ${hexToRgba(accent, 0.28)} 0%, transparent 70%)`,
+                opacity: isCurrent ? 1 : 0,
+              }}
             />
             <button
               type="button"
               onClick={() => !isLocked && onStepSelect?.(step, index)}
-              className={cn(
-                "relative flex h-28 w-28 flex-col items-center justify-center gap-1 rounded-full border-2 bg-white/95 text-center text-slate-600 shadow-[0_18px_45px_rgba(124,58,237,0.12)] backdrop-blur focus:outline-none focus-visible:ring-4 focus-visible:ring-purple-200/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
-                isCompleted && "border-purple-200 bg-purple-50 text-purple-600",
-                isCurrent &&
-                  "border-purple-500 bg-white text-purple-600 shadow-[0_22px_60px_rgba(124,58,237,0.28)]",
-                isLocked && "cursor-not-allowed border-slate-200/70 bg-white/70 text-slate-400 shadow-none"
-              )}
+              className="relative flex h-28 w-28 flex-col items-center justify-center gap-1 rounded-full border-2 bg-white/95 text-center text-sm font-semibold backdrop-blur focus:outline-none focus-visible:ring-4 focus-visible:ring-purple-200/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+              style={buttonStyle}
               disabled={isLocked}
             >
-              <span className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold",
-                isCurrent
-                  ? "border-purple-500 bg-purple-500/10 text-purple-600"
-                  : isCompleted
-                  ? "border-purple-200 bg-purple-100/60 text-purple-600"
-                  : "border-slate-200 bg-white/80 text-slate-500"
-              )}>
+              <span
+                className="flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold"
+                style={indexStyle}
+              >
                 {index + 1}
               </span>
-              <span className="px-4 text-sm font-semibold leading-relaxed">{step.title}</span>
+              <span className="px-4 text-sm font-semibold leading-relaxed" style={titleStyle}>
+                {truncateText(step.title, 24)}
+              </span>
             </button>
             {step.description && (
-              <div className="max-w-[12rem] text-center text-xs leading-relaxed text-slate-400">
+              <div className="max-w-[12rem] text-center text-xs leading-relaxed" style={descriptionStyle}>
                 {step.description}
               </div>
             )}

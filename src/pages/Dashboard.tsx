@@ -1,6 +1,7 @@
 // src/pages/Dashboard.tsx
 
 import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -27,7 +28,61 @@ interface Assessment {
   title: string;
   description: string;
   status: "completed" | "current" | "locked";
+  category?: string;
 }
+
+const CATEGORY_COLORS: Record<string, string> = {
+  "شایستگی های رفتاری (بین فردی)": "#7C3AED",
+  "شایستگی های شناختی": "#0EA5E9",
+  "شایستگی های فردی": "#EC4899",
+  "شایستگی های رهبری و مدیریت": "#F97316",
+  "نیمرخ روانشناختی": "#10B981",
+};
+
+const DEFAULT_CATEGORY_COLOR = "#6366F1";
+
+const SPIRAL_POSITIONS = [
+  { top: "12%", left: "64%" },
+  { top: "30%", left: "78%" },
+  { top: "52%", left: "68%" },
+  { top: "70%", left: "46%" },
+  { top: "48%", left: "28%" },
+];
+
+const hexToRgba = (hex: string, alpha: number) => {
+  const sanitized = hex.replace('#', '');
+  const bigint = parseInt(sanitized.length === 3 ? sanitized.repeat(2) : sanitized, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const truncate = (value: string, maxLength = 18) =>
+  value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
+
+const getStageStyles = (status: string, color: string): CSSProperties => {
+  if (status === "completed") {
+    return {
+      backgroundColor: color,
+      color: "#ffffff",
+      boxShadow: `0 10px 24px ${hexToRgba(color, 0.28)}`,
+    };
+  }
+
+  if (status === "current") {
+    return {
+      backgroundColor: hexToRgba(color, 0.2),
+      color,
+      border: `1px solid ${hexToRgba(color, 0.45)}`,
+    };
+  }
+
+  return {
+    backgroundColor: "rgba(148,163,184,0.18)",
+    color: "#64748B",
+  };
+};
 
 const Dashboard = () => {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
@@ -102,13 +157,21 @@ const Dashboard = () => {
     return Array.from(map.values());
   }, [assessments]);
 
-  // مراحل برای نقشه مارپیچ
-  const mapSteps: AssessmentMapStep[] = dedupedAssessments.map((a) => ({
-    id: a.stringId || String(a.id),
-    title: a.title,
-    description: a.description,
-    status: a.status,
-  }));
+  const mapSteps: AssessmentMapStep[] = useMemo(
+    () =>
+      dedupedAssessments.map((a) => {
+        const accentColor = CATEGORY_COLORS[a.category ?? ""] ?? DEFAULT_CATEGORY_COLOR;
+        return {
+          id: a.stringId || String(a.id),
+          title: a.title,
+          description: a.description,
+          status: a.status,
+          category: a.category,
+          accentColor,
+        };
+      }),
+    [dedupedAssessments]
+  );
 
   const currentAssessment = dedupedAssessments.find((a) => a.status === "current");
   const totalCount = dedupedAssessments.length;
@@ -120,38 +183,43 @@ const Dashboard = () => {
 
   const formatNumber = (value: number) => value.toLocaleString("fa-IR");
 
-  const stationOverview = [
-    {
-      name: "مهارت‌های ارتباطی",
-      color: "#7C3AED",
-      stages: ["مقدمه", "کاربرد", "ارزیابی"] as const,
-      position: { top: "12%", left: "62%" },
-    },
-    {
-      name: "هوش هیجانی",
-      color: "#10B981",
-      stages: ["پایه", "پیشرو", "آزمون"] as const,
-      position: { top: "32%", left: "76%" },
-    },
-    {
-      name: "رهبری و مدیریت",
-      color: "#F59E0B",
-      stages: ["شناخت", "تمرین", "مربیگری"] as const,
-      position: { top: "52%", left: "66%" },
-    },
-    {
-      name: "توسعه فردی",
-      color: "#EC4899",
-      stages: ["آغاز", "چالش", "تثبیت"] as const,
-      position: { top: "67%", left: "44%" },
-    },
-    {
-      name: "کار تیمی",
-      color: "#0EA5E9",
-      stages: ["تیم‌سازی", "هم‌افزایی", "بازخورد"] as const,
-      position: { top: "45%", left: "27%" },
-    },
-  ];
+  const stations = useMemo(() => {
+    const grouped = new Map<string, Assessment[]>();
+    dedupedAssessments.forEach((assessment) => {
+      const category = assessment.category || "سایر دسته‌بندی‌ها";
+      if (!grouped.has(category)) {
+        grouped.set(category, []);
+      }
+      grouped.get(category)!.push(assessment);
+    });
+
+    const entries = Array.from(grouped.entries());
+
+    return entries.map(([category, steps], index) => {
+      const color = CATEGORY_COLORS[category] ?? DEFAULT_CATEGORY_COLOR;
+      const position = SPIRAL_POSITIONS[index % SPIRAL_POSITIONS.length];
+      const statusOrder: Record<Assessment["status"], number> = {
+        completed: 0,
+        current: 1,
+        locked: 2,
+      };
+
+      const orderedSteps = steps
+        .slice()
+        .sort((a, b) => (statusOrder[a.status] ?? 3) - (statusOrder[b.status] ?? 3))
+        .slice(0, 6);
+
+      return {
+        name: category,
+        color,
+        position,
+        stages: orderedSteps.map((step) => ({
+          label: step.title,
+          status: step.status,
+        })),
+      };
+    });
+  }, [dedupedAssessments]);
 
   // رندر محتوا
   const renderContent = () => {
@@ -361,7 +429,7 @@ const Dashboard = () => {
                   }
                 }}
               />
-              {stationOverview.map((station) => (
+{stations.map((station) => (
                 <div
                   key={station.name}
                   className="absolute -translate-x-1/2 -translate-y-1/2 space-y-2 text-right"
@@ -374,13 +442,13 @@ const Dashboard = () => {
                     {station.name}
                   </div>
                   <div className="flex flex-wrap justify-end gap-1.5">
-                    {station.stages.map((stage) => (
+                    {station.stages.map((stage, idx) => (
                       <span
-                        key={stage}
-                        className="rounded-full px-2 py-1 text-[11px] font-medium"
-                        style={{ backgroundColor: `${station.color}1A`, color: station.color }}
+                        key={`${stage.label}-${idx}`}
+                        className="rounded-full px-2 py-1 text-[11px] font-medium shadow-sm"
+                        style={getStageStyles(stage.status, station.color)}
                       >
-                        {stage}
+                        {truncate(stage.label, 16)}
                       </span>
                     ))}
                   </div>
@@ -407,18 +475,18 @@ const Dashboard = () => {
                 }}
               />
               <div className="mt-6 grid gap-3">
-                {stationOverview.map((station) => (
+                {stations.map((station) => (
                   <div key={station.name} className="flex items-center justify-between rounded-2xl border border-purple-100 bg-white/95 p-3">
                     <div>
                       <p className="text-xs font-semibold text-slate-900">{station.name}</p>
                       <div className="mt-2 flex flex-wrap justify-end gap-1.5 text-xs">
-                        {station.stages.map((stage) => (
+                        {station.stages.map((stage, idx) => (
                           <span
-                            key={stage}
-                            className="rounded-full px-2 py-0.5"
-                            style={{ backgroundColor: `${station.color}1A`, color: station.color }}
+                            key={`${stage.label}-${idx}`}
+                            className="rounded-full px-2 py-0.5 text-[11px]"
+                            style={getStageStyles(stage.status, station.color)}
                           >
-                            {stage}
+                            {truncate(stage.label, 14)}
                           </span>
                         ))}
                       </div>
