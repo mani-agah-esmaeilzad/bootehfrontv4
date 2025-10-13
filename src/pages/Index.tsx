@@ -135,7 +135,7 @@ const personalityAssessments = [
     title: "MBTI – نقشه تیپ‌های تعاملی",
     tagline: "روایت تیپ ۱۶گانه در میدان واقعی سازمان",
     description:
-      "نسخه بوته‌ای MBTI فقط به پرسشنامه ختم نمی‌شود؛ سناریوهای زنده نشان می‌دهند هر تیپ در گفتگوهای چالشی، ارائه‌ها و بحران‌ها چگونه تصمیم می‌گیرد.",
+      "یک گفتگوی هدایت‌شده برای کشف ترجیحات ارتباطی و تصمیم‌گیری در موقعیت‌های روزمره کاری.",
     reportName: "گزارش «هم‌نوردی تیمی»",
     highlights: ["سازگارترین هم‌تیمی‌ها برای هر تیپ", "نقاط تنش با مدیر مستقیم", "پیشنهادهای کوچینگ ۱۴ روزه"],
   },
@@ -144,7 +144,7 @@ const personalityAssessments = [
     title: "NEO PI-R – مدل پنج‌عاملی شخصیت",
     tagline: "اندازه‌گیری علمی پنج بعد شخصیت در تنش‌های بومی",
     description:
-      "با ترکیب داده‌های رفتاری و گفت‌وگوهای ساختاری، پنج عامل اصلی شخصیت (OCEAN) را در موقعیت‌های واقعی شرکت‌های ایرانی ارزیابی می‌کنیم.",
+      "تحلیل مکالمه‌محور برای سنجش پنج عامل اصلی شخصیت و تشخیص محرک‌های انگیزشی فرد.",
     reportName: "گزارش «پروفایل تطبیق‌پذیری»",
     highlights: ["شاخص ریسک فرسودگی", "نقشه محرک‌های انگیزشی", "مسیر رشد اختصاصی هر بعد"],
   },
@@ -153,7 +153,7 @@ const personalityAssessments = [
     title: "Enneagram – ۹ نیمرخ انگیزشی",
     tagline: "کشف انگیزه‌های عمیق و واکنش در فشار",
     description:
-      "داستان‌های تعاملی، پیکربندی سه‌گانه (قلب، ذهن، غریزه) را روشن می‌کنند و تله‌های رشد هر تیپ را به‌صورت عملی نمایش می‌دهند.",
+      "با مرور داستان‌های کاری، انگیزه‌های پنهان و الگوهای رفتاری لحظه استرس را آشکار می‌کنیم.",
     reportName: "گزارش «قطب‌نمای رشد»",
     highlights: ["هشدارهای استرس و افت عملکرد", "هم‌تیمی‌های مکمل پیشنهادی", "تمرین‌های تمرکز روزانه"],
   },
@@ -162,7 +162,7 @@ const personalityAssessments = [
     title: "DISC – پویایی رفتار حرفه‌ای",
     tagline: "تحلیل Dominance، Influence، Steadiness و Compliance در نقش‌های سازمانی",
     description:
-      "با شبیه‌سازی‌های چندلایه مشخص می‌کنیم در تعامل با مدیران، مشتریان و همکاران چه زمانی سبک رفتاری خود را تغییر می‌دهید.",
+      "سنجش دقیق سبک رفتاری در مذاکره، همکاری تیمی و رعایت استانداردها با تمرکز بر چهار بُعد DISC.",
     reportName: "گزارش «ضریب هم‌افزایی»",
     highlights: ["استراتژی مذاکره پیشنهادی", "چک‌لیست جلسات پرریسک", "نمودار سازگاری بین‌فردی"],
   },
@@ -171,7 +171,7 @@ const personalityAssessments = [
     title: "CliftonStrengths – معماری نقاط قوت",
     tagline: "تبدیل ۳۴ تم نقاط قوت به نقشه اقدام سازمانی",
     description:
-      "خروجی این ارزیابی تنها فهرست نقاط قوت نیست؛ برنامه عملیاتی برای بهره‌برداری از ترکیب تم‌ها در پروژه‌های کلیدی ارائه می‌شود.",
+      "کمک می‌کند لحظاتی که بیشترین انرژی و اثرگذاری را خلق می‌کنید شناسایی و در پروژه‌ها تکرار کنید.",
     reportName: "گزارش «معمار توانمندی»",
     highlights: ["پیشنهاد نقش‌های طلایی", "برنامه توسعه ۳۰ روزه", "پلن هم‌افزایی با سایر اعضای تیم"],
   },
@@ -242,8 +242,8 @@ const Index = () => {
           </div>
           <div className="flex items-center gap-3 text-sm">
             <Button
-              variant="ghost"
-              className="text-slate-600 hover:text-slate-900"
+              variant="link"
+              className="px-0 text-sm font-medium text-slate-600 hover:text-slate-900"
               onClick={() => navigate("/login")}
             >
               ورود
@@ -520,48 +520,48 @@ const Index = () => {
         >
           <div className="rounded-[32px] border border-purple-100 bg-white/90 px-6 py-16 shadow-sm backdrop-blur md:px-12">
             <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
-              <div className="max-w-2xl space-y-4 text-right">
+              <div className="max-w-2xl space-y-5 text-right">
                 <h2 className="text-3xl font-bold text-slate-900">آزمون‌های شخصیتی اختصاصی بوته</h2>
-                <p className="text-base leading-7 text-slate-600">
-                  پنج مسیر مکمل برای شناخت عمیق‌تر تیپ شخصیتی، الگوی رفتاری و نقاط قوت تیم‌ها. هر آزمون با سناریوهای
-                  بومی، تحلیل داده‌محور و گزارش‌های اختصاصی ارائه می‌شود تا تجربه‌ای فراتر از نسخه‌های کلاسیک داشته باشید.
+                <p className="text-base leading-8 text-slate-700">
+                  پنج مسیر مکمل برای شناخت عمیق‌تر تیپ شخصیتی، الگوی رفتاری و نقاط قوت تیم‌ها. گفتگوی هوشمند، تحلیل
+                  خودکار و گزارش کاربردی، سه گام اصلی این سفر هستند.
                 </p>
               </div>
               <Button
-                variant="ghost"
-                className="text-sm font-semibold text-purple-600 hover:text-purple-700"
+                variant="outline"
+                className="text-sm font-semibold text-purple-700 hover:border-purple-300 hover:text-purple-800"
                 onClick={() => navigate("/personality")}
               >
                 مشاهده پنل آزمون‌ها
               </Button>
             </div>
-            <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-14 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
               {personalityAssessments.map((assessment, index) => (
                 <div
                   key={assessment.id}
-                  className="flex h-full flex-col justify-between rounded-3xl border border-purple-100 bg-gradient-to-br from-white via-white to-purple-50/60 p-7 shadow-sm transition hover:-translate-y-1 hover:border-purple-200"
+                  className="flex h-full min-h-[360px] flex-col justify-between rounded-3xl border border-purple-100 bg-gradient-to-br from-white via-white to-purple-50/60 p-7 shadow-sm transition hover:-translate-y-1 hover:border-purple-200"
                 >
-                  <div className="space-y-3 text-right">
-                    <span className="inline-flex items-center gap-2 rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
+                  <div className="space-y-3.5 text-right">
+                    <span className="inline-flex items-center gap-2 rounded-full bg-amber-100/80 px-3 py-1 text-[11px] font-medium text-amber-700">
                       مرحله {index + 1}
                     </span>
                     <h3 className="text-xl font-semibold text-slate-900">{assessment.title}</h3>
                     <p className="text-sm font-medium text-purple-700">{assessment.tagline}</p>
-                    <p className="text-sm leading-7 text-slate-600">{assessment.description}</p>
+                    <p className="text-sm leading-7 text-slate-700">{assessment.description}</p>
                   </div>
-                  <div className="mt-6 space-y-3 rounded-2xl border border-purple-100 bg-white/80 p-4">
+                  <div className="mt-6 space-y-3 rounded-2xl border border-purple-100 bg-white/85 p-4">
                     <p className="text-sm font-semibold text-slate-900">{assessment.reportName}</p>
-                    <ul className="space-y-2 text-xs leading-6 text-slate-600">
+                    <ul className="space-y-2 text-xs leading-6 text-slate-700">
                       {assessment.highlights.map((item) => (
                         <li key={item} className="flex items-start gap-2">
-                          <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-purple-500" />
+                          <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-amber-500" />
                           {item}
                         </li>
                       ))}
                     </ul>
                     <Button
-                      variant="ghost"
-                      className="mt-4 flex items-center justify-end gap-2 text-purple-600 hover:text-purple-700"
+                      variant="outline"
+                      className="mt-4 flex items-center justify-end gap-2 text-sm text-purple-700 hover:border-purple-300 hover:text-purple-800"
                       onClick={() => navigate(`/personality/${assessment.id}`)}
                     >
                       مشاهده بیشتر
