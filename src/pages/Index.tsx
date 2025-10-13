@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ArrowUpRight,
   BarChart3,
+  BookOpen,
   LineChart,
   PanelsTopLeft,
   ShieldCheck,
@@ -20,10 +21,10 @@ const heroStats = [
 
 const capabilityCards = [
   {
-    icon: Sparkles,
+    icon: BookOpen,
     title: "تجربه داستانی",
     description:
-      "هر جلسه با یک روایت نرم آغاز می‌شود و نقش‌ها به‌صورت مرحله‌ای روی مسیر خمیده روشن می‌شوند.",
+      "هر جلسه با یک روایت هدایت‌شده آغاز می‌شود و نقش‌ها به‌صورت مرحله‌ای مسیر را برای کاربر روشن می‌کنند.",
   },
   {
     icon: PanelsTopLeft,
@@ -191,7 +192,7 @@ const insightStories = [
     label: "شتاب رشد",
   },
   {
-    title: "چشم‌انداز آینده",
+    title: "نقشه اقدام بعدی",
     description: "پیشنهاد خودکار گام‌های بعدی بر اساس الگوهای موفقیت سازمان‌های مشابه.",
     metric: "۲۱",
     label: "توصیه فعال",
@@ -260,7 +261,7 @@ const Index = () => {
         </div>
       </header>
 
-      <main className="space-y-28 pb-24">
+      <main className="space-y-32 pb-24">
         <section
           id="hero"
           className="relative overflow-hidden border-b border-purple-100/60 bg-gradient-to-bl from-purple-50 via-white to-white"
@@ -301,17 +302,17 @@ const Index = () => {
               <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
                 <Button
                   variant="default"
-                  className="w-full bg-slate-900 px-6 py-3 text-base font-semibold text-white hover:bg-slate-800 sm:w-auto"
+                  className="w-full bg-slate-900 px-6 py-3 text-base font-semibold text-white transition hover:bg-slate-800 hover:shadow-lg sm:w-auto"
                   onClick={() => navigate("/register")}
                 >
                   رزرو جلسه معرفی
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full border border-purple-200 px-6 py-3 text-base font-semibold text-slate-900 hover:border-purple-400 hover:text-purple-600 sm:w-auto"
+                  className="w-full border border-purple-200 px-6 py-3 text-base font-semibold text-slate-900 transition hover:border-purple-300 hover:bg-purple-50 hover:text-purple-600 sm:w-auto"
                   onClick={() => navigate("/login")}
                 >
-                  مشاهده محیط تعاملی
+                  مشاهده دمو
                   <ArrowUpRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -425,13 +426,16 @@ const Index = () => {
             </div>
             <div className="mt-12 grid gap-6 md:grid-cols-3">
               {capabilityCards.map(({ icon: Icon, title, description }) => (
-                <div key={title} className="flex h-full flex-col gap-4 rounded-3xl border border-purple-100/80 bg-purple-50/60 p-7">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-600/10 text-purple-600">
+                <div
+                  key={title}
+                  className="flex h-full flex-col items-center justify-center gap-4 rounded-3xl border border-purple-100/80 bg-purple-50/70 p-7 text-center"
+                >
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600">
                     <Icon className="h-5 w-5" />
                   </span>
                   <div className="space-y-2">
                     <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-                    <p className="text-sm leading-6 text-slate-600">{description}</p>
+                    <p className="text-sm leading-7 text-slate-700">{description}</p>
                   </div>
                 </div>
               ))}
@@ -459,8 +463,8 @@ const Index = () => {
           <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 md:px-6">
             <div className="space-y-4 text-right text-white">
               <h2 className="text-3xl font-bold">مسیر حرکت تیم شما</h2>
-              <p className="max-w-2xl text-base leading-7 text-slate-200">
-                خطی خمیده که از شروع تا تحلیل نهایی را نشان می‌دهد و نقاط کلیدی را با درخشش‌های ظریف مشخص می‌کند.
+              <p className="max-w-2xl text-base leading-7 text-white/85">
+                خط خمیده‌ی مسیر از شروع تا تحلیل نهایی را نشان می‌دهد و نقاط کلیدی را با درخشش‌های ظریف مشخص می‌کند.
               </p>
             </div>
             <div className="grid gap-6 md:grid-cols-3">
@@ -471,7 +475,7 @@ const Index = () => {
                     {index + 1}
                   </span>
                   <h3 className="mt-6 text-xl font-semibold text-white">{step.title}</h3>
-                  <p className="mt-3 text-sm leading-7 text-slate-200">{step.caption}</p>
+                  <p className="mt-3 text-sm leading-7 text-white/80">{step.caption}</p>
                 </div>
               ))}
             </div>
@@ -562,7 +566,7 @@ const Index = () => {
                     <Button
                       variant="outline"
                       className="mt-4 flex items-center justify-end gap-2 text-sm text-purple-700 hover:border-purple-300 hover:text-purple-800"
-                      onClick={() => navigate(`/personality/${assessment.id}`)}
+                      onClick={() => navigate(`/personality/${assessment.slug || assessment.id}`)}
                     >
                       مشاهده بیشتر
                       <ArrowUpRight className="h-4 w-4" />
@@ -592,13 +596,13 @@ const Index = () => {
             <div className="flex flex-col gap-10 md:flex-row md:items-center md:justify-between">
               <div className="max-w-xl space-y-4 text-right">
                 <h2 className="text-3xl font-bold text-slate-900">بینش‌های قابل عمل</h2>
-                <p className="text-base leading-7 text-slate-600">
+                <p className="text-base leading-7 text-slate-700">
                   کارت‌های داده با نمودارهای کوچک و اعداد کلیدی نشان می‌دهند چگونه تیم شما به سمت هدف حرکت می‌کند.
                 </p>
               </div>
               <Button
                 variant="ghost"
-                className="text-sm font-semibold text-purple-600 hover:text-purple-700"
+                className="text-sm font-semibold text-purple-600 transition hover:bg-purple-50 hover:text-purple-700"
                 onClick={() => navigate("/login")}
               >
                 مرور همه گزارش‌ها
@@ -616,7 +620,7 @@ const Index = () => {
                       {story.label}
                     </span>
                     <h3 className="text-lg font-semibold text-slate-900">{story.title}</h3>
-                    <p className="text-sm leading-6 text-slate-600">{story.description}</p>
+                    <p className="text-sm leading-6 text-slate-700">{story.description}</p>
                   </div>
                   <p className="mt-6 text-3xl font-bold text-slate-900">{story.metric}</p>
                 </div>
@@ -636,14 +640,14 @@ const Index = () => {
               <div className="flex flex-col justify-center gap-3 sm:flex-row">
                 <Button
                   variant="default"
-                  className="w-full bg-purple-500 px-6 py-3 text-base font-semibold text-white hover:bg-purple-600 sm:w-auto"
+                  className="w-full bg-purple-500 px-6 py-3 text-base font-semibold text-white transition hover:bg-purple-600 hover:shadow-lg sm:w-auto"
                   onClick={() => navigate("/register")}
                 >
                   شروع رایگان
                 </Button>
                 <Button
                   variant="ghost"
-                  className="w-full bg-white/10 px-6 py-3 text-base font-semibold text-white hover:bg-white/20 sm:w-auto"
+                  className="w-full bg-white/10 px-6 py-3 text-base font-semibold text-white transition hover:bg-white/20 hover:shadow-lg sm:w-auto"
                   onClick={() => navigate("/login")}
                 >
                   ورود به حساب کاربری
@@ -653,17 +657,17 @@ const Index = () => {
           </div>
         </section>
       </main>
-      <footer className="border-t border-purple-100/60 bg-white/90 py-12">
-        <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 md:grid-cols-[1.1fr_1fr_1fr_1fr] md:px-6">
+      <footer className="border-t border-purple-100/60 bg-white/90 py-16">
+        <div className="mx-auto grid w-full max-w-6xl gap-14 px-4 md:grid-cols-[1.1fr_1fr_1fr_1fr] md:px-8">
           <div className="space-y-5 text-right">
             <Logo variant="large" />
-            <p className="text-sm leading-6 text-slate-500">
+            <p className="text-sm leading-6 text-slate-600">
               سکوی گفتگوی سه‌نفره برای سازمان‌هایی که به دنبال تصمیم‌گیری آگاهانه و سریع هستند.
             </p>
             <div className="flex items-center justify-end gap-3 text-sm">
               <Button
                 variant="ghost"
-                className="text-slate-600 hover:text-slate-900"
+                className="text-slate-600 transition hover:bg-purple-50 hover:text-slate-900"
                 onClick={() => navigate("/login")}
               >
                 ورود
@@ -680,7 +684,7 @@ const Index = () => {
           {footerLinks.map((column) => (
             <div key={column.title} className="space-y-3 text-right text-sm">
               <p className="text-sm font-semibold text-slate-900">{column.title}</p>
-              <ul className="space-y-2 text-slate-500">
+              <ul className="space-y-2 text-slate-600">
                 {column.items.map((item) => (
                   <li key={item} className="transition hover:text-slate-900">
                     {item}

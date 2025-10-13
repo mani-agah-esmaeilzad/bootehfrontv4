@@ -99,7 +99,7 @@ const Login = () => {
             <div className="space-y-6">
               <Logo variant="large" className="h-12 w-auto text-white" />
               <h1 className="text-3xl font-semibold leading-tight md:text-4xl">
-                ورود به فضای تحلیل احساس و تصمیم به سادگی یک لمس.
+                ورود سریع به فضای تحلیل گفتگو.
               </h1>
               <p className="max-w-md text-sm leading-7 text-white/70">
                 پس از ورود، روند گفتگوهای سه‌نقشی روی مسیر خمیده نمایش داده می‌شود و نمودارهای بنفش نبض جلسات شما را دنبال می‌کنند.
@@ -174,7 +174,7 @@ const Login = () => {
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className="absolute left-2 top-1/2 h-8 w-8 -translate-y-1/2 text-slate-500 hover:text-slate-900"
+                        className="absolute left-2 top-1/2 h-8 w-8 -translate-y-1/2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
                         onClick={() => setShowPassword((prev) => !prev)}
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -195,9 +195,9 @@ const Login = () => {
                   <button
                     type="button"
                     onClick={() => navigate("/register")}
-                    className="font-medium text-purple-600 transition hover:text-purple-700"
+                    className="font-medium text-purple-600 transition hover:text-purple-700 hover:underline"
                   >
-                    ثبت‌نام کنید
+                    ساخت حساب جدید
                   </button>
                 </div>
               </CardContent>

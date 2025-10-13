@@ -150,8 +150,8 @@ const Register = () => {
                     با تکمیل فرم زیر، حساب شما در مسیر گفتگوها فعال خواهد شد.
                   </p>
                 </div>
-                <form onSubmit={handleRegister} className="mt-8 space-y-5">
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <form onSubmit={handleRegister} className="mt-8 space-y-4">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="firstName" className="text-right text-sm font-medium text-slate-700">
                         نام
@@ -198,7 +198,7 @@ const Register = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="password" className="text-right text-sm font-medium text-slate-700">
                         رمز عبور
@@ -218,7 +218,7 @@ const Register = () => {
                           type="button"
                           variant="ghost"
                           size="icon-sm"
-                          className="absolute left-2 top-1/2 h-8 w-8 -translate-y-1/2 text-slate-500 hover:text-slate-900"
+                          className="absolute left-2 top-1/2 h-8 w-8 -translate-y-1/2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
                           onClick={() => setShowPassword((prev) => !prev)}
                         >
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -242,7 +242,7 @@ const Register = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="phoneNumber" className="text-right text-sm font-medium text-slate-700">
                         شماره تماس
@@ -272,7 +272,7 @@ const Register = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="educationLevel" className="text-right text-sm font-medium text-slate-700">
                         سطح تحصیلات
@@ -303,7 +303,7 @@ const Register = () => {
 
                   <Button
                     type="submit"
-                    className="w-full rounded-full bg-slate-900 py-6 text-base font-medium text-white transition hover:bg-slate-800"
+                    className="w-full rounded-full bg-slate-900 py-5 text-base font-medium text-white transition hover:bg-slate-800 hover:shadow-lg"
                     disabled={isLoading}
                   >
                     {isLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : "ثبت‌نام"}
@@ -314,9 +314,9 @@ const Register = () => {
                   <button
                     type="button"
                     onClick={() => navigate("/login")}
-                    className="font-medium text-purple-600 transition hover:text-purple-700"
+                    className="font-medium text-purple-600 transition hover:text-purple-700 hover:underline"
                   >
-                    وارد شوید
+                    ورود به حساب
                   </button>
                 </div>
               </CardContent>
