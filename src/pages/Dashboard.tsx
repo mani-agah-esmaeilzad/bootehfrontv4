@@ -1,6 +1,6 @@
 // src/pages/Dashboard.tsx
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,16 @@ const SPIRAL_POSITIONS = [
   { top: "48%", left: "28%" },
 ];
 
+type CategoryAnchor = {
+  name: string;
+  color: string;
+  startIndex: number;
+  x: number;
+  y: number;
+};
+
+const clampPositionTop = (value: number) => Math.max(value, 24);
+
 const hexToRgba = (hex: string, alpha: number) => {
   const sanitized = hex.replace('#', '');
   const bigint = parseInt(sanitized.length === 3 ? sanitized.repeat(2) : sanitized, 16);
@@ -89,6 +99,7 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [startingAssessmentId, setStartingAssessmentId] = useState<number | null>(null);
+  const [categoryAnchorPositions, setCategoryAnchorPositions] = useState<Record<string, { top: string; left: string }>>({});
 
   const navigate = useNavigate();
 
@@ -219,7 +230,10 @@ const Dashboard = () => {
 
     return entries.map(([category, steps], index) => {
       const color = CATEGORY_COLORS[category] ?? DEFAULT_CATEGORY_COLOR;
-      const position = SPIRAL_POSITIONS[index % SPIRAL_POSITIONS.length];
+      const fallbackPosition = SPIRAL_POSITIONS[index % SPIRAL_POSITIONS.length];
+      const anchorPosition = categoryAnchorPositions[category];
+      const position = anchorPosition ?? fallbackPosition;
+      const isAnchor = Boolean(anchorPosition);
       const statusOrder: Record<Assessment["status"], number> = {
         completed: 0,
         current: 1,
@@ -235,13 +249,31 @@ const Dashboard = () => {
         name: category,
         color,
         position,
+        isAnchor,
         stages: orderedSteps.map((step) => ({
           label: step.title,
           status: step.status,
         })),
       };
     });
-  }, [dedupedAssessments]);
+  }, [dedupedAssessments, categoryAnchorPositions]);
+
+  const handleMapLayoutChange = useCallback(
+    (_nodes: { step: AssessmentMapStep; index: number; x: number; y: number }[], categories: CategoryAnchor[]) => {
+      setCategoryAnchorPositions(() => {
+        const next: Record<string, { top: string; left: string }> = {};
+        categories.forEach((category) => {
+          const topPx = clampPositionTop(category.y - 70);
+          next[category.name] = {
+            top: `${topPx}px`,
+            left: `${category.x}%`,
+          };
+        });
+        return next;
+      });
+    },
+    []
+  );
 
   // رندر محتوا
   const renderContent = () => {
@@ -450,11 +482,12 @@ const Dashboard = () => {
                     toast.info("برای دسترسی به این مرحله ابتدا مرحله‌های قبلی را تکمیل کنید.");
                   }
                 }}
+                onLayoutChange={handleMapLayoutChange}
               />
-{stations.map((station) => (
+              {stations.map((station) => (
                 <div
                   key={station.name}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 space-y-2 text-right"
+                  className={`absolute -translate-x-1/2 ${station.isAnchor ? "-translate-y-full" : "-translate-y-1/2"} space-y-2 text-right`}
                   style={{ top: station.position.top, left: station.position.left }}
                 >
                   <div
@@ -495,10 +528,14 @@ const Dashboard = () => {
                     toast.info("برای دسترسی به این مرحله ابتدا مرحله‌های قبلی را تکمیل کنید.");
                   }
                 }}
+                onLayoutChange={handleMapLayoutChange}
               />
               <div className="mt-6 grid gap-3">
                 {stations.map((station) => (
-                  <div key={station.name} className="flex items-center justify-between rounded-2xl border border-purple-100 bg-white/95 p-3">
+                  <div
+                    key={station.name}
+                    className="flex items-center justify-between rounded-2xl border border-purple-100 bg-white/95 p-3"
+                  >
                     <div>
                       <p className="text-xs font-semibold text-slate-900">{station.name}</p>
                       <div className="mt-2 flex flex-wrap justify-end gap-1.5 text-xs">
