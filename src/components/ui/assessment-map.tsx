@@ -76,7 +76,7 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
   }, [nodePositions]);
 
   const segments = useMemo(() => {
-    if (nodePositions.length < 2) return [] as { d: string; color: string; status: AssessmentMapStep["status"] }[];
+    if (nodePositions.length < 2) return [] as { d: string; color: string; status: AssessmentMapStep["status"]; isCategoryStart: boolean }[];
 
     return nodePositions.slice(1).map((point, idx) => {
       const prev = nodePositions[idx];
@@ -84,10 +84,15 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
       const controlOffset = (point.y - prev.y) / 3;
       const d = `M ${prev.x} ${prev.y} C ${midX} ${prev.y + controlOffset}, ${midX} ${point.y - controlOffset}, ${point.x} ${point.y}`;
 
+      const prevCategory = prev.step.category;
+      const currentCategory = point.step.category;
+      const isCategoryStart = currentCategory !== prevCategory;
+
       return {
         d,
         color: point.step.accentColor ?? DEFAULT_ACCENT,
         status: point.step.status,
+        isCategoryStart,
       };
     });
   }, [nodePositions]);
@@ -137,34 +142,57 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
               </feMerge>
             </filter>
           </defs>
-          <path
-            d={pathCommands}
-            fill="none"
-            stroke="url(#mapPathGradient)"
-            strokeWidth={8}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity={0.65}
-            filter="url(#softGlow)"
-          />
+          <defs>
+            {segments.map((segment, index) => (
+              <linearGradient key={`base-${index}`} id={`base-gradient-${index}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor={hexToRgba(segment.color, 0.16)} />
+                <stop offset="100%" stopColor={hexToRgba(segment.color, 0.04)} />
+              </linearGradient>
+            ))}
+          </defs>
+          {segments.map((segment, index) => (
+            <path
+              key={`base-segment-${index}`}
+              d={segment.d}
+              fill="none"
+              stroke={`url(#base-gradient-${index})`}
+              strokeWidth={8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={0.8}
+              filter="url(#softGlow)"
+            />
+          ))}
           {segments.map((segment, index) => {
             const strokeWidth = segment.status === "locked" ? 4 : 6;
             const opacity = segment.status === "locked" ? 0.25 : segment.status === "completed" ? 0.9 : 0.75;
             const dash = segment.status === "locked" ? "6 12" : undefined;
+            const offset = index % 2 === 0 ? "0" : "200";
+            const gradientId = `gradient-segment-${index}`;
+
+            const gradient = (
+              <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor={hexToRgba(segment.color, segment.isCategoryStart ? 0.3 : 0.9)} />
+                <stop offset="100%" stopColor={hexToRgba(segment.color, 0.9)} />
+              </linearGradient>
+            );
 
             return (
-              <path
-                key={`segment-${index}`}
-                d={segment.d}
-                fill="none"
-                stroke={segment.color}
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeDasharray={dash}
-                opacity={opacity}
-                filter={segment.status === "current" ? "url(#accentGlow)" : undefined}
-              />
+              <>
+                <defs>{gradient}</defs>
+                <path
+                  key={`segment-${index}`}
+                  d={segment.d}
+                  fill="none"
+                  stroke={`url(#${gradientId})`}
+                  strokeWidth={strokeWidth}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeDasharray={dash}
+                  opacity={opacity}
+                  filter={segment.status === "current" ? "url(#accentGlow)" : undefined}
+                />
+              </>
             );
           })}
           {nodePositions.map((point) => (

@@ -154,7 +154,29 @@ const Dashboard = () => {
         map.set(key, assessment);
       }
     });
-    return Array.from(map.values());
+
+    const grouped = new Map<string, Assessment[]>();
+    Array.from(map.values()).forEach((assessment) => {
+      const category = assessment.category || "سایر دسته‌بندی‌ها";
+      if (!grouped.has(category)) {
+        grouped.set(category, []);
+      }
+      grouped.get(category)!.push(assessment);
+    });
+
+    const entries = Array.from(grouped.entries()).sort(([a], [b]) => a.localeCompare(b, "fa"));
+
+    const ordered: Assessment[] = [];
+    entries.forEach(([, cats]) => {
+      const sortedCats = cats.sort((lhs, rhs) => {
+        const statusWeight = (statusPriority[rhs.status] ?? 0) - (statusPriority[lhs.status] ?? 0);
+        if (statusWeight !== 0) return statusWeight;
+        return (lhs.display_order ?? 0) - (rhs.display_order ?? 0);
+      });
+      ordered.push(...sortedCats);
+    });
+
+    return ordered;
   }, [assessments]);
 
   const mapSteps: AssessmentMapStep[] = useMemo(
