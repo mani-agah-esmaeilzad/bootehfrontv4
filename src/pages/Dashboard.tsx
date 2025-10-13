@@ -120,6 +120,39 @@ const Dashboard = () => {
 
   const formatNumber = (value: number) => value.toLocaleString("fa-IR");
 
+  const stationOverview = [
+    {
+      name: "مهارت‌های ارتباطی",
+      color: "#7C3AED",
+      stages: ["مقدمه", "کاربرد", "ارزیابی"] as const,
+      position: { top: "12%", left: "62%" },
+    },
+    {
+      name: "هوش هیجانی",
+      color: "#10B981",
+      stages: ["پایه", "پیشرو", "آزمون"] as const,
+      position: { top: "32%", left: "76%" },
+    },
+    {
+      name: "رهبری و مدیریت",
+      color: "#F59E0B",
+      stages: ["شناخت", "تمرین", "مربیگری"] as const,
+      position: { top: "52%", left: "66%" },
+    },
+    {
+      name: "توسعه فردی",
+      color: "#EC4899",
+      stages: ["آغاز", "چالش", "تثبیت"] as const,
+      position: { top: "67%", left: "44%" },
+    },
+    {
+      name: "کار تیمی",
+      color: "#0EA5E9",
+      stages: ["تیم‌سازی", "هم‌افزایی", "بازخورد"] as const,
+      position: { top: "45%", left: "27%" },
+    },
+  ];
+
   // رندر محتوا
   const renderContent = () => {
     if (isLoading)
@@ -309,24 +342,92 @@ const Dashboard = () => {
             </p>
           </div>
           <div className="mt-10">
-            <AssessmentMap
-              steps={mapSteps}
-              onStepSelect={(step) => {
-                const selectedAssessment = dedupedAssessments.find(
-                  (assessment) => (assessment.stringId || String(assessment.id)) === step.id
-                );
+            <div className="relative hidden md:block">
+              <AssessmentMap
+                steps={mapSteps}
+                onStepSelect={(step) => {
+                  const selectedAssessment = dedupedAssessments.find(
+                    (assessment) => (assessment.stringId || String(assessment.id)) === step.id
+                  );
 
-                if (!selectedAssessment) return;
+                  if (!selectedAssessment) return;
 
-                if (selectedAssessment.status === "current") {
-                  handleStartAssessment(selectedAssessment.id);
-                } else if (selectedAssessment.status === "completed") {
-                  toast.info("این مرحله پیش‌تر تکمیل شده است. نتایج در بخش گزارش‌ها در دسترس است.");
-                } else {
-                  toast.info("برای دسترسی به این مرحله ابتدا مرحله‌های قبلی را تکمیل کنید.");
-                }
-              }}
-            />
+                  if (selectedAssessment.status === "current") {
+                    handleStartAssessment(selectedAssessment.id);
+                  } else if (selectedAssessment.status === "completed") {
+                    toast.info("این مرحله پیش‌تر تکمیل شده است. نتایج در بخش گزارش‌ها در دسترس است.");
+                  } else {
+                    toast.info("برای دسترسی به این مرحله ابتدا مرحله‌های قبلی را تکمیل کنید.");
+                  }
+                }}
+              />
+              {stationOverview.map((station) => (
+                <div
+                  key={station.name}
+                  className="absolute -translate-x-1/2 -translate-y-1/2 space-y-2 text-right"
+                  style={{ top: station.position.top, left: station.position.left }}
+                >
+                  <div
+                    className="rounded-full px-3 py-1 text-[12px] font-semibold text-white shadow-lg"
+                    style={{ backgroundColor: station.color }}
+                  >
+                    {station.name}
+                  </div>
+                  <div className="flex flex-wrap justify-end gap-1.5">
+                    {station.stages.map((stage) => (
+                      <span
+                        key={stage}
+                        className="rounded-full px-2 py-1 text-[11px] font-medium"
+                        style={{ backgroundColor: `${station.color}1A`, color: station.color }}
+                      >
+                        {stage}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="md:hidden">
+              <AssessmentMap
+                steps={mapSteps}
+                onStepSelect={(step) => {
+                  const selectedAssessment = dedupedAssessments.find(
+                    (assessment) => (assessment.stringId || String(assessment.id)) === step.id
+                  );
+
+                  if (!selectedAssessment) return;
+
+                  if (selectedAssessment.status === "current") {
+                    handleStartAssessment(selectedAssessment.id);
+                  } else if (selectedAssessment.status === "completed") {
+                    toast.info("این مرحله پیش‌تر تکمیل شده است. نتایج در بخش گزارش‌ها در دسترس است.");
+                  } else {
+                    toast.info("برای دسترسی به این مرحله ابتدا مرحله‌های قبلی را تکمیل کنید.");
+                  }
+                }}
+              />
+              <div className="mt-6 grid gap-3">
+                {stationOverview.map((station) => (
+                  <div key={station.name} className="flex items-center justify-between rounded-2xl border border-purple-100 bg-white/95 p-3">
+                    <div>
+                      <p className="text-xs font-semibold text-slate-900">{station.name}</p>
+                      <div className="mt-2 flex flex-wrap justify-end gap-1.5 text-xs">
+                        {station.stages.map((stage) => (
+                          <span
+                            key={stage}
+                            className="rounded-full px-2 py-0.5"
+                            style={{ backgroundColor: `${station.color}1A`, color: station.color }}
+                          >
+                            {stage}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: station.color }} />
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
       </div>
