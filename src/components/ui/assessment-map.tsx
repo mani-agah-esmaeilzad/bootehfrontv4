@@ -45,18 +45,32 @@ const truncateText = (value: string, maxLength = 22) =>
 
 export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: AssessmentMapProps) => {
   const nodePositions = useMemo(() => {
-    const baseRadius = 14;
-    const radiusGrowth = 9;
-    const verticalSpacing = 160;
-    const waveMagnitude = 24;
+    const layout = {
+      centerX: 50,
+      baseRadius: 18,
+      radiusGrowth: 5.75,
+      angleStart: Math.PI / 3,
+      angleStep: Math.PI / 1.75,
+      verticalSpacing: 150,
+      swayX: 9,
+      swayY: 52,
+      baseYOffset: 140,
+    };
 
     return steps.map((step, index) => {
-      const turn = index * 0.85;
-      const dynamicRadius = baseRadius + index * radiusGrowth;
-      const sinusoidal = Math.sin(turn * 1.65) * waveMagnitude;
-      const cosineOffset = Math.cos(turn * 0.8) * (waveMagnitude * 0.8);
-      const x = clamp(50 + sinusoidal + Math.cos(turn) * dynamicRadius * 0.4, 6, 94);
-      const y = 120 + index * verticalSpacing + cosineOffset;
+      const angle = layout.angleStart + index * layout.angleStep;
+      const radius = layout.baseRadius + index * layout.radiusGrowth;
+      const cosine = Math.cos(angle);
+      const sine = Math.sin(angle);
+
+      const x = clamp(
+        layout.centerX + cosine * radius + Math.sin(angle * 1.25) * layout.swayX,
+        8,
+        92
+      );
+
+      const y =
+        layout.baseYOffset + index * layout.verticalSpacing + sine * layout.swayY + Math.cos(angle * 0.9) * 24;
 
       return {
         step,
@@ -66,24 +80,6 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
       };
     });
   }, [steps]);
-
-  const pathCommands = useMemo(() => {
-    if (!nodePositions.length) return "";
-
-    return nodePositions
-      .map((point, i, arr) => {
-        if (i === 0) {
-          return `M ${point.x} ${point.y}`;
-        }
-
-        const prev = arr[i - 1];
-        const midX = (prev.x + point.x) / 2;
-        const controlOffset = (point.y - prev.y) / 3;
-
-        return `C ${midX} ${prev.y + controlOffset}, ${midX} ${point.y - controlOffset}, ${point.x} ${point.y}`;
-      })
-      .join(" ");
-  }, [nodePositions]);
 
   const segments = useMemo(() => {
     if (nodePositions.length < 2) return [] as { d: string; color: string; status: AssessmentMapStep["status"]; isCategoryStart: boolean }[];

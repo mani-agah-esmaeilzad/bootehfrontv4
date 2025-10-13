@@ -29,6 +29,7 @@ interface Assessment {
   description: string;
   status: "completed" | "current" | "locked";
   category?: string;
+  display_order?: number;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -42,11 +43,12 @@ const CATEGORY_COLORS: Record<string, string> = {
 const DEFAULT_CATEGORY_COLOR = "#6366F1";
 
 const SPIRAL_POSITIONS = [
-  { top: "12%", left: "64%" },
-  { top: "30%", left: "78%" },
-  { top: "52%", left: "68%" },
-  { top: "70%", left: "46%" },
-  { top: "48%", left: "28%" },
+  { top: "260px", left: "78%" },
+  { top: "420px", left: "20%" },
+  { top: "600px", left: "74%" },
+  { top: "780px", left: "24%" },
+  { top: "960px", left: "70%" },
+  { top: "1140px", left: "30%" },
 ];
 
 type CategoryAnchor = {
@@ -57,7 +59,8 @@ type CategoryAnchor = {
   y: number;
 };
 
-const clampPositionTop = (value: number) => Math.max(value, 24);
+const clampPositionTop = (value: number) => Math.max(value, 48);
+const clampPositionLeft = (value: number) => Math.min(Math.max(value, 12), 88);
 
 const hexToRgba = (hex: string, alpha: number) => {
   const sanitized = hex.replace('#', '');
@@ -226,7 +229,14 @@ const Dashboard = () => {
       grouped.get(category)!.push(assessment);
     });
 
-    const entries = Array.from(grouped.entries());
+    const entries = Array.from(grouped.entries()).sort(([categoryA], [categoryB]) => {
+      const anchorA = categoryAnchorPositions[categoryA];
+      const anchorB = categoryAnchorPositions[categoryB];
+      const topA = anchorA ? parseFloat(anchorA.top) : Number.POSITIVE_INFINITY;
+      const topB = anchorB ? parseFloat(anchorB.top) : Number.POSITIVE_INFINITY;
+      if (topA !== topB) return topA - topB;
+      return categoryA.localeCompare(categoryB, "fa");
+    });
 
     return entries.map(([category, steps], index) => {
       const color = CATEGORY_COLORS[category] ?? DEFAULT_CATEGORY_COLOR;
@@ -262,11 +272,20 @@ const Dashboard = () => {
     (_nodes: { step: AssessmentMapStep; index: number; x: number; y: number }[], categories: CategoryAnchor[]) => {
       setCategoryAnchorPositions(() => {
         const next: Record<string, { top: string; left: string }> = {};
-        categories.forEach((category) => {
-          const topPx = clampPositionTop(category.y - 70);
+        const sorted = [...categories].sort((a, b) => a.startIndex - b.startIndex);
+        let lastTop = -Infinity;
+
+        sorted.forEach((category) => {
+          let topPx = clampPositionTop(category.y - 110);
+          if (Number.isFinite(lastTop) && topPx - lastTop < 90) {
+            topPx = lastTop + 90;
+          }
+          lastTop = topPx;
+
+          const leftPercent = clampPositionLeft(category.x + (category.x >= 50 ? 6 : -6));
           next[category.name] = {
             top: `${topPx}px`,
-            left: `${category.x}%`,
+            left: `${leftPercent}%`,
           };
         });
         return next;
