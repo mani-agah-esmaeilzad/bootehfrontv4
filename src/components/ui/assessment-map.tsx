@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,16 @@ export interface AssessmentMapStep {
 interface AssessmentMapProps {
   steps: AssessmentMapStep[];
   onStepSelect?: (step: AssessmentMapStep, index: number) => void;
+  onLayoutChange?: (
+    nodes: { step: AssessmentMapStep; index: number; x: number; y: number }[],
+    categories: {
+      name: string;
+      color: string;
+      startIndex: number;
+      x: number;
+      y: number;
+    }[]
+  ) => void;
 }
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
@@ -33,20 +43,34 @@ const hexToRgba = (hex: string, alpha: number) => {
 const truncateText = (value: string, maxLength = 22) =>
   value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
 
-export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
+export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: AssessmentMapProps) => {
   const nodePositions = useMemo(() => {
-    const baseRadius = 14;
-    const radiusGrowth = 9;
-    const verticalSpacing = 160;
-    const waveMagnitude = 24;
+    const layout = {
+      centerX: 50,
+      baseRadius: 18,
+      radiusGrowth: 5.75,
+      angleStart: Math.PI / 3,
+      angleStep: Math.PI / 1.75,
+      verticalSpacing: 150,
+      swayX: 9,
+      swayY: 52,
+      baseYOffset: 140,
+    };
 
     return steps.map((step, index) => {
-      const turn = index * 0.85;
-      const dynamicRadius = baseRadius + index * radiusGrowth;
-      const sinusoidal = Math.sin(turn * 1.65) * waveMagnitude;
-      const cosineOffset = Math.cos(turn * 0.8) * (waveMagnitude * 0.8);
-      const x = clamp(50 + sinusoidal + Math.cos(turn) * dynamicRadius * 0.4, 6, 94);
-      const y = 120 + index * verticalSpacing + cosineOffset;
+      const angle = layout.angleStart + index * layout.angleStep;
+      const radius = layout.baseRadius + index * layout.radiusGrowth;
+      const cosine = Math.cos(angle);
+      const sine = Math.sin(angle);
+
+      const x = clamp(
+        layout.centerX + cosine * radius + Math.sin(angle * 1.25) * layout.swayX,
+        8,
+        92
+      );
+
+      const y =
+        layout.baseYOffset + index * layout.verticalSpacing + sine * layout.swayY + Math.cos(angle * 0.9) * 24;
 
       return {
         step,
@@ -56,24 +80,6 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
       };
     });
   }, [steps]);
-
-  const pathCommands = useMemo(() => {
-    if (!nodePositions.length) return "";
-
-    return nodePositions
-      .map((point, i, arr) => {
-        if (i === 0) {
-          return `M ${point.x} ${point.y}`;
-        }
-
-        const prev = arr[i - 1];
-        const midX = (prev.x + point.x) / 2;
-        const controlOffset = (point.y - prev.y) / 3;
-
-        return `C ${midX} ${prev.y + controlOffset}, ${midX} ${point.y - controlOffset}, ${point.x} ${point.y}`;
-      })
-      .join(" ");
-  }, [nodePositions]);
 
   const segments = useMemo(() => {
     if (nodePositions.length < 2) return [] as { d: string; color: string; status: AssessmentMapStep["status"]; isCategoryStart: boolean }[];
@@ -96,6 +102,34 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
       };
     });
   }, [nodePositions]);
+
+  useEffect(() => {
+    if (!onLayoutChange) return;
+
+    const nodes = nodePositions.map((node) => ({
+      step: node.step,
+      index: node.index,
+      x: node.x,
+      y: node.y,
+    }));
+
+    const categoryAnchorsMap = new Map<string, { name: string; color: string; startIndex: number; x: number; y: number }>();
+
+    nodePositions.forEach((node) => {
+      const categoryName = node.step.category || "سایر دسته‌بندی‌ها";
+      if (categoryAnchorsMap.has(categoryName)) return;
+
+      categoryAnchorsMap.set(categoryName, {
+        name: categoryName,
+        color: node.step.accentColor ?? DEFAULT_ACCENT,
+        startIndex: node.index,
+        x: node.x,
+        y: node.y,
+      });
+    });
+
+    onLayoutChange(nodes, Array.from(categoryAnchorsMap.values()));
+  }, [nodePositions, onLayoutChange]);
 
   if (!steps.length) {
     return (
@@ -150,24 +184,27 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
               </linearGradient>
             ))}
           </defs>
-          {segments.map((segment, index) => (
-            <path
-              key={`base-segment-${index}`}
-              d={segment.d}
-              fill="none"
-              stroke={`url(#base-gradient-${index})`}
-              strokeWidth={8}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity={0.8}
-              filter="url(#softGlow)"
-            />
-          ))}
+          {segments.map((segment, index) => {
+            if (segment.isCategoryStart) return null;
+
+            return (
+              <path
+                key={`base-segment-${index}`}
+                d={segment.d}
+                fill="none"
+                stroke={`url(#base-gradient-${index})`}
+                strokeWidth={8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity={0.8}
+                filter="url(#softGlow)"
+              />
+            );
+          })}
           {segments.map((segment, index) => {
             const strokeWidth = segment.status === "locked" ? 4 : 6;
             const opacity = segment.status === "locked" ? 0.25 : segment.status === "completed" ? 0.9 : 0.75;
             const dash = segment.status === "locked" ? "6 12" : undefined;
-            const offset = index % 2 === 0 ? "0" : "200";
             const gradientId = `gradient-segment-${index}`;
 
             const gradient = (
@@ -176,6 +213,10 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
                 <stop offset="100%" stopColor={hexToRgba(segment.color, 0.9)} />
               </linearGradient>
             );
+
+            if (segment.isCategoryStart) {
+              return <defs key={`gradient-${index}`}>{gradient}</defs>;
+            }
 
             return (
               <>
