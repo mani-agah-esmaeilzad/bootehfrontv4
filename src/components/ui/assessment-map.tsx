@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 
@@ -41,19 +41,59 @@ const hexToRgba = (hex: string, alpha: number) => {
 };
 
 export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: AssessmentMapProps) => {
-  const nodePositions = useMemo(() => {
-    const layout = {
-      centerX: 50,
-      baseRadius: 18,
-      radiusGrowth: 5.75,
-      angleStart: Math.PI / 3,
-      angleStep: Math.PI / 1.75,
-      verticalSpacing: 150,
-      swayX: 9,
-      swayY: 52,
-      baseYOffset: 140,
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
     };
 
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  const layout = useMemo(
+    () =>
+      isMobile
+        ? {
+            centerX: 50,
+            baseRadius: 14,
+            radiusGrowth: 4.4,
+            angleStart: Math.PI / 2.4,
+            angleStep: Math.PI / 1.9,
+            verticalSpacing: 122,
+            swayX: 5.5,
+            swayY: 36,
+            baseYOffset: 120,
+            leftMin: 14,
+            leftMax: 86,
+            verticalJitter: 18,
+          }
+        : {
+            centerX: 50,
+            baseRadius: 18,
+            radiusGrowth: 5.75,
+            angleStart: Math.PI / 3,
+            angleStep: Math.PI / 1.75,
+            verticalSpacing: 150,
+            swayX: 9,
+            swayY: 52,
+            baseYOffset: 140,
+            leftMin: 8,
+            leftMax: 92,
+            verticalJitter: 24,
+          },
+    [isMobile]
+  );
+
+  const nodePositions = useMemo(() => {
     return steps.map((step, index) => {
       const angle = layout.angleStart + index * layout.angleStep;
       const radius = layout.baseRadius + index * layout.radiusGrowth;
@@ -62,12 +102,15 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
 
       const x = clamp(
         layout.centerX + cosine * radius + Math.sin(angle * 1.25) * layout.swayX,
-        8,
-        92
+        layout.leftMin,
+        layout.leftMax
       );
 
       const y =
-        layout.baseYOffset + index * layout.verticalSpacing + sine * layout.swayY + Math.cos(angle * 0.9) * 24;
+        layout.baseYOffset +
+        index * layout.verticalSpacing +
+        sine * layout.swayY +
+        Math.cos(angle * 0.9) * layout.verticalJitter;
 
       return {
         step,
@@ -76,10 +119,11 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
         y,
       };
     });
-  }, [steps]);
+  }, [steps, layout]);
 
   const segments = useMemo(() => {
-    if (nodePositions.length < 2) return [] as { d: string; color: string; status: AssessmentMapStep["status"]; isCategoryStart: boolean }[];
+    if (nodePositions.length < 2)
+      return [] as { d: string; color: string; status: AssessmentMapStep["status"] }[];
 
     return nodePositions.slice(1).map((point, idx) => {
       const prev = nodePositions[idx];
@@ -87,15 +131,10 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
       const controlOffset = (point.y - prev.y) / 3;
       const d = `M ${prev.x} ${prev.y} C ${midX} ${prev.y + controlOffset}, ${midX} ${point.y - controlOffset}, ${point.x} ${point.y}`;
 
-      const prevCategory = prev.step.category;
-      const currentCategory = point.step.category;
-      const isCategoryStart = currentCategory !== prevCategory;
-
       return {
         d,
         color: point.step.accentColor ?? DEFAULT_ACCENT,
         status: point.step.status,
-        isCategoryStart,
       };
     });
   }, [nodePositions]);
@@ -138,7 +177,9 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
 
   const mapHeight =
     nodePositions.length > 0
-      ? nodePositions[nodePositions.length - 1].y + 180
+      ? nodePositions[nodePositions.length - 1].y + (isMobile ? 140 : 180)
+      : isMobile
+      ? 280
       : 320;
 
   return (
@@ -206,7 +247,7 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
 
             const gradient = (
               <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor={hexToRgba(segment.color, segment.isCategoryStart ? 0.3 : 0.9)} />
+                <stop offset="0%" stopColor={hexToRgba(segment.color, 0.9)} />
                 <stop offset="100%" stopColor={hexToRgba(segment.color, 0.9)} />
               </linearGradient>
             );
@@ -233,26 +274,31 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
               </>
             );
           })}
-          {nodePositions.map((point) => (
-            <g key={`orbit-${point.step.id}`}>
-              <circle
-                cx={point.x}
-                cy={point.y}
-                r={18}
-                fill={hexToRgba(point.step.accentColor ?? DEFAULT_ACCENT, 0.15)}
-                opacity={0.4}
-              />
-              <circle
-                cx={point.x}
-                cy={point.y}
-                r={27}
-                stroke={hexToRgba(point.step.accentColor ?? DEFAULT_ACCENT, 0.25)}
-                strokeWidth={0.6}
-                strokeDasharray="6 9"
-                fill="none"
-              />
-            </g>
-          ))}
+          {nodePositions.map((point) => {
+            const orbitRadius = isMobile ? 14 : 18;
+            const haloRadius = isMobile ? 22 : 27;
+
+            return (
+              <g key={`orbit-${point.step.id}`}>
+                <circle
+                  cx={point.x}
+                  cy={point.y}
+                  r={orbitRadius}
+                  fill={hexToRgba(point.step.accentColor ?? DEFAULT_ACCENT, 0.15)}
+                  opacity={0.4}
+                />
+                <circle
+                  cx={point.x}
+                  cy={point.y}
+                  r={haloRadius}
+                  stroke={hexToRgba(point.step.accentColor ?? DEFAULT_ACCENT, 0.25)}
+                  strokeWidth={0.6}
+                  strokeDasharray="6 9"
+                  fill="none"
+                />
+              </g>
+            );
+          })}
         </svg>
       </div>
 
@@ -295,7 +341,7 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
           <div
             key={step.id}
             className={cn(
-              "absolute flex flex-col items-center gap-3 transition-all duration-300",
+              "absolute flex flex-col items-center gap-2 transition-all duration-300 md:gap-3",
               !isLocked && "hover:-translate-y-1"
             )}
             style={{
@@ -305,7 +351,7 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
             }}
           >
             <div
-              className="pointer-events-none absolute inset-0 -z-10 h-28 w-28 rounded-full blur-2xl transition-opacity"
+              className="pointer-events-none absolute inset-0 -z-10 h-24 w-24 rounded-full blur-2xl transition-opacity md:h-28 md:w-28"
               style={{
                 background: `radial-gradient(circle at center, ${hexToRgba(accent, 0.28)} 0%, transparent 70%)`,
                 opacity: isCurrent ? 1 : 0,
@@ -314,17 +360,17 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
             <button
               type="button"
               onClick={() => !isLocked && onStepSelect?.(step, index)}
-              className="relative flex h-28 w-28 flex-col items-center justify-center gap-1 rounded-full border-2 bg-white/95 text-center text-sm font-semibold backdrop-blur focus:outline-none focus-visible:ring-4 focus-visible:ring-purple-200/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+              className="relative flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-full border-2 bg-white/95 text-center text-xs font-semibold backdrop-blur focus:outline-none focus-visible:ring-4 focus-visible:ring-purple-200/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white md:h-28 md:w-28 md:text-sm"
               style={buttonStyle}
               disabled={isLocked}
             >
               <span
-                className="flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold"
+                className="flex h-7 w-7 items-center justify-center rounded-full border text-[11px] font-semibold md:h-8 md:w-8 md:text-xs"
                 style={indexStyle}
               >
                 {index + 1}
               </span>
-              <span className="px-4 text-sm font-semibold leading-relaxed" style={titleStyle}>
+              <span className="px-3 text-[13px] font-semibold leading-relaxed md:px-4 md:text-sm" style={titleStyle}>
                 {step.title}
               </span>
             </button>
