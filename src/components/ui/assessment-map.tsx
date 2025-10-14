@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,16 @@ export interface AssessmentMapStep {
 interface AssessmentMapProps {
   steps: AssessmentMapStep[];
   onStepSelect?: (step: AssessmentMapStep, index: number) => void;
+  onLayoutChange?: (
+    nodes: { step: AssessmentMapStep; index: number; x: number; y: number }[],
+    categories: {
+      name: string;
+      color: string;
+      startIndex: number;
+      x: number;
+      y: number;
+    }[]
+  ) => void;
 }
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
@@ -30,23 +40,77 @@ const hexToRgba = (hex: string, alpha: number) => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
-const truncateText = (value: string, maxLength = 22) =>
-  value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
+export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: AssessmentMapProps) => {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
 
-export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  const layout = useMemo(
+    () =>
+      isMobile
+        ? {
+            centerX: 50,
+            baseRadius: 14,
+            radiusGrowth: 4.4,
+            angleStart: Math.PI / 2.4,
+            angleStep: Math.PI / 1.9,
+            verticalSpacing: 122,
+            swayX: 5.5,
+            swayY: 36,
+            baseYOffset: 120,
+            leftMin: 14,
+            leftMax: 86,
+            verticalJitter: 18,
+          }
+        : {
+            centerX: 50,
+            baseRadius: 18,
+            radiusGrowth: 5.75,
+            angleStart: Math.PI / 3,
+            angleStep: Math.PI / 1.75,
+            verticalSpacing: 150,
+            swayX: 9,
+            swayY: 52,
+            baseYOffset: 140,
+            leftMin: 8,
+            leftMax: 92,
+            verticalJitter: 24,
+          },
+    [isMobile]
+  );
+
   const nodePositions = useMemo(() => {
-    const baseRadius = 14;
-    const radiusGrowth = 9;
-    const verticalSpacing = 160;
-    const waveMagnitude = 24;
-
     return steps.map((step, index) => {
-      const turn = index * 0.85;
-      const dynamicRadius = baseRadius + index * radiusGrowth;
-      const sinusoidal = Math.sin(turn * 1.65) * waveMagnitude;
-      const cosineOffset = Math.cos(turn * 0.8) * (waveMagnitude * 0.8);
-      const x = clamp(50 + sinusoidal + Math.cos(turn) * dynamicRadius * 0.4, 6, 94);
-      const y = 120 + index * verticalSpacing + cosineOffset;
+      const angle = layout.angleStart + index * layout.angleStep;
+      const radius = layout.baseRadius + index * layout.radiusGrowth;
+      const cosine = Math.cos(angle);
+      const sine = Math.sin(angle);
+
+      const x = clamp(
+        layout.centerX + cosine * radius + Math.sin(angle * 1.25) * layout.swayX,
+        layout.leftMin,
+        layout.leftMax
+      );
+
+      const y =
+        layout.baseYOffset +
+        index * layout.verticalSpacing +
+        sine * layout.swayY +
+        Math.cos(angle * 0.9) * layout.verticalJitter;
 
       return {
         step,
@@ -55,28 +119,11 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
         y,
       };
     });
-  }, [steps]);
-
-  const pathCommands = useMemo(() => {
-    if (!nodePositions.length) return "";
-
-    return nodePositions
-      .map((point, i, arr) => {
-        if (i === 0) {
-          return `M ${point.x} ${point.y}`;
-        }
-
-        const prev = arr[i - 1];
-        const midX = (prev.x + point.x) / 2;
-        const controlOffset = (point.y - prev.y) / 3;
-
-        return `C ${midX} ${prev.y + controlOffset}, ${midX} ${point.y - controlOffset}, ${point.x} ${point.y}`;
-      })
-      .join(" ");
-  }, [nodePositions]);
+  }, [steps, layout]);
 
   const segments = useMemo(() => {
-    if (nodePositions.length < 2) return [] as { d: string; color: string; status: AssessmentMapStep["status"]; isCategoryStart: boolean }[];
+    if (nodePositions.length < 2)
+      return [] as { d: string; color: string; status: AssessmentMapStep["status"] }[];
 
     return nodePositions.slice(1).map((point, idx) => {
       const prev = nodePositions[idx];
@@ -84,18 +131,41 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
       const controlOffset = (point.y - prev.y) / 3;
       const d = `M ${prev.x} ${prev.y} C ${midX} ${prev.y + controlOffset}, ${midX} ${point.y - controlOffset}, ${point.x} ${point.y}`;
 
-      const prevCategory = prev.step.category;
-      const currentCategory = point.step.category;
-      const isCategoryStart = currentCategory !== prevCategory;
-
       return {
         d,
         color: point.step.accentColor ?? DEFAULT_ACCENT,
         status: point.step.status,
-        isCategoryStart,
       };
     });
   }, [nodePositions]);
+
+  useEffect(() => {
+    if (!onLayoutChange) return;
+
+    const nodes = nodePositions.map((node) => ({
+      step: node.step,
+      index: node.index,
+      x: node.x,
+      y: node.y,
+    }));
+
+    const categoryAnchorsMap = new Map<string, { name: string; color: string; startIndex: number; x: number; y: number }>();
+
+    nodePositions.forEach((node) => {
+      const categoryName = node.step.category || "سایر دسته‌بندی‌ها";
+      if (categoryAnchorsMap.has(categoryName)) return;
+
+      categoryAnchorsMap.set(categoryName, {
+        name: categoryName,
+        color: node.step.accentColor ?? DEFAULT_ACCENT,
+        startIndex: node.index,
+        x: node.x,
+        y: node.y,
+      });
+    });
+
+    onLayoutChange(nodes, Array.from(categoryAnchorsMap.values()));
+  }, [nodePositions, onLayoutChange]);
 
   if (!steps.length) {
     return (
@@ -107,7 +177,9 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
 
   const mapHeight =
     nodePositions.length > 0
-      ? nodePositions[nodePositions.length - 1].y + 180
+      ? nodePositions[nodePositions.length - 1].y + (isMobile ? 140 : 180)
+      : isMobile
+      ? 280
       : 320;
 
   return (
@@ -167,12 +239,11 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
             const strokeWidth = segment.status === "locked" ? 4 : 6;
             const opacity = segment.status === "locked" ? 0.25 : segment.status === "completed" ? 0.9 : 0.75;
             const dash = segment.status === "locked" ? "6 12" : undefined;
-            const offset = index % 2 === 0 ? "0" : "200";
             const gradientId = `gradient-segment-${index}`;
 
             const gradient = (
               <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor={hexToRgba(segment.color, segment.isCategoryStart ? 0.3 : 0.9)} />
+                <stop offset="0%" stopColor={hexToRgba(segment.color, 0.9)} />
                 <stop offset="100%" stopColor={hexToRgba(segment.color, 0.9)} />
               </linearGradient>
             );
@@ -195,26 +266,31 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
               </>
             );
           })}
-          {nodePositions.map((point) => (
-            <g key={`orbit-${point.step.id}`}>
-              <circle
-                cx={point.x}
-                cy={point.y}
-                r={18}
-                fill={hexToRgba(point.step.accentColor ?? DEFAULT_ACCENT, 0.15)}
-                opacity={0.4}
-              />
-              <circle
-                cx={point.x}
-                cy={point.y}
-                r={27}
-                stroke={hexToRgba(point.step.accentColor ?? DEFAULT_ACCENT, 0.25)}
-                strokeWidth={0.6}
-                strokeDasharray="6 9"
-                fill="none"
-              />
-            </g>
-          ))}
+          {nodePositions.map((point) => {
+            const orbitRadius = isMobile ? 14 : 18;
+            const haloRadius = isMobile ? 22 : 27;
+
+            return (
+              <g key={`orbit-${point.step.id}`}>
+                <circle
+                  cx={point.x}
+                  cy={point.y}
+                  r={orbitRadius}
+                  fill={hexToRgba(point.step.accentColor ?? DEFAULT_ACCENT, 0.15)}
+                  opacity={0.4}
+                />
+                <circle
+                  cx={point.x}
+                  cy={point.y}
+                  r={haloRadius}
+                  stroke={hexToRgba(point.step.accentColor ?? DEFAULT_ACCENT, 0.25)}
+                  strokeWidth={0.6}
+                  strokeDasharray="6 9"
+                  fill="none"
+                />
+              </g>
+            );
+          })}
         </svg>
       </div>
 
@@ -253,15 +329,11 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
           color: isLocked ? "#94A3B8" : "#1E293B",
         };
 
-        const descriptionStyle: CSSProperties = {
-          color: isLocked ? "#94A3B8" : "#64748B",
-        };
-
         return (
           <div
             key={step.id}
             className={cn(
-              "absolute flex flex-col items-center gap-3 transition-all duration-300",
+              "absolute flex flex-col items-center gap-2 transition-all duration-300 md:gap-3",
               !isLocked && "hover:-translate-y-1"
             )}
             style={{
@@ -271,7 +343,7 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
             }}
           >
             <div
-              className="pointer-events-none absolute inset-0 -z-10 h-28 w-28 rounded-full blur-2xl transition-opacity"
+              className="pointer-events-none absolute inset-0 -z-10 h-24 w-24 rounded-full blur-2xl transition-opacity md:h-28 md:w-28"
               style={{
                 background: `radial-gradient(circle at center, ${hexToRgba(accent, 0.28)} 0%, transparent 70%)`,
                 opacity: isCurrent ? 1 : 0,
@@ -280,25 +352,20 @@ export const AssessmentMap = ({ steps, onStepSelect }: AssessmentMapProps) => {
             <button
               type="button"
               onClick={() => !isLocked && onStepSelect?.(step, index)}
-              className="relative flex h-28 w-28 flex-col items-center justify-center gap-1 rounded-full border-2 bg-white/95 text-center text-sm font-semibold backdrop-blur focus:outline-none focus-visible:ring-4 focus-visible:ring-purple-200/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+              className="relative flex h-24 w-24 flex-col items-center justify-center gap-1 rounded-full border-2 bg-white/95 text-center text-xs font-semibold backdrop-blur focus:outline-none focus-visible:ring-4 focus-visible:ring-purple-200/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white md:h-28 md:w-28 md:text-sm"
               style={buttonStyle}
               disabled={isLocked}
             >
               <span
-                className="flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold"
+                className="flex h-7 w-7 items-center justify-center rounded-full border text-[11px] font-semibold md:h-8 md:w-8 md:text-xs"
                 style={indexStyle}
               >
                 {index + 1}
               </span>
-              <span className="px-4 text-sm font-semibold leading-relaxed" style={titleStyle}>
-                {truncateText(step.title, 24)}
+              <span className="px-3 text-[13px] font-semibold leading-relaxed md:px-4 md:text-sm" style={titleStyle}>
+                {step.title}
               </span>
             </button>
-            {step.description && (
-              <div className="max-w-[12rem] text-center text-xs leading-relaxed" style={descriptionStyle}>
-                {step.description}
-              </div>
-            )}
           </div>
         );
       })}
