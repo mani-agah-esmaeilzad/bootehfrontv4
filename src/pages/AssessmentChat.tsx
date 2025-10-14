@@ -46,6 +46,7 @@ const AssessmentChat = () => {
   const [viewport, setViewport] = useState<"mobile" | "tablet" | "desktop">("desktop");
   const [isHistoryView, setIsHistoryView] = useState(false);
   const [hasConversationStarted, setHasConversationStarted] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
 
   const messageScrollRef = useRef<HTMLDivElement | null>(null);
   const recognitionRef = useRef<any>(null);
@@ -137,6 +138,75 @@ const AssessmentChat = () => {
     return () => window.removeEventListener("resize", updateViewport);
   }, []);
 
+  const extractAiMessages = (response: any): ChatMessage[] => {
+    const normalizedResponses: Array<{ senderName?: string; text?: string }> = [];
+    const rawResponses = response?.data?.responses;
+
+    if (Array.isArray(rawResponses)) {
+      normalizedResponses.push(...rawResponses);
+    } else if (rawResponses && typeof rawResponses === "object") {
+      normalizedResponses.push(rawResponses as { senderName?: string; text?: string });
+    } else if (typeof rawResponses === "string") {
+      normalizedResponses.push({ text: rawResponses });
+    }
+
+    if (typeof response?.data?.reply === "string" && response.data.reply.trim().length > 0) {
+      const trimmedReply = response.data.reply.trim();
+      const duplicateReply = normalizedResponses.some(
+        (item) => typeof item?.text === "string" && item.text.trim() === trimmedReply
+      );
+      if (!duplicateReply) {
+        normalizedResponses.push({
+          text: trimmedReply,
+          senderName: response.data?.personaName ?? assessmentState?.personaName ?? "مشاور",
+        });
+      }
+    }
+
+    const fallbackText =
+      typeof response?.data?.reply === "string"
+        ? response.data.reply
+        : typeof response?.data?.message === "string"
+        ? response.data.message
+        : typeof response?.data?.text === "string"
+        ? response.data.text
+        : null;
+
+    const sanitized = normalizedResponses
+      .filter((item) => typeof item?.text === "string" && item.text.trim().length > 0)
+      .map((item, index) => ({
+        id: Date.now() + index,
+        text: item.text.trim(),
+        sender: "ai" as const,
+        personaName: item.senderName ?? assessmentState?.personaName ?? "مشاور",
+      }));
+
+    const directPersonaName =
+      typeof response?.data?.personaName === "string" && response.data.personaName.trim().length > 0
+        ? response.data.personaName.trim()
+        : typeof rawResponses === "object" && rawResponses !== null && "senderName" in rawResponses
+        ? ((rawResponses as { senderName?: string }).senderName ?? assessmentState?.personaName ?? "مشاور")
+        : assessmentState?.personaName ?? "مشاور";
+
+    const directText =
+      typeof rawResponses === "string"
+        ? rawResponses
+        : typeof rawResponses === "object" && rawResponses !== null && "text" in rawResponses
+        ? ((rawResponses as { text?: string }).text ?? fallbackText)
+        : fallbackText;
+
+    if (sanitized.length === 0 && typeof directText === "string" && directText.trim().length > 0) {
+      sanitized.push({
+        id: Date.now(),
+        text: directText.trim(),
+        sender: "ai" as const,
+        personaName: directPersonaName,
+      });
+    }
+
+    return sanitized;
+  };
+
   const handleSendMessage = async () => {
     if (!hasConversationStarted || !inputValue.trim() || !assessmentState) return;
 
@@ -167,74 +237,9 @@ const AssessmentChat = () => {
         throw new Error(response?.message || "پاسخ نامعتبر از سرور دریافت شد");
       }
 
-      const rawResponses = response.data?.responses;
-      const normalizedResponses: Array<{ senderName?: string; text?: string }> = [];
-
-      if (Array.isArray(rawResponses)) {
-        normalizedResponses.push(...rawResponses);
-      } else if (rawResponses && typeof rawResponses === "object") {
-        normalizedResponses.push(rawResponses as { senderName?: string; text?: string });
-      } else if (typeof rawResponses === "string") {
-        normalizedResponses.push({ text: rawResponses });
-      }
-
-      if (typeof response.data?.reply === "string" && response.data.reply.trim().length > 0) {
-        const trimmedReply = response.data.reply.trim();
-        const duplicateReply = normalizedResponses.some(
-          (item) => typeof item?.text === "string" && item.text.trim() === trimmedReply
-        );
-        if (!duplicateReply) {
-          normalizedResponses.push({
-            text: trimmedReply,
-            senderName: response.data?.personaName ?? assessmentState.personaName ?? "مشاور",
-          });
-        }
-      }
-
-      const fallbackText =
-        typeof response.data?.reply === "string"
-          ? response.data.reply
-          : typeof response.data?.message === "string"
-          ? response.data.message
-          : typeof response.data?.text === "string"
-          ? response.data.text
-          : null;
-
-      const sanitized = normalizedResponses
-        .filter((item) => typeof item?.text === "string" && item.text.trim().length > 0)
-        .map((item, index) => ({
-          id: Date.now() + index,
-          text: item.text.trim(),
-          sender: "ai" as const,
-          personaName: item.senderName ?? assessmentState.personaName ?? "مشاور",
-        }));
-      console.log("AssessmentChat normalized responses", normalizedResponses, sanitized);
-
-      const directPersonaName =
-        typeof response.data?.personaName === "string" && response.data.personaName.trim().length > 0
-          ? response.data.personaName.trim()
-          : typeof rawResponses === "object" && rawResponses !== null && "senderName" in rawResponses
-          ? ((rawResponses as { senderName?: string }).senderName ?? assessmentState.personaName ?? "مشاور")
-          : assessmentState.personaName ?? "مشاور";
-
-      const directText =
-        typeof rawResponses === "string"
-          ? rawResponses
-          : typeof rawResponses === "object" && rawResponses !== null && "text" in rawResponses
-          ? ((rawResponses as { text?: string }).text ?? fallbackText)
-          : fallbackText;
-
-      if (sanitized.length === 0 && typeof directText === "string" && directText.trim().length > 0) {
-        sanitized.push({
-          id: Date.now(),
-          text: directText.trim(),
-          sender: "ai" as const,
-          personaName: directPersonaName,
-        });
-      }
-
-      if (sanitized.length > 0) {
-        setMessages((prev) => [...prev, ...sanitized]);
+      const aiMessages = extractAiMessages(response);
+      if (aiMessages.length > 0) {
+        setMessages((prev) => [...prev, ...aiMessages]);
       }
 
       if (response.data?.isComplete) {
@@ -305,26 +310,53 @@ const AssessmentChat = () => {
     setIsHistoryView(false);
   };
 
-  const handleStartConversation = () => {
-    if (hasConversationStarted || !assessmentState) return;
-    const initialText = (assessmentState.initialMessage ?? "").trim();
-    setHasConversationStarted(true);
-    setIsHistoryView(false);
+  const handleStartConversation = async () => {
+    if (isInitializing || hasConversationStarted || !assessmentState) return;
 
-    if (initialText.length > 0) {
-      const initialAiMessage: ChatMessage = {
-        id: Date.now(),
-        text: initialText,
-        sender: "ai",
-        personaName: assessmentState.personaName ?? "مشاور",
-      };
-      setMessages([initialAiMessage]);
-      requestAnimationFrame(() => {
-        const container = messageScrollRef.current;
-        if (container) {
-          container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
-        }
+    setIsInitializing(true);
+    setIsHistoryView(false);
+    setActiveTyping(assessmentState.personaName ?? "مشاور");
+
+    try {
+      const response = await apiFetch(`assessment/chat/${id}`, {
+        method: "POST",
+        body: JSON.stringify({
+          message: "__AUTO_START__",
+          session_id: assessmentState.sessionId,
+          autoStart: true,
+        }),
       });
+      console.log("AssessmentChat initial response", response);
+
+      if (!response?.success) {
+        throw new Error(response?.message || "خطا در دریافت پیام آغازین");
+      }
+
+      const aiMessages = extractAiMessages(response);
+      if (aiMessages.length > 0) {
+        setMessages(aiMessages);
+        setHasConversationStarted(true);
+        requestAnimationFrame(() => {
+          const container = messageScrollRef.current;
+          if (container) {
+            container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+          }
+        });
+      } else {
+        setHasConversationStarted(false);
+        toast.error("پاسخی از سمت هوش مصنوعی دریافت نشد.");
+      }
+
+      if (response.data?.isComplete) {
+        toast.info("ارزیابی به پایان رسید. در حال انتقال...");
+        setTimeout(() => navigate(`/supplementary/${id}`), 2500);
+      }
+    } catch (error: any) {
+      setHasConversationStarted(false);
+      toast.error(error?.message || "خطا در شروع گفتگو");
+    } finally {
+      setActiveTyping(null);
+      setIsInitializing(false);
     }
   };
 
@@ -539,16 +571,18 @@ const AssessmentChat = () => {
                 ) : (
                   <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 text-center sm:px-10">
                     <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-3xl border border-white/70 bg-white/95 p-6 shadow-lg">
-                      <span className="text-sm font-semibold text-slate-600">آماده‌ای شروع کنیم؟</span>
+                      <span className="text-sm font-semibold text-slate-600">
+                        {isInitializing ? "در حال آماده‌سازی پیام آغازین..." : "آماده‌ای شروع کنیم؟"}
+                      </span>
                       <p className="text-xs leading-6 text-slate-500 sm:text-sm">
-                        وقتی روی دکمه زیر بزنی، مشاور پیام ابتدایی خودش را می‌فرستد و گفتگو آغاز می‌شود.
+                        وقتی روی دکمه زیر بزنی، مشاور پیام ابتدایی را می‌فرستد و گفتگو آغاز می‌شود.
                       </p>
                       <Button
                         onClick={handleStartConversation}
-                        disabled={!assessmentState}
+                        disabled={!assessmentState || isInitializing}
                         className="rounded-full bg-gradient-to-r from-violet-500 to-sky-500 px-6 py-2 text-sm font-semibold text-white shadow-lg hover:from-violet-500 hover:to-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        شروع کنیم
+                        {isInitializing ? "منتظر بمانید..." : "شروع کنیم"}
                       </Button>
                     </div>
                   </div>
