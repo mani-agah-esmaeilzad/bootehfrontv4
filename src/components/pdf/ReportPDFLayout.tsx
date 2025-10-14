@@ -47,6 +47,22 @@ interface PDFLayoutProps {
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#A020F0", "#FF69B4"];
 const toNum = (val: any): number => Number(val) || 0;
+const RTL_CHAR_PATTERN = /[\u0600-\u06FF]/;
+
+const ensureRtlText = (value: unknown): unknown => {
+  if (typeof value !== "string") return value;
+  if (!RTL_CHAR_PATTERN.test(value)) return value;
+  if (value.startsWith("\u202B") && value.endsWith("\u202C")) return value;
+  return `\u202B${value}\u202C`;
+};
+
+const withRtlFields = <T extends Record<string, any>>(item: T): T => {
+  const cloned: Record<string, any> = { ...item };
+  Object.keys(cloned).forEach((key) => {
+    cloned[key] = ensureRtlText(cloned[key]);
+  });
+  return cloned as T;
+};
 
 export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
   ({ report }, ref) => {
@@ -54,67 +70,104 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
     // داده‌ها
     const chartData =
-      analysis.factor_scores?.map((item: any) => ({
-        subject: item.factor,
-        score: toNum(item.score),
-        fullMark: toNum(item.maxScore),
-      })) || [];
+      analysis.factor_scores?.map((item: any) =>
+        withRtlFields({
+          subject: item.factor,
+          score: toNum(item.score),
+          fullMark: toNum(item.maxScore),
+        })
+      ) || [];
 
     const sentimentData = analysis.sentiment_analysis
-      ? Object.entries(analysis.sentiment_analysis).map(([name, value]) => ({
-          name,
-          value: toNum(value),
-        }))
+      ? Object.entries(analysis.sentiment_analysis).map(([name, value]) =>
+          withRtlFields({
+            name,
+            value: toNum(value),
+          })
+        )
       : [];
 
     const keywordData =
-      analysis.keyword_analysis?.map((item: any) => ({
-        ...item,
-        mentions: toNum(item.mentions),
-      })) || [];
+      analysis.keyword_analysis?.map((item: any) =>
+        withRtlFields({
+          ...item,
+          mentions: toNum(item.mentions),
+        })
+      ) || [];
 
     const verbosityData =
-      analysis.verbosity_trend?.map((item: any) => ({
-        ...item,
-        word_count: toNum(item.word_count),
-      })) || [];
+      analysis.verbosity_trend?.map((item: any) =>
+        withRtlFields({
+          ...item,
+          word_count: toNum(item.word_count),
+        })
+      ) || [];
 
     const actionData = analysis.action_orientation
       ? [
-          {
+          withRtlFields({
             name: "مقایسه",
             action_words: toNum(analysis.action_orientation.action_words),
             passive_words: toNum(analysis.action_orientation.passive_words),
-          },
+          }),
         ]
       : [];
 
     const problemSolvingData = analysis.problem_solving_approach
-      ? Object.entries(analysis.problem_solving_approach).map(
-          ([name, value]) => ({ name, value: toNum(value) })
+      ? Object.entries(analysis.problem_solving_approach).map(([name, value]) =>
+          withRtlFields({
+            name,
+            value: toNum(value),
+          })
         )
       : [];
 
     const commStyle = analysis.communication_style
-      ? Object.entries(analysis.communication_style).map(([name, value]) => ({
-          name,
-          value: toNum(value),
-        }))
+      ? Object.entries(analysis.communication_style).map(([name, value]) =>
+          withRtlFields({
+            name,
+            value: toNum(value),
+          })
+        )
       : [];
 
     // تحلیل زبانی
     const semanticRadar = [
-      { name: "تنوع واژگانی", value: toNum(analysis.linguistic_semantic_analysis?.lexical_diversity) },
-      { name: "انسجام معنایی", value: toNum(analysis.linguistic_semantic_analysis?.semantic_coherence) },
-      { name: "عینیت", value: toNum(analysis.linguistic_semantic_analysis?.concreteness_level) },
-      { name: "انتزاع", value: toNum(analysis.linguistic_semantic_analysis?.abstractness_level) }
+      withRtlFields({
+        name: "تنوع واژگانی",
+        value: toNum(analysis.linguistic_semantic_analysis?.lexical_diversity),
+      }),
+      withRtlFields({
+        name: "انسجام معنایی",
+        value: toNum(analysis.linguistic_semantic_analysis?.semantic_coherence),
+      }),
+      withRtlFields({
+        name: "عینیت",
+        value: toNum(analysis.linguistic_semantic_analysis?.concreteness_level),
+      }),
+      withRtlFields({
+        name: "انتزاع",
+        value: toNum(analysis.linguistic_semantic_analysis?.abstractness_level),
+      }),
     ];
     const pronouns = [
-      { name: "اول شخص", value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.first_person) },
-      { name: "دوم شخص", value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.second_person) },
-      { name: "سوم شخص", value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.third_person) }
+      withRtlFields({
+        name: "اول شخص",
+        value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.first_person),
+      }),
+      withRtlFields({
+        name: "دوم شخص",
+        value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.second_person),
+      }),
+      withRtlFields({
+        name: "سوم شخص",
+        value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.third_person),
+      }),
     ];
-    const semanticFields = analysis.linguistic_semantic_analysis?.semantic_fields || [];
+    const semanticFields =
+      analysis.linguistic_semantic_analysis?.semantic_fields?.map((item: any) =>
+        withRtlFields(item)
+      ) || [];
 
     return (
       <div
@@ -129,6 +182,15 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
           textAlign: "right",
         }}
       >
+        <style>
+          {`
+            svg text, svg tspan {
+              font-family: "Vazir", "Tahoma", sans-serif !important;
+              unicode-bidi: plaintext;
+              direction: rtl;
+            }
+          `}
+        </style>
         {/* صفحه کاور */}
         <div className="flex flex-col items-center justify-center h-[90vh] border-4 border-gray-800 rounded-lg">
           <Logo variant="large" />

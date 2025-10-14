@@ -71,7 +71,12 @@ const AdminReportDetail = () => {
     if (!input || !report) return;
     setIsDownloading(true);
     try {
-      const canvas = await html2canvas(input, { scale: 2, useCORS: true, backgroundColor: '#fff' });
+      const canvas = await html2canvas(input, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#fff',
+        foreignObjectRendering: true,
+      });
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
       const pdfWidth = pdf.internal.pageSize.getWidth();
