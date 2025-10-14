@@ -167,6 +167,7 @@ const AssessmentChat = () => {
         method: "POST",
         body: JSON.stringify({ message: userMessage.text, session_id: assessmentState.sessionId }),
       });
+      console.log("AssessmentChat API response", response);
 
       if (!response?.success) {
         throw new Error(response?.message || "پاسخ نامعتبر از سرور دریافت شد");
@@ -213,6 +214,7 @@ const AssessmentChat = () => {
           sender: "ai" as const,
           personaName: item.senderName ?? assessmentState.personaName ?? "مشاور",
         }));
+      console.log("AssessmentChat normalized responses", normalizedResponses, sanitized);
 
       const directPersonaName =
         typeof response.data?.personaName === "string" && response.data.personaName.trim().length > 0
