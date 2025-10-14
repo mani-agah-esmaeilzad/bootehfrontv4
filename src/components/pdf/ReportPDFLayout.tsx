@@ -52,6 +52,7 @@ const toNum = (val: any): number => Number(val) || 0;
 export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
   ({ report }, ref) => {
     const { analysis } = report;
+    const shapedReportText = shapeText(analysis.report || "");
 
     const chartData =
       analysis.factor_scores?.map((item: any) =>
@@ -226,14 +227,14 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             <div className="col-span-3">
               <h2 className="border-b pb-2 text-xl font-bold">{shapeText("تحلیل کیفی")}</h2>
               <div className="prose prose-sm mt-4 max-w-none leading-7 text-gray-700">
-                <ReactMarkdown>{analysis.report || ""}</ReactMarkdown>
+                <ReactMarkdown>{shapedReportText}</ReactMarkdown>
               </div>
             </div>
           </div>
         </div>
 
         <div style={{ pageBreakBefore: "always" }}>
-          <h2 className="mb-6 border-b-2 pb-4 text-2xl font-bold">تحلیل‌های تکمیلی</h2>
+          <h2 className="mb-6 border-b-2 pb-4 text-2xl font-bold">{shapeText("تحلیل‌های تکمیلی")}</h2>
           <div className="grid grid-cols-2 gap-8">
             <Card>
               <CardHeader>

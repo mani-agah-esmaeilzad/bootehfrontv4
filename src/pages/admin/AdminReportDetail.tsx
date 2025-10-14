@@ -54,6 +54,49 @@ interface ReportDetail {
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#A020F0", "#FF69B4"];
 const toNum = (val: any): number => Number(val) || 0;
 
+const replaceSvgWithCanvas = async (root: HTMLElement) => {
+  const { Canvg } = await import("canvg");
+  const replacements: Array<{ svg: SVGElement; canvas: HTMLCanvasElement }> = [];
+  const svgs = Array.from(root.querySelectorAll<SVGElement>("svg"));
+
+  for (const svg of svgs) {
+    const rect = svg.getBoundingClientRect();
+    const width = rect.width || Number(svg.getAttribute("width")) || svg.clientWidth;
+    const height = rect.height || Number(svg.getAttribute("height")) || svg.clientHeight;
+    if (!width || !height) continue;
+
+    const canvas = document.createElement("canvas");
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) continue;
+    ctx.scale(dpr, dpr);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, width, height);
+
+    const v = await Canvg.from(ctx, svg.outerHTML, {
+      ignoreDimensions: true,
+      ignoreAnimation: true,
+    });
+    await v.render();
+
+    svg.style.display = "none";
+    svg.parentNode?.insertBefore(canvas, svg);
+    replacements.push({ svg, canvas });
+  }
+
+  return () => {
+    replacements.forEach(({ svg, canvas }) => {
+      canvas.remove();
+      svg.style.display = "";
+    });
+  };
+};
+
 const AdminReportDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -89,10 +132,12 @@ const AdminReportDetail = () => {
     const input = pdfPrintRef.current;
     if (!input || !report) return;
     setIsDownloading(true);
+    let restoreSvgs: (() => void) | null = null;
     try {
       if ((document as any).fonts?.ready) {
         await (document as any).fonts.ready;
       }
+      restoreSvgs = await replaceSvgWithCanvas(input);
       const canvas = await html2canvas(input, {
         scale: 2,
         useCORS: true,
@@ -120,6 +165,7 @@ const AdminReportDetail = () => {
       toast.error("خطا در ساخت فایل PDF.");
       console.error(e);
     } finally {
+      restoreSvgs?.();
       setIsDownloading(false);
     }
   };
@@ -209,6 +255,8 @@ const AdminReportDetail = () => {
     ? shapeText(new Date(report.completed_at).toLocaleDateString("fa-IR"))
     : shapeText("نامشخص");
 
+  const shapedReportText = shapeText(analysis.report || "تحلیل متنی وجود ندارد.");
+
   return (
     <div className="space-y-6">
       <div style={{ position: "absolute", left: -9999, top: 0, pointerEvents: "none" }}>
@@ -216,7 +264,7 @@ const AdminReportDetail = () => {
       </div>
 
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">{shapeText(`جزئیات گزارش: ${report.firstName} ${report.lastName}`)}</h1>
+        <h1 className="text-3xl font-bold">{shapeText(`جزئیات گزارش: ${shapedFullName}`)}</h1>
         <div className="flex gap-2">
           <Button onClick={() => navigate("/admin/reports")} variant="outline">
             {shapeText("بازگشت")}
@@ -276,7 +324,7 @@ const AdminReportDetail = () => {
             {chartData.length > 0 ? (
               <SpiderChart data={chartData} />
             ) : (
-              <p className="text-center text-sm text-muted-foreground">داده‌ای وجود ندارد.</p>
+              <p className="text-center text-sm text-muted-foreground">{shapeText("داده‌ای وجود ندارد.")}</p>
             )}
           </CardContent>
         </Card>
@@ -286,7 +334,7 @@ const AdminReportDetail = () => {
           </CardHeader>
           <CardContent>
             <div className="prose prose-sm max-w-none text-muted-foreground">
-              <ReactMarkdown>{analysis.report || "تحلیل متنی وجود ندارد."}</ReactMarkdown>
+              <ReactMarkdown>{shapedReportText}</ReactMarkdown>
             </div>
           </CardContent>
         </Card>
