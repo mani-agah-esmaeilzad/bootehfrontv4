@@ -183,8 +183,23 @@ const AssessmentChat = () => {
         normalizedResponses.push({ text: rawResponses });
       }
 
+      if (typeof response.data?.reply === "string" && response.data.reply.trim().length > 0) {
+        const trimmedReply = response.data.reply.trim();
+        const duplicateReply = normalizedResponses.some(
+          (item) => typeof item?.text === "string" && item.text.trim() === trimmedReply
+        );
+        if (!duplicateReply) {
+          normalizedResponses.push({
+            text: trimmedReply,
+            senderName: response.data?.personaName ?? assessmentState.personaName ?? "مشاور",
+          });
+        }
+      }
+
       const fallbackText =
-        typeof response.data?.message === "string"
+        typeof response.data?.reply === "string"
+          ? response.data.reply
+          : typeof response.data?.message === "string"
           ? response.data.message
           : typeof response.data?.text === "string"
           ? response.data.text
@@ -200,7 +215,9 @@ const AssessmentChat = () => {
         }));
 
       const directPersonaName =
-        typeof rawResponses === "object" && rawResponses !== null && "senderName" in rawResponses
+        typeof response.data?.personaName === "string" && response.data.personaName.trim().length > 0
+          ? response.data.personaName.trim()
+          : typeof rawResponses === "object" && rawResponses !== null && "senderName" in rawResponses
           ? ((rawResponses as { senderName?: string }).senderName ?? assessmentState.personaName ?? "مشاور")
           : assessmentState.personaName ?? "مشاور";
 
