@@ -74,6 +74,8 @@ const hexToRgba = (hex: string, alpha: number) => {
 const truncate = (value: string, maxLength = 18) =>
   value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
 
+const formatStageLabel = (index: number) => `مرحله ${(index + 1).toLocaleString("fa-IR")}`;
+
 const getStageStyles = (status: string, color: string): CSSProperties => {
   if (status === "completed") {
     return {
@@ -169,47 +171,63 @@ const Dashboard = () => {
       }
     });
 
-    const grouped = new Map<string, Assessment[]>();
-    Array.from(map.values()).forEach((assessment) => {
-      const category = assessment.category || "سایر دسته‌بندی‌ها";
-      if (!grouped.has(category)) {
-        grouped.set(category, []);
+    return Array.from(map.values()).sort((a, b) => {
+      const orderA = a.display_order ?? Number.MAX_SAFE_INTEGER;
+      const orderB = b.display_order ?? Number.MAX_SAFE_INTEGER;
+      if (orderA !== orderB) return orderA - orderB;
+      if (a.status !== b.status) {
+        return (statusPriority[b.status] ?? 0) - (statusPriority[a.status] ?? 0);
       }
-      grouped.get(category)!.push(assessment);
+      return (a.id ?? 0) - (b.id ?? 0);
     });
-
-    const entries = Array.from(grouped.entries()).sort(([a], [b]) => a.localeCompare(b, "fa"));
-
-    const ordered: Assessment[] = [];
-    entries.forEach(([, cats]) => {
-      const sortedCats = cats.sort((lhs, rhs) => {
-        const statusWeight = (statusPriority[rhs.status] ?? 0) - (statusPriority[lhs.status] ?? 0);
-        if (statusWeight !== 0) return statusWeight;
-        return (lhs.display_order ?? 0) - (rhs.display_order ?? 0);
-      });
-      ordered.push(...sortedCats);
-    });
-
-    return ordered;
   }, [assessments]);
+
+  const stageLabels = useMemo(() => {
+    const labels = new Map<string, string>();
+    dedupedAssessments.forEach((assessment, index) => {
+      const key = assessment.stringId || String(assessment.id);
+      labels.set(key, formatStageLabel(index));
+    });
+    return labels;
+  }, [dedupedAssessments]);
+
+  const resolveStageLabel = useCallback(
+    (assessment: Assessment, fallbackIndex = 0) => {
+      const key = assessment.stringId || String(assessment.id);
+      const direct = stageLabels.get(key);
+      if (direct) return direct;
+      const globalIndex = dedupedAssessments.findIndex(
+        (item) => (item.stringId || String(item.id)) === key
+      );
+      if (globalIndex >= 0) {
+        return formatStageLabel(globalIndex);
+      }
+      return formatStageLabel(fallbackIndex);
+    },
+    [stageLabels, dedupedAssessments]
+  );
 
   const mapSteps: AssessmentMapStep[] = useMemo(
     () =>
-      dedupedAssessments.map((a) => {
-        const accentColor = CATEGORY_COLORS[a.category ?? ""] ?? DEFAULT_CATEGORY_COLOR;
+      dedupedAssessments.map((assessment, index) => {
+        const accentColor = CATEGORY_COLORS[assessment.category ?? ""] ?? DEFAULT_CATEGORY_COLOR;
+        const key = assessment.stringId || String(assessment.id);
         return {
-          id: a.stringId || String(a.id),
-          title: a.title,
-          description: a.description,
-          status: a.status,
-          category: a.category,
+          id: key,
+          title: resolveStageLabel(assessment, index),
+          status: assessment.status,
+          category: assessment.category,
           accentColor,
         };
       }),
-    [dedupedAssessments]
+    [dedupedAssessments, resolveStageLabel]
   );
 
   const currentAssessment = dedupedAssessments.find((a) => a.status === "current");
+  const currentStageLabel = useMemo(() => {
+    if (!currentAssessment) return null;
+    return resolveStageLabel(currentAssessment);
+  }, [currentAssessment, resolveStageLabel]);
   const totalCount = dedupedAssessments.length;
   const completedCount = dedupedAssessments.filter((a) => a.status === "completed").length;
   const lockedCount = dedupedAssessments.filter((a) => a.status === "locked").length;
@@ -244,29 +262,20 @@ const Dashboard = () => {
       const anchorPosition = categoryAnchorPositions[category];
       const position = anchorPosition ?? fallbackPosition;
       const isAnchor = Boolean(anchorPosition);
-      const statusOrder: Record<Assessment["status"], number> = {
-        completed: 0,
-        current: 1,
-        locked: 2,
-      };
-
-      const orderedSteps = steps
-        .slice()
-        .sort((a, b) => (statusOrder[a.status] ?? 3) - (statusOrder[b.status] ?? 3))
-        .slice(0, 6);
+      const orderedSteps = steps.slice(0, 6);
 
       return {
         name: category,
         color,
         position,
         isAnchor,
-        stages: orderedSteps.map((step) => ({
-          label: step.title,
+        stages: orderedSteps.map((step, stepIndex) => ({
+          label: resolveStageLabel(step, stepIndex),
           status: step.status,
         })),
       };
     });
-  }, [dedupedAssessments, categoryAnchorPositions]);
+  }, [dedupedAssessments, categoryAnchorPositions, resolveStageLabel]);
 
   const handleMapLayoutChange = useCallback(
     (_nodes: { step: AssessmentMapStep; index: number; x: number; y: number }[], categories: CategoryAnchor[]) => {
@@ -402,8 +411,8 @@ const Dashboard = () => {
               </span>
               <div className="space-y-4">
                 <h2 className="text-3xl font-bold leading-tight text-slate-900">
-                  {currentAssessment
-                    ? `مرحله «${currentAssessment.title}» آماده آغاز است`
+                  {currentAssessment && currentStageLabel
+                    ? `${currentStageLabel} آماده آغاز است`
                     : "برای مرحله بعدی آماده شوید"}
                 </h2>
                 <p className="max-w-xl text-sm leading-relaxed text-slate-500">

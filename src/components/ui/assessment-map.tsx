@@ -40,9 +40,6 @@ const hexToRgba = (hex: string, alpha: number) => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
-const truncateText = (value: string, maxLength = 22) =>
-  value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
-
 export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: AssessmentMapProps) => {
   const nodePositions = useMemo(() => {
     const layout = {
@@ -294,10 +291,6 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
           color: isLocked ? "#94A3B8" : "#1E293B",
         };
 
-        const descriptionStyle: CSSProperties = {
-          color: isLocked ? "#94A3B8" : "#64748B",
-        };
-
         return (
           <div
             key={step.id}
@@ -332,14 +325,9 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
                 {index + 1}
               </span>
               <span className="px-4 text-sm font-semibold leading-relaxed" style={titleStyle}>
-                {truncateText(step.title, 24)}
+                {step.title}
               </span>
             </button>
-            {step.description && (
-              <div className="max-w-[12rem] text-center text-xs leading-relaxed" style={descriptionStyle}>
-                {step.description}
-              </div>
-            )}
           </div>
         );
       })}
