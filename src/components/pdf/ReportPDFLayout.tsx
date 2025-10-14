@@ -28,6 +28,7 @@ import {
   Area,
 } from "recharts";
 import { Logo } from "@/components/ui/logo";
+import { mapShape, shapeText } from "@/lib/rtlText";
 
 interface ReportDetail {
   id: number;
@@ -47,22 +48,6 @@ interface PDFLayoutProps {
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#A020F0", "#FF69B4"];
 const toNum = (val: any): number => Number(val) || 0;
-const RTL_CHAR_PATTERN = /[\u0600-\u06FF]/;
-
-const ensureRtlText = (value: unknown): unknown => {
-  if (typeof value !== "string") return value;
-  if (!RTL_CHAR_PATTERN.test(value)) return value;
-  if (value.includes("\u200F")) return value;
-  return `\u200F${value}\u200F`;
-};
-
-const withRtlFields = <T extends Record<string, any>>(item: T): T => {
-  const cloned: Record<string, any> = { ...item };
-  Object.keys(cloned).forEach((key) => {
-    cloned[key] = ensureRtlText(cloned[key]);
-  });
-  return cloned as T;
-};
 
 export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
   ({ report }, ref) => {
@@ -70,8 +55,8 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
     const chartData =
       analysis.factor_scores?.map((item: any) =>
-        withRtlFields({
-          subject: item.factor,
+        mapShape({
+          subject: shapeText(item.factor),
           score: toNum(item.score),
           fullMark: toNum(item.maxScore),
         })
@@ -80,30 +65,32 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
     const sentimentData =
       analysis.sentiment_analysis
         ? Object.entries(analysis.sentiment_analysis).map(([name, value]) =>
-            withRtlFields({ name, value: toNum(value) })
+            mapShape({ name: shapeText(name), value: toNum(value) })
           )
         : [];
 
     const keywordData =
       analysis.keyword_analysis?.map((item: any) =>
-        withRtlFields({
+        mapShape({
           ...item,
+          keyword: shapeText(item.keyword),
           mentions: toNum(item.mentions),
         })
       ) || [];
 
     const verbosityData =
       analysis.verbosity_trend?.map((item: any) =>
-        withRtlFields({
+        mapShape({
           ...item,
+          turn: shapeText(`نوبت ${item.turn}`),
           word_count: toNum(item.word_count),
         })
       ) || [];
 
     const actionData = analysis.action_orientation
       ? [
-          withRtlFields({
-            name: "مقایسه",
+          mapShape({
+            name: shapeText("مقایسه"),
             action_words: toNum(analysis.action_orientation.action_words),
             passive_words: toNum(analysis.action_orientation.passive_words),
           }),
@@ -113,54 +100,57 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
     const problemSolvingData =
       analysis.problem_solving_approach
         ? Object.entries(analysis.problem_solving_approach).map(([name, value]) =>
-            withRtlFields({ name, value: toNum(value) })
+            mapShape({ name: shapeText(name), value: toNum(value) })
           )
         : [];
 
     const commStyle =
       analysis.communication_style
         ? Object.entries(analysis.communication_style).map(([name, value]) =>
-            withRtlFields({ name, value: toNum(value) })
+            mapShape({ name: shapeText(name), value: toNum(value) })
           )
         : [];
 
     const semanticRadar = [
-      withRtlFields({
-        name: "تنوع واژگانی",
+      mapShape({
+        name: shapeText("تنوع واژگانی"),
         value: toNum(analysis.linguistic_semantic_analysis?.lexical_diversity),
       }),
-      withRtlFields({
-        name: "انسجام معنایی",
+      mapShape({
+        name: shapeText("انسجام معنایی"),
         value: toNum(analysis.linguistic_semantic_analysis?.semantic_coherence),
       }),
-      withRtlFields({
-        name: "عینیت",
+      mapShape({
+        name: shapeText("عینیت"),
         value: toNum(analysis.linguistic_semantic_analysis?.concreteness_level),
       }),
-      withRtlFields({
-        name: "انتزاع",
+      mapShape({
+        name: shapeText("انتزاع"),
         value: toNum(analysis.linguistic_semantic_analysis?.abstractness_level),
       }),
     ];
 
     const pronouns = [
-      withRtlFields({
-        name: "اول شخص",
+      mapShape({
+        name: shapeText("اول شخص"),
         value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.first_person),
       }),
-      withRtlFields({
-        name: "دوم شخص",
+      mapShape({
+        name: shapeText("دوم شخص"),
         value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.second_person),
       }),
-      withRtlFields({
-        name: "سوم شخص",
+      mapShape({
+        name: shapeText("سوم شخص"),
         value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.third_person),
       }),
     ];
 
     const semanticFields =
       analysis.linguistic_semantic_analysis?.semantic_fields?.map((item: any) =>
-        withRtlFields(item)
+        mapShape({
+          field: shapeText(item.field),
+          mentions: toNum(item.mentions),
+        })
       ) || [];
 
     return (
@@ -189,48 +179,52 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
         </style>
         <div className="flex h-[90vh] flex-col items-center justify-center rounded-lg border-4 border-gray-800">
           <Logo variant="large" />
-          <h1 className="mt-10 text-4xl font-extrabold text-gray-900">گزارش نهایی ارزیابی شایستگی</h1>
+          <h1 className="mt-10 text-4xl font-extrabold text-gray-900">
+            {shapeText("گزارش نهایی ارزیابی شایستگی")}
+          </h1>
           <h2 className="mt-6 text-2xl text-blue-700">
-            {report.firstName} {report.lastName} ({report.username})
+            {shapeText(`${report.firstName} ${report.lastName}`)} ({shapeText(report.username)})
           </h2>
-          <p className="mt-4 text-gray-600">{report.questionnaire_title}</p>
+          <p className="mt-4 text-gray-600">{shapeText(report.questionnaire_title)}</p>
           <p className="mt-2 text-gray-500">
-            تاریخ تکمیل:{" "}
+            {shapeText("تاریخ تکمیل:")}{" "}
             {report.completed_at
-              ? new Date(report.completed_at).toLocaleDateString("fa-IR")
-              : "نامشخص"}
+              ? shapeText(new Date(report.completed_at).toLocaleDateString("fa-IR"))
+              : shapeText("نامشخص")}
           </p>
         </div>
 
         <div style={{ pageBreakBefore: "always" }}>
-          <h2 className="mb-4 border-b-2 pb-2 text-2xl font-bold">خلاصه مدیریتی</h2>
+          <h2 className="mb-4 border-b-2 pb-2 text-2xl font-bold">{shapeText("خلاصه مدیریتی")}</h2>
           <p className="text-sm leading-relaxed text-gray-700">
-            این گزارش به منظور تحلیل شایستگی‌های کلیدی {report.firstName} {report.lastName} تدوین شده است.
-            داده‌ها شامل نمودارها و تحلیل‌های کیفی و زبانی هستند که تصویری روشن از نقاط قوت و زمینه‌های بهبود فرد ارائه می‌دهند.
+            {shapeText(
+              `این گزارش به منظور تحلیل شایستگی‌های کلیدی ${report.firstName} ${report.lastName} تدوین شده است.
+            داده‌ها شامل نمودارها و تحلیل‌های کیفی و زبانی هستند که تصویری روشن از نقاط قوت و زمینه‌های بهبود فرد ارائه می‌دهند.`
+            )}
           </p>
         </div>
 
         <div style={{ pageBreakBefore: "always" }}>
           <div className="grid gap-6" style={{ gridTemplateColumns: "repeat(5, minmax(0, 1fr))" }}>
             <div className="col-span-2">
-              <h2 className="border-b pb-2 text-xl font-bold">امتیاز کل</h2>
+              <h2 className="border-b pb-2 text-xl font-bold">{shapeText("امتیاز کل")}</h2>
               <div className="rounded-lg bg-blue-50 p-4 text-center">
                 <p className="text-6xl font-bold text-blue-800">
                   {toNum(analysis.score)}
                   <span className="text-2xl text-gray-500"> / {report.max_score || 100}</span>
                 </p>
               </div>
-              <h2 className="mt-6 border-b pb-2 text-xl font-bold">نمودار شایستگی‌ها</h2>
+              <h2 className="mt-6 border-b pb-2 text-xl font-bold">{shapeText("نمودار شایستگی‌ها")}</h2>
               <div className="h-[300px] w-full">
                 {chartData.length > 0 ? (
                   <SpiderChart data={chartData} />
                 ) : (
-                  <p className="mt-4 text-center text-sm text-gray-500">داده‌ای وجود ندارد.</p>
+                  <p className="mt-4 text-center text-sm text-gray-500">{shapeText("داده‌ای وجود ندارد.")}</p>
                 )}
               </div>
             </div>
             <div className="col-span-3">
-              <h2 className="border-b pb-2 text-xl font-bold">تحلیل کیفی</h2>
+              <h2 className="border-b pb-2 text-xl font-bold">{shapeText("تحلیل کیفی")}</h2>
               <div className="prose prose-sm mt-4 max-w-none leading-7 text-gray-700">
                 <ReactMarkdown>{analysis.report || ""}</ReactMarkdown>
               </div>
@@ -243,7 +237,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
           <div className="grid grid-cols-2 gap-8">
             <Card>
               <CardHeader>
-                <CardTitle>تحلیل احساسات</CardTitle>
+                <CardTitle>{shapeText("تحلیل احساسات")}</CardTitle>
               </CardHeader>
               <CardContent className="h-72">
                 <ResponsiveContainer>
@@ -264,7 +258,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
             <Card>
               <CardHeader>
-                <CardTitle>کلمات کلیدی پرتکرار</CardTitle>
+                <CardTitle>{shapeText("کلمات کلیدی پرتکرار")}</CardTitle>
               </CardHeader>
               <CardContent className="h-72">
                 <ResponsiveContainer>
@@ -280,7 +274,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
             <Card>
               <CardHeader>
-                <CardTitle>روند کلمات</CardTitle>
+                <CardTitle>{shapeText("روند کلمات")}</CardTitle>
               </CardHeader>
               <CardContent className="h-72">
                 <ResponsiveContainer>
@@ -296,7 +290,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
             <Card>
               <CardHeader>
-                <CardTitle>کنش‌محوری</CardTitle>
+                <CardTitle>{shapeText("کنش‌محوری")}</CardTitle>
               </CardHeader>
               <CardContent className="h-72">
                 <ResponsiveContainer>
@@ -314,7 +308,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
             <Card>
               <CardHeader>
-                <CardTitle>رویکرد حل مسئله</CardTitle>
+                <CardTitle>{shapeText("رویکرد حل مسئله")}</CardTitle>
               </CardHeader>
               <CardContent className="h-72">
                 <ResponsiveContainer>
@@ -342,7 +336,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
             <Card>
               <CardHeader>
-                <CardTitle>سطح اطمینان</CardTitle>
+                <CardTitle>{shapeText("سطح اطمینان")}</CardTitle>
               </CardHeader>
               <CardContent className="flex h-72 items-center justify-center">
                 <p className="text-7xl font-bold text-blue-700">
@@ -353,7 +347,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
             <Card>
               <CardHeader>
-                <CardTitle>سبک ارتباطی</CardTitle>
+                <CardTitle>{shapeText("سبک ارتباطی")}</CardTitle>
               </CardHeader>
               <CardContent className="h-72">
                 <ResponsiveContainer>
@@ -369,7 +363,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
             <Card>
               <CardHeader>
-                <CardTitle>توزیع نمرات</CardTitle>
+                <CardTitle>{shapeText("توزیع نمرات")}</CardTitle>
               </CardHeader>
               <CardContent className="h-72">
                 <ResponsiveContainer>
@@ -385,7 +379,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
             <Card>
               <CardHeader>
-                <CardTitle>همبستگی فاکتورها</CardTitle>
+                <CardTitle>{shapeText("همبستگی فاکتورها")}</CardTitle>
               </CardHeader>
               <CardContent className="h-72">
                 <ResponsiveContainer>
@@ -401,7 +395,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
             <Card>
               <CardHeader>
-                <CardTitle>شاخص‌های زبانی</CardTitle>
+                <CardTitle>{shapeText("شاخص‌های زبانی")}</CardTitle>
               </CardHeader>
               <CardContent className="h-72">
                 <ResponsiveContainer>
@@ -423,7 +417,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
             <Card>
               <CardHeader>
-                <CardTitle>استفاده از ضمایر</CardTitle>
+                <CardTitle>{shapeText("استفاده از ضمایر")}</CardTitle>
               </CardHeader>
               <CardContent className="h-72">
                 <ResponsiveContainer>
@@ -444,7 +438,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
             <Card>
               <CardHeader>
-                <CardTitle>حوزه‌های معنایی پرتکرار</CardTitle>
+                <CardTitle>{shapeText("حوزه‌های معنایی پرتکرار")}</CardTitle>
               </CardHeader>
               <CardContent className="h-72">
                 <ResponsiveContainer>

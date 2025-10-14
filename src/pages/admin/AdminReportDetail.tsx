@@ -37,6 +37,7 @@ import {
 } from "recharts";
 import { SpiderChart } from "@/components/ui/SpiderChart";
 import { ReportPDFLayout } from "@/components/pdf/ReportPDFLayout";
+import { shapeText, mapShape } from "@/lib/rtlText";
 
 interface ReportDetail {
   id: number;
@@ -140,60 +141,73 @@ const AdminReportDetail = () => {
   const { analysis } = report;
 
   const chartData =
-    analysis.factor_scores?.map((i: any) => ({
-      subject: i.factor,
-      score: toNum(i.score),
-      fullMark: toNum(i.maxScore),
-    })) || [];
+    analysis.factor_scores?.map((i: any) =>
+      mapShape({
+        subject: shapeText(i.factor),
+        score: toNum(i.score),
+        fullMark: toNum(i.maxScore),
+      })
+    ) || [];
   const sentimentData = analysis.sentiment_analysis
-    ? Object.entries(analysis.sentiment_analysis).map(([name, value]) => ({
-        name,
-        value: toNum(value),
-      }))
+    ? Object.entries(analysis.sentiment_analysis).map(([name, value]) =>
+        mapShape({ name: shapeText(name), value: toNum(value) })
+      )
     : [];
   const keywordData =
-    analysis.keyword_analysis?.map((i: any) => ({
-      ...i,
-      mentions: toNum(i.mentions),
-    })) || [];
+    analysis.keyword_analysis?.map((i: any) =>
+      mapShape({
+        ...i,
+        keyword: shapeText(i.keyword),
+        mentions: toNum(i.mentions),
+      })
+    ) || [];
   const verbosityData =
-    analysis.verbosity_trend?.map((i: any) => ({
-      ...i,
-      word_count: toNum(i.word_count),
-    })) || [];
+    analysis.verbosity_trend?.map((i: any) =>
+      mapShape({
+        ...i,
+        turn: shapeText(`نوبت ${i.turn}`),
+        word_count: toNum(i.word_count),
+      })
+    ) || [];
   const actionData = analysis.action_orientation
     ? [
-        {
-          name: "مقایسه",
+        mapShape({
+          name: shapeText("مقایسه"),
           action_words: toNum(analysis.action_orientation.action_words),
           passive_words: toNum(analysis.action_orientation.passive_words),
-        },
+        }),
       ]
     : [];
   const problemSolvingData = analysis.problem_solving_approach
-    ? Object.entries(analysis.problem_solving_approach).map(([name, value]) => ({
-        name,
-        value: toNum(value),
-      }))
+    ? Object.entries(analysis.problem_solving_approach).map(([name, value]) =>
+        mapShape({ name: shapeText(name), value: toNum(value) })
+      )
     : [];
   const commStyle = analysis.communication_style
-    ? Object.entries(analysis.communication_style).map(([name, value]) => ({
-        name,
-        value: toNum(value),
-      }))
+    ? Object.entries(analysis.communication_style).map(([name, value]) =>
+        mapShape({ name: shapeText(name), value: toNum(value) })
+      )
     : [];
   const semanticRadar = [
-    { name: "تنوع واژگانی", value: toNum(analysis.linguistic_semantic_analysis?.lexical_diversity) },
-    { name: "انسجام معنایی", value: toNum(analysis.linguistic_semantic_analysis?.semantic_coherence) },
-    { name: "عینیت", value: toNum(analysis.linguistic_semantic_analysis?.concreteness_level) },
-    { name: "انتزاع", value: toNum(analysis.linguistic_semantic_analysis?.abstractness_level) },
+    mapShape({ name: shapeText("تنوع واژگانی"), value: toNum(analysis.linguistic_semantic_analysis?.lexical_diversity) }),
+    mapShape({ name: shapeText("انسجام معنایی"), value: toNum(analysis.linguistic_semantic_analysis?.semantic_coherence) }),
+    mapShape({ name: shapeText("عینیت"), value: toNum(analysis.linguistic_semantic_analysis?.concreteness_level) }),
+    mapShape({ name: shapeText("انتزاع"), value: toNum(analysis.linguistic_semantic_analysis?.abstractness_level) }),
   ];
   const pronouns = [
-    { name: "اول شخص", value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.first_person) },
-    { name: "دوم شخص", value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.second_person) },
-    { name: "سوم شخص", value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.third_person) },
+    mapShape({ name: shapeText("اول شخص"), value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.first_person) }),
+    mapShape({ name: shapeText("دوم شخص"), value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.second_person) }),
+    mapShape({ name: shapeText("سوم شخص"), value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.third_person) }),
   ];
-  const semanticFields = analysis.linguistic_semantic_analysis?.semantic_fields || [];
+  const semanticFields = analysis.linguistic_semantic_analysis?.semantic_fields?.map((item: any) =>
+    mapShape({ field: shapeText(item.field), mentions: toNum(item.mentions) })
+  ) || [];
+
+  const shapedFullName = shapeText(`${report.firstName} ${report.lastName}`);
+  const shapedQuestionnaire = shapeText(report.questionnaire_title);
+  const shapedCompletedAt = report.completed_at
+    ? shapeText(new Date(report.completed_at).toLocaleDateString("fa-IR"))
+    : shapeText("نامشخص");
 
   return (
     <div className="space-y-6">
@@ -202,12 +216,10 @@ const AdminReportDetail = () => {
       </div>
 
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">
-          جزئیات گزارش: {report.firstName} {report.lastName}
-        </h1>
+        <h1 className="text-3xl font-bold">{shapeText(`جزئیات گزارش: ${report.firstName} ${report.lastName}`)}</h1>
         <div className="flex gap-2">
           <Button onClick={() => navigate("/admin/reports")} variant="outline">
-            بازگشت
+            {shapeText("بازگشت")}
             <ArrowRight className="mr-2 h-4 w-4" />
           </Button>
           <Button onClick={handleDownloadPDF} disabled={isDownloading}>
@@ -216,7 +228,7 @@ const AdminReportDetail = () => {
             ) : (
               <Download className="mr-2 h-4 w-4" />
             )}
-            دانلود PDF
+            {shapeText("دانلود PDF")}
           </Button>
         </div>
       </div>
@@ -224,32 +236,30 @@ const AdminReportDetail = () => {
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader>
-            <CardTitle>کاربر</CardTitle>
+            <CardTitle>{shapeText("کاربر")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="font-bold">{report.username}</p>
+            <p className="font-bold">{shapeText(report.username)}</p>
             <p className="text-xs text-muted-foreground">{report.email}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>پرسشنامه</CardTitle>
+            <CardTitle>{shapeText("پرسشنامه")}</CardTitle>
           </CardHeader>
-          <CardContent>{report.questionnaire_title}</CardContent>
+          <CardContent>{shapedQuestionnaire}</CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>تاریخ تکمیل</CardTitle>
+            <CardTitle>{shapeText("تاریخ تکمیل")}</CardTitle>
           </CardHeader>
           <CardContent>
-            {report.completed_at
-              ? new Date(report.completed_at).toLocaleDateString("fa-IR")
-              : "نامشخص"}
+            {shapedCompletedAt}
           </CardContent>
         </Card>
         <Card className="bg-primary text-primary-foreground">
           <CardHeader>
-            <CardTitle>امتیاز کل</CardTitle>
+            <CardTitle>{shapeText("امتیاز کل")}</CardTitle>
           </CardHeader>
           <CardContent className="text-3xl font-bold">
             {toNum(analysis.score)} / {report.max_score || 100}
@@ -260,7 +270,7 @@ const AdminReportDetail = () => {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>نمودار شایستگی‌ها</CardTitle>
+            <CardTitle>{shapeText("نمودار شایستگی‌ها")}</CardTitle>
           </CardHeader>
           <CardContent className="h-[350px]">
             {chartData.length > 0 ? (
@@ -272,7 +282,7 @@ const AdminReportDetail = () => {
         </Card>
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle>تحلیل کلی</CardTitle>
+            <CardTitle>{shapeText("تحلیل کلی")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="prose prose-sm max-w-none text-muted-foreground">
@@ -282,11 +292,11 @@ const AdminReportDetail = () => {
         </Card>
       </div>
 
-      <h2 className="pt-4 text-2xl font-bold">تحلیل‌های تکمیلی</h2>
+      <h2 className="pt-4 text-2xl font-bold">{shapeText("تحلیل‌های تکمیلی")}</h2>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>۱. تحلیل احساسات</CardTitle>
+            <CardTitle>{shapeText("۱. تحلیل احساسات")}</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
             <ResponsiveContainer>
@@ -306,7 +316,7 @@ const AdminReportDetail = () => {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>۲. کلمات کلیدی</CardTitle>
+            <CardTitle>{shapeText("۲. کلمات کلیدی")}</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
             <ResponsiveContainer>
@@ -321,7 +331,7 @@ const AdminReportDetail = () => {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>۳. روند پرحرفی</CardTitle>
+            <CardTitle>{shapeText("۳. روند پرحرفی")}</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
             <ResponsiveContainer>
@@ -336,7 +346,7 @@ const AdminReportDetail = () => {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>۴. کنش‌محوری</CardTitle>
+            <CardTitle>{shapeText("۴. کنش‌محوری")}</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
             <ResponsiveContainer>
@@ -353,7 +363,7 @@ const AdminReportDetail = () => {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>۵. رویکرد حل مسئله</CardTitle>
+            <CardTitle>{shapeText("۵. رویکرد حل مسئله")}</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
             <ResponsiveContainer>
@@ -373,7 +383,7 @@ const AdminReportDetail = () => {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>۶. سطح اطمینان</CardTitle>
+            <CardTitle>{shapeText("۶. سطح اطمینان")}</CardTitle>
           </CardHeader>
           <CardContent className="flex h-64 items-center justify-center">
             <p className="text-6xl font-bold text-blue-700">
@@ -383,7 +393,7 @@ const AdminReportDetail = () => {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>۷. سبک ارتباطی</CardTitle>
+            <CardTitle>{shapeText("۷. سبک ارتباطی")}</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
             <ResponsiveContainer>
@@ -398,7 +408,7 @@ const AdminReportDetail = () => {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>۸. توزیع نمرات (Histogram)</CardTitle>
+            <CardTitle>{shapeText("۸. توزیع نمرات (Histogram)")}</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
             <ResponsiveContainer>
@@ -413,7 +423,7 @@ const AdminReportDetail = () => {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>۹. همبستگی فاکتورها (Scatter)</CardTitle>
+            <CardTitle>{shapeText("۹. همبستگی فاکتورها (Scatter)")}</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
             <ResponsiveContainer>
@@ -428,7 +438,7 @@ const AdminReportDetail = () => {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>۱۰. سهم فاکتورها (Treemap)</CardTitle>
+            <CardTitle>{shapeText("۱۰. سهم فاکتورها (Treemap)")}</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
             <ResponsiveContainer>
@@ -438,7 +448,7 @@ const AdminReportDetail = () => {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>۱۱. شاخص‌های زبانی</CardTitle>
+            <CardTitle>{shapeText("۱۱. شاخص‌های زبانی")}</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
             <ResponsiveContainer>
@@ -453,7 +463,7 @@ const AdminReportDetail = () => {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>۱۲. استفاده از ضمایر</CardTitle>
+            <CardTitle>{shapeText("۱۲. استفاده از ضمایر")}</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
             <ResponsiveContainer>
@@ -473,7 +483,7 @@ const AdminReportDetail = () => {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>۱۳. حوزه‌های معنایی پرتکرار</CardTitle>
+            <CardTitle>{shapeText("۱۳. حوزه‌های معنایی پرتکرار")}</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
             <ResponsiveContainer>
