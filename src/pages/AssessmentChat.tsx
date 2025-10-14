@@ -45,6 +45,7 @@ const AssessmentChat = () => {
   const [isUserTyping, setIsUserTyping] = useState(false);
   const [viewport, setViewport] = useState<"mobile" | "tablet" | "desktop">("desktop");
   const [isHistoryView, setIsHistoryView] = useState(false);
+  const [hasConversationStarted, setHasConversationStarted] = useState(false);
 
   const messageScrollRef = useRef<HTMLDivElement | null>(null);
   const recognitionRef = useRef<any>(null);
@@ -57,13 +58,6 @@ const AssessmentChat = () => {
         const state: AssessmentState = JSON.parse(storedState);
         setAssessmentState(state);
 
-        const initialAiMessage: ChatMessage = {
-          id: Date.now(),
-          text: state.initialMessage,
-          sender: "ai",
-          personaName: state.personaName,
-        };
-        setMessages([initialAiMessage]);
       } else throw new Error("Session state not found.");
     } catch (error) {
       toast.error("جلسه ارزیابی یافت نشد.");
@@ -144,7 +138,7 @@ const AssessmentChat = () => {
   }, []);
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || !assessmentState) return;
+    if (!hasConversationStarted || !inputValue.trim() || !assessmentState) return;
 
     const userMessage: ChatMessage = {
       id: Date.now(),
@@ -282,7 +276,7 @@ const AssessmentChat = () => {
   };
 
   const toggleRecording = () => {
-    if (!recognitionRef.current) return;
+    if (!hasConversationStarted || !recognitionRef.current) return;
     if (!isRecording) {
       recognitionRef.current.start();
       setIsRecording(true);
@@ -295,6 +289,7 @@ const AssessmentChat = () => {
   const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
 
   const handleMessagesScroll = () => {
+    if (!hasConversationStarted) return;
     const container = messageScrollRef.current;
     if (!container) return;
     const { scrollTop, scrollHeight, clientHeight } = container;
@@ -303,10 +298,34 @@ const AssessmentChat = () => {
   };
 
   const scrollToLatest = () => {
+    if (!hasConversationStarted) return;
     const container = messageScrollRef.current;
     if (!container) return;
     container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
     setIsHistoryView(false);
+  };
+
+  const handleStartConversation = () => {
+    if (hasConversationStarted || !assessmentState) return;
+    const initialText = (assessmentState.initialMessage ?? "").trim();
+    setHasConversationStarted(true);
+    setIsHistoryView(false);
+
+    if (initialText.length > 0) {
+      const initialAiMessage: ChatMessage = {
+        id: Date.now(),
+        text: initialText,
+        sender: "ai",
+        personaName: assessmentState.personaName ?? "مشاور",
+      };
+      setMessages([initialAiMessage]);
+      requestAnimationFrame(() => {
+        const container = messageScrollRef.current;
+        if (container) {
+          container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+        }
+      });
+    }
   };
 
   const personaMeta = {
@@ -449,68 +468,89 @@ const AssessmentChat = () => {
                 <div className="pointer-events-none absolute inset-[10%] rounded-full border border-dashed border-violet-100/80" />
                 <div className="pointer-events-none absolute inset-[18%] rounded-full border border-white/50" />
                 <div className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white via-white/60 to-white/30 opacity-80" />
-                <div
-                  ref={messageScrollRef}
-                  onScroll={handleMessagesScroll}
-                  className="relative z-10 flex flex-1 flex-col overflow-y-auto px-6 pb-14 pt-10 text-center sm:px-10 sm:pt-14"
-                >
-                  {!isHistoryView && (
-                    <div className="pointer-events-none absolute inset-x-4 top-0 z-30 h-24 bg-gradient-to-b from-white via-white/70 to-transparent sm:inset-x-6" />
-                  )}
-                  <div className="flex min-h-full flex-col items-center justify-end gap-6">
-                    {messages.map((msg, index) => {
-                      const meta = resolvePersonaMeta(msg);
-                      const isLatest = messages.length - 1 === index;
-                      return (
-                        <div
-                          key={msg.id}
-                          className={cn(
-                            "relative mx-auto flex w-full max-w-[82%] flex-col items-center gap-3 rounded-[28px] border px-6 py-5 text-sm leading-7 shadow-sm transition-all sm:max-w-[68%] sm:px-7 sm:py-6",
-                            meta.bubble,
-                            isLatest && "scale-[1.01] border-white/80 shadow-lg"
-                          )}
-                        >
-                          <div
-                            className={cn(
-                              "pointer-events-none absolute left-1/2 top-0 h-1 w-20 -translate-x-1/2 rounded-full bg-gradient-to-r",
-                              meta.accent
-                            )}
-                          />
-                          <div className="flex items-center gap-3 text-xs font-semibold text-slate-500 sm:text-sm">
-                            <span className="inline-flex items-center justify-center rounded-full bg-white/70 px-3 py-1 shadow-sm">
-                              {meta.name}
+
+                {hasConversationStarted ? (
+                  <>
+                    <div
+                      ref={messageScrollRef}
+                      onScroll={handleMessagesScroll}
+                      className="relative z-10 flex flex-1 flex-col overflow-y-auto px-6 pb-14 pt-10 text-center sm:px-10 sm:pt-14"
+                    >
+                      {!isHistoryView && (
+                        <div className="pointer-events-none absolute inset-x-4 top-0 z-30 h-24 bg-gradient-to-b from-white via-white/70 to-transparent sm:inset-x-6" />
+                      )}
+                      <div className="flex min-h-full flex-col items-center justify-end gap-6">
+                        {messages.map((msg, index) => {
+                          const meta = resolvePersonaMeta(msg);
+                          const isLatest = messages.length - 1 === index;
+                          return (
+                            <div
+                              key={msg.id}
+                              className={cn(
+                                "relative mx-auto flex w-full max-w-[82%] flex-col items-center gap-3 rounded-[28px] border px-6 py-5 text-sm leading-7 shadow-sm transition-all sm:max-w-[68%] sm:px-7 sm:py-6",
+                                meta.bubble,
+                                isLatest && "scale-[1.01] border-white/80 shadow-lg"
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  "pointer-events-none absolute left-1/2 top-0 h-1 w-20 -translate-x-1/2 rounded-full bg-gradient-to-r",
+                                  meta.accent
+                                )}
+                              />
+                              <div className="flex items-center gap-3 text-xs font-semibold text-slate-500 sm:text-sm">
+                                <span className="inline-flex items-center justify-center rounded-full bg-white/70 px-3 py-1 shadow-sm">
+                                  {meta.name}
+                                </span>
+                              </div>
+                              <p className="whitespace-pre-line text-[13px] leading-relaxed text-slate-700 sm:text-sm">
+                                {msg.text}
+                              </p>
+                            </div>
+                          );
+                        })}
+                        {activeTyping && typingMeta && (
+                          <div className="mx-auto flex items-center justify-center gap-3 rounded-full border border-dashed border-slate-200/70 bg-white/85 px-5 py-2 text-xs text-slate-500 shadow-sm">
+                            <span className="inline-flex items-center gap-2 font-semibold text-slate-500">
+                              <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-r from-violet-500 to-purple-500" />
+                              {activeTyping} در حال پاسخ…
                             </span>
+                            <div className="flex items-center gap-1 text-slate-400">
+                              <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" />
+                              <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:150ms]" />
+                              <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:300ms]" />
+                            </div>
                           </div>
-                          <p className="whitespace-pre-line text-[13px] leading-relaxed text-slate-700 sm:text-sm">
-                            {msg.text}
-                          </p>
-                        </div>
-                      );
-                    })}
-                    {activeTyping && typingMeta && (
-                      <div className="mx-auto flex items-center justify-center gap-3 rounded-full border border-dashed border-slate-200/70 bg-white/85 px-5 py-2 text-xs text-slate-500 shadow-sm">
-                        <span className="inline-flex items-center gap-2 font-semibold text-slate-500">
-                          <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-r from-violet-500 to-purple-500" />
-                          {activeTyping} در حال پاسخ…
-                        </span>
-                        <div className="flex items-center gap-1 text-slate-400">
-                          <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" />
-                          <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:150ms]" />
-                          <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:300ms]" />
-                        </div>
+                        )}
+                      </div>
+                    </div>
+                    {isHistoryView && (
+                      <div className="pointer-events-auto absolute bottom-10 left-1/2 z-40 -translate-x-1/2">
+                        <Button
+                          size="sm"
+                          onClick={scrollToLatest}
+                          className="rounded-full bg-gradient-to-r from-violet-500 to-purple-500 px-5 text-[13px] font-semibold text-white shadow-lg hover:from-violet-500 hover:to-purple-400"
+                        >
+                          مشاهده پیام جدید
+                        </Button>
                       </div>
                     )}
-                  </div>
-                </div>
-                {isHistoryView && (
-                  <div className="pointer-events-auto absolute bottom-10 left-1/2 z-40 -translate-x-1/2">
-                    <Button
-                      size="sm"
-                      onClick={scrollToLatest}
-                      className="rounded-full bg-gradient-to-r from-violet-500 to-purple-500 px-5 text-[13px] font-semibold text-white shadow-lg hover:from-violet-500 hover:to-purple-400"
-                    >
-                      مشاهده پیام جدید
-                    </Button>
+                  </>
+                ) : (
+                  <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 text-center sm:px-10">
+                    <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-3xl border border-white/70 bg-white/95 p-6 shadow-lg">
+                      <span className="text-sm font-semibold text-slate-600">آماده‌ای شروع کنیم؟</span>
+                      <p className="text-xs leading-6 text-slate-500 sm:text-sm">
+                        وقتی روی دکمه زیر بزنی، مشاور پیام ابتدایی خودش را می‌فرستد و گفتگو آغاز می‌شود.
+                      </p>
+                      <Button
+                        onClick={handleStartConversation}
+                        disabled={!assessmentState}
+                        className="rounded-full bg-gradient-to-r from-violet-500 to-sky-500 px-6 py-2 text-sm font-semibold text-white shadow-lg hover:from-violet-500 hover:to-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        شروع کنیم
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -568,8 +608,10 @@ const AssessmentChat = () => {
                 size="icon"
                 className={cn(
                   "h-11 w-11 rounded-full border border-slate-200 bg-slate-100 text-slate-600 transition-all duration-300 hover:scale-105 hover:bg-slate-200 sm:h-12 sm:w-12",
-                  isRecording && "border-sky-300 bg-sky-50 text-sky-600 shadow-[0_10px_25px_-15px_rgba(56,189,248,1)]"
+                  isRecording && "border-sky-300 bg-sky-50 text-sky-600 shadow-[0_10px_25px_-15px_rgba(56,189,248,1)]",
+                  !hasConversationStarted && "cursor-not-allowed opacity-60"
                 )}
+                disabled={!hasConversationStarted}
               >
                 <Mic className="h-5 w-5" />
               </Button>
@@ -580,13 +622,25 @@ const AssessmentChat = () => {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleSendMessage();
                 }}
-                placeholder="اینجا بنویسید تا حلقه گفتگو ادامه یابد..."
-                className="h-11 flex-1 rounded-full border-none bg-transparent text-right text-sm text-slate-600 focus-visible:ring-0 sm:h-12"
+                placeholder={
+                  hasConversationStarted
+                    ? "اینجا بنویسید تا حلقه گفتگو ادامه یابد..."
+                    : "برای شروع گفتگو روی «شروع کنیم» بزنید"
+                }
+                className={cn(
+                  "h-11 flex-1 rounded-full border-none bg-transparent text-right text-sm text-slate-600 focus-visible:ring-0 sm:h-12",
+                  !hasConversationStarted && "cursor-not-allowed opacity-60"
+                )}
+                disabled={!hasConversationStarted}
               />
               <Button
                 onClick={handleSendMessage}
                 size="icon"
-                className="h-11 w-11 rounded-full bg-gradient-to-br from-violet-500 to-sky-500 text-white shadow-lg transition-all duration-300 hover:scale-105 hover:from-violet-500 hover:to-sky-400 sm:h-12 sm:w-12"
+                className={cn(
+                  "h-11 w-11 rounded-full bg-gradient-to-br from-violet-500 to-sky-500 text-white shadow-lg transition-all duration-300 hover:scale-105 hover:from-violet-500 hover:to-sky-400 sm:h-12 sm:w-12",
+                  !hasConversationStarted && "cursor-not-allowed opacity-60 hover:scale-100"
+                )}
+                disabled={!hasConversationStarted}
               >
                 <Send className="h-5 w-5" />
               </Button>
