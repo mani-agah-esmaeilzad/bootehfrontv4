@@ -52,8 +52,8 @@ const RTL_CHAR_PATTERN = /[\u0600-\u06FF]/;
 const ensureRtlText = (value: unknown): unknown => {
   if (typeof value !== "string") return value;
   if (!RTL_CHAR_PATTERN.test(value)) return value;
-  if (value.startsWith("\u202B") && value.endsWith("\u202C")) return value;
-  return `\u202B${value}\u202C`;
+  if (value.includes("\u200F")) return value;
+  return `\u200F${value}\u200F`;
 };
 
 const withRtlFields = <T extends Record<string, any>>(item: T): T => {
@@ -188,6 +188,8 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
               font-family: "Vazir", "Tahoma", sans-serif !important;
               unicode-bidi: plaintext;
               direction: rtl;
+              font-feature-settings: "rlig" 1, "liga" 1, "calt" 1;
+              letter-spacing: normal;
             }
           `}
         </style>

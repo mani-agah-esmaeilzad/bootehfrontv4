@@ -71,10 +71,14 @@ const AdminReportDetail = () => {
     if (!input || !report) return;
     setIsDownloading(true);
     try {
+      if ((document as any).fonts?.ready) {
+        await (document as any).fonts.ready;
+      }
       const canvas = await html2canvas(input, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#fff',
+        foreignObjectRendering: true,
       });
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
@@ -145,7 +149,7 @@ const AdminReportDetail = () => {
       </div>
 
       {/* Hidden PDF Layout */}
-      <div style={{ position: 'absolute', left: '-9999px', top: 0, zIndex: -1 }}>
+      <div style={{ position: 'fixed', top: 0, left: 0, opacity: 0, pointerEvents: 'none', width: '100%', zIndex: -1, visibility: 'hidden' }}>
         {report && <ReportPDFLayout report={report} ref={pdfPrintRef} />}
       </div>
 
