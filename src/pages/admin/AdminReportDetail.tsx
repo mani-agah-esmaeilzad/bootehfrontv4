@@ -75,7 +75,6 @@ const AdminReportDetail = () => {
         scale: 2,
         useCORS: true,
         backgroundColor: '#fff',
-        foreignObjectRendering: true,
       });
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
