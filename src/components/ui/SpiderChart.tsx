@@ -15,6 +15,8 @@ import { ChartContainer } from "@/components/ui/chart";
 
 const chartFontFamily = 'Vazirmatn, Tahoma, sans-serif';
 
+const chartFontFamily = 'Vazirmatn, Tahoma, sans-serif';
+
 // --- Type Definitions ---
 interface ChartData {
   subject: string;

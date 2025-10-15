@@ -37,8 +37,9 @@ import {
   Treemap,
 } from "recharts";
 
-import { SpiderChart } from "@/components/ui/SpiderChart";
-import { ReportPDFLayout } from "@/components/pdf/ReportPDFLayout";
+import { SpiderChart } from '@/components/ui/SpiderChart';
+import { ReportPDFLayout } from '@/components/pdf/ReportPDFLayout';
+import { withRtlFields } from '@/lib/reports';
 
 interface ReportDetail {
   id: number;
@@ -209,7 +210,7 @@ const AdminReportDetail = () => {
     { name: "دوم شخص", value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.second_person) },
     { name: "سوم شخص", value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.third_person) },
   ];
-  const semanticFields = analysis.linguistic_semantic_analysis?.semantic_fields || [];
+  const semanticFields = withRtlFields(analysis.linguistic_semantic_analysis?.semantic_fields);
 
   return (
     <div className="space-y-6">

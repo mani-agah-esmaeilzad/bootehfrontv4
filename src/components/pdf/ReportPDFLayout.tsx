@@ -28,6 +28,7 @@ import {
   Area,
 } from "recharts";
 import { Logo } from "@/components/ui/logo";
+import { withRtlFields } from "@/lib/reports";
 
 interface ReportDetail {
   id: number;
@@ -149,11 +150,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
         value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.third_person),
       }),
     ];
-
-    const semanticFields =
-      analysis.linguistic_semantic_analysis?.semantic_fields?.map((item: any) =>
-        withRtlFields(item)
-      ) || [];
+    const semanticFields = withRtlFields(analysis.linguistic_semantic_analysis?.semantic_fields);
 
     return (
       <div
