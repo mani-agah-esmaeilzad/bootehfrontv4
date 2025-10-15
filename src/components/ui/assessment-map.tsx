@@ -222,19 +222,23 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
               </linearGradient>
             ))}
           </defs>
-          {segments.map((segment, index) => (
-            <path
-              key={`base-segment-${index}`}
-              d={segment.d}
-              fill="none"
-              stroke={`url(#base-gradient-${index})`}
-              strokeWidth={8}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity={0.8}
-              filter="url(#softGlow)"
-            />
-          ))}
+          {segments.map((segment, index) => {
+            if (segment.isCategoryStart) return null;
+
+            return (
+              <path
+                key={`base-segment-${index}`}
+                d={segment.d}
+                fill="none"
+                stroke={`url(#base-gradient-${index})`}
+                strokeWidth={8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity={0.8}
+                filter="url(#softGlow)"
+              />
+            );
+          })}
           {segments.map((segment, index) => {
             const strokeWidth = segment.status === "locked" ? 4 : 6;
             const opacity = segment.status === "locked" ? 0.25 : segment.status === "completed" ? 0.9 : 0.75;
@@ -247,6 +251,10 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
                 <stop offset="100%" stopColor={hexToRgba(segment.color, 0.9)} />
               </linearGradient>
             );
+
+            if (segment.isCategoryStart) {
+              return <defs key={`gradient-${index}`}>{gradient}</defs>;
+            }
 
             return (
               <>

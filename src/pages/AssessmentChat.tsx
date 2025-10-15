@@ -45,6 +45,8 @@ const AssessmentChat = () => {
   const [isUserTyping, setIsUserTyping] = useState(false);
   const [viewport, setViewport] = useState<"mobile" | "tablet" | "desktop">("desktop");
   const [isHistoryView, setIsHistoryView] = useState(false);
+  const [hasConversationStarted, setHasConversationStarted] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
 
   const messageScrollRef = useRef<HTMLDivElement | null>(null);
   const recognitionRef = useRef<any>(null);
@@ -57,13 +59,6 @@ const AssessmentChat = () => {
         const state: AssessmentState = JSON.parse(storedState);
         setAssessmentState(state);
 
-        const initialAiMessage: ChatMessage = {
-          id: Date.now(),
-          text: state.initialMessage,
-          sender: "ai",
-          personaName: state.personaName,
-        };
-        setMessages([initialAiMessage]);
       } else throw new Error("Session state not found.");
     } catch (error) {
       toast.error("جلسه ارزیابی یافت نشد.");
@@ -143,8 +138,77 @@ const AssessmentChat = () => {
     return () => window.removeEventListener("resize", updateViewport);
   }, []);
 
+  const extractAiMessages = (response: any): ChatMessage[] => {
+    const normalizedResponses: Array<{ senderName?: string; text?: string }> = [];
+    const rawResponses = response?.data?.responses;
+
+    if (Array.isArray(rawResponses)) {
+      normalizedResponses.push(...rawResponses);
+    } else if (rawResponses && typeof rawResponses === "object") {
+      normalizedResponses.push(rawResponses as { senderName?: string; text?: string });
+    } else if (typeof rawResponses === "string") {
+      normalizedResponses.push({ text: rawResponses });
+    }
+
+    if (typeof response?.data?.reply === "string" && response.data.reply.trim().length > 0) {
+      const trimmedReply = response.data.reply.trim();
+      const duplicateReply = normalizedResponses.some(
+        (item) => typeof item?.text === "string" && item.text.trim() === trimmedReply
+      );
+      if (!duplicateReply) {
+        normalizedResponses.push({
+          text: trimmedReply,
+          senderName: response.data?.personaName ?? assessmentState?.personaName ?? "مشاور",
+        });
+      }
+    }
+
+    const fallbackText =
+      typeof response?.data?.reply === "string"
+        ? response.data.reply
+        : typeof response?.data?.message === "string"
+        ? response.data.message
+        : typeof response?.data?.text === "string"
+        ? response.data.text
+        : null;
+
+    const sanitized = normalizedResponses
+      .filter((item) => typeof item?.text === "string" && item.text.trim().length > 0)
+      .map((item, index) => ({
+        id: Date.now() + index,
+        text: item.text.trim(),
+        sender: "ai" as const,
+        personaName: item.senderName ?? assessmentState?.personaName ?? "مشاور",
+      }));
+
+    const directPersonaName =
+      typeof response?.data?.personaName === "string" && response.data.personaName.trim().length > 0
+        ? response.data.personaName.trim()
+        : typeof rawResponses === "object" && rawResponses !== null && "senderName" in rawResponses
+        ? ((rawResponses as { senderName?: string }).senderName ?? assessmentState?.personaName ?? "مشاور")
+        : assessmentState?.personaName ?? "مشاور";
+
+    const directText =
+      typeof rawResponses === "string"
+        ? rawResponses
+        : typeof rawResponses === "object" && rawResponses !== null && "text" in rawResponses
+        ? ((rawResponses as { text?: string }).text ?? fallbackText)
+        : fallbackText;
+
+    if (sanitized.length === 0 && typeof directText === "string" && directText.trim().length > 0) {
+      sanitized.push({
+        id: Date.now(),
+        text: directText.trim(),
+        sender: "ai" as const,
+        personaName: directPersonaName,
+      });
+    }
+
+    return sanitized;
+  };
+
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || !assessmentState) return;
+    if (!hasConversationStarted || !inputValue.trim() || !assessmentState) return;
 
     const userMessage: ChatMessage = {
       id: Date.now(),
@@ -167,61 +231,15 @@ const AssessmentChat = () => {
         method: "POST",
         body: JSON.stringify({ message: userMessage.text, session_id: assessmentState.sessionId }),
       });
+      console.log("AssessmentChat API response", response);
 
       if (!response?.success) {
         throw new Error(response?.message || "پاسخ نامعتبر از سرور دریافت شد");
       }
 
-      const rawResponses = response.data?.responses;
-      const normalizedResponses: Array<{ senderName?: string; text?: string }> = [];
-
-      if (Array.isArray(rawResponses)) {
-        normalizedResponses.push(...rawResponses);
-      } else if (rawResponses && typeof rawResponses === "object") {
-        normalizedResponses.push(rawResponses as { senderName?: string; text?: string });
-      } else if (typeof rawResponses === "string") {
-        normalizedResponses.push({ text: rawResponses });
-      }
-
-      const fallbackText =
-        typeof response.data?.message === "string"
-          ? response.data.message
-          : typeof response.data?.text === "string"
-          ? response.data.text
-          : null;
-
-      const sanitized = normalizedResponses
-        .filter((item) => typeof item?.text === "string" && item.text.trim().length > 0)
-        .map((item, index) => ({
-          id: Date.now() + index,
-          text: item.text.trim(),
-          sender: "ai" as const,
-          personaName: item.senderName ?? assessmentState.personaName ?? "مشاور",
-        }));
-
-      const directPersonaName =
-        typeof rawResponses === "object" && rawResponses !== null && "senderName" in rawResponses
-          ? ((rawResponses as { senderName?: string }).senderName ?? assessmentState.personaName ?? "مشاور")
-          : assessmentState.personaName ?? "مشاور";
-
-      const directText =
-        typeof rawResponses === "string"
-          ? rawResponses
-          : typeof rawResponses === "object" && rawResponses !== null && "text" in rawResponses
-          ? ((rawResponses as { text?: string }).text ?? fallbackText)
-          : fallbackText;
-
-      if (sanitized.length === 0 && typeof directText === "string" && directText.trim().length > 0) {
-        sanitized.push({
-          id: Date.now(),
-          text: directText.trim(),
-          sender: "ai" as const,
-          personaName: directPersonaName,
-        });
-      }
-
-      if (sanitized.length > 0) {
-        setMessages((prev) => [...prev, ...sanitized]);
+      const aiMessages = extractAiMessages(response);
+      if (aiMessages.length > 0) {
+        setMessages((prev) => [...prev, ...aiMessages]);
       }
 
       if (response.data?.isComplete) {
@@ -263,7 +281,7 @@ const AssessmentChat = () => {
   };
 
   const toggleRecording = () => {
-    if (!recognitionRef.current) return;
+    if (!hasConversationStarted || !recognitionRef.current) return;
     if (!isRecording) {
       recognitionRef.current.start();
       setIsRecording(true);
@@ -276,6 +294,7 @@ const AssessmentChat = () => {
   const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
 
   const handleMessagesScroll = () => {
+    if (!hasConversationStarted) return;
     const container = messageScrollRef.current;
     if (!container) return;
     const { scrollTop, scrollHeight, clientHeight } = container;
@@ -284,10 +303,61 @@ const AssessmentChat = () => {
   };
 
   const scrollToLatest = () => {
+    if (!hasConversationStarted) return;
     const container = messageScrollRef.current;
     if (!container) return;
     container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
     setIsHistoryView(false);
+  };
+
+  const handleStartConversation = async () => {
+    if (isInitializing || hasConversationStarted || !assessmentState) return;
+
+    setIsInitializing(true);
+    setIsHistoryView(false);
+    setActiveTyping(assessmentState.personaName ?? "مشاور");
+
+    try {
+      const response = await apiFetch(`assessment/chat/${id}`, {
+        method: "POST",
+        body: JSON.stringify({
+          message: "__AUTO_START__",
+          session_id: assessmentState.sessionId,
+          autoStart: true,
+        }),
+      });
+      console.log("AssessmentChat initial response", response);
+
+      if (!response?.success) {
+        throw new Error(response?.message || "خطا در دریافت پیام آغازین");
+      }
+
+      const aiMessages = extractAiMessages(response);
+      if (aiMessages.length > 0) {
+        setMessages(aiMessages);
+        setHasConversationStarted(true);
+        requestAnimationFrame(() => {
+          const container = messageScrollRef.current;
+          if (container) {
+            container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+          }
+        });
+      } else {
+        setHasConversationStarted(false);
+        toast.error("پاسخی از سمت هوش مصنوعی دریافت نشد.");
+      }
+
+      if (response.data?.isComplete) {
+        toast.info("ارزیابی به پایان رسید. در حال انتقال...");
+        setTimeout(() => navigate(`/supplementary/${id}`), 2500);
+      }
+    } catch (error: any) {
+      setHasConversationStarted(false);
+      toast.error(error?.message || "خطا در شروع گفتگو");
+    } finally {
+      setActiveTyping(null);
+      setIsInitializing(false);
+    }
   };
 
   const personaMeta = {
@@ -430,68 +500,91 @@ const AssessmentChat = () => {
                 <div className="pointer-events-none absolute inset-[10%] rounded-full border border-dashed border-violet-100/80" />
                 <div className="pointer-events-none absolute inset-[18%] rounded-full border border-white/50" />
                 <div className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white via-white/60 to-white/30 opacity-80" />
-                <div
-                  ref={messageScrollRef}
-                  onScroll={handleMessagesScroll}
-                  className="relative z-10 flex flex-1 flex-col overflow-y-auto px-6 pb-14 pt-10 text-center sm:px-10 sm:pt-14"
-                >
-                  {!isHistoryView && (
-                    <div className="pointer-events-none absolute inset-x-4 top-0 z-30 h-24 bg-gradient-to-b from-white via-white/70 to-transparent sm:inset-x-6" />
-                  )}
-                  <div className="flex min-h-full flex-col items-center justify-end gap-6">
-                    {messages.map((msg, index) => {
-                      const meta = resolvePersonaMeta(msg);
-                      const isLatest = messages.length - 1 === index;
-                      return (
-                        <div
-                          key={msg.id}
-                          className={cn(
-                            "relative mx-auto flex w-full max-w-[82%] flex-col items-center gap-3 rounded-[28px] border px-6 py-5 text-sm leading-7 shadow-sm transition-all sm:max-w-[68%] sm:px-7 sm:py-6",
-                            meta.bubble,
-                            isLatest && "scale-[1.01] border-white/80 shadow-lg"
-                          )}
-                        >
-                          <div
-                            className={cn(
-                              "pointer-events-none absolute left-1/2 top-0 h-1 w-20 -translate-x-1/2 rounded-full bg-gradient-to-r",
-                              meta.accent
-                            )}
-                          />
-                          <div className="flex items-center gap-3 text-xs font-semibold text-slate-500 sm:text-sm">
-                            <span className="inline-flex items-center justify-center rounded-full bg-white/70 px-3 py-1 shadow-sm">
-                              {meta.name}
+
+                {hasConversationStarted ? (
+                  <>
+                    <div
+                      ref={messageScrollRef}
+                      onScroll={handleMessagesScroll}
+                      className="relative z-10 flex flex-1 flex-col overflow-y-auto px-6 pb-14 pt-10 text-center sm:px-10 sm:pt-14"
+                    >
+                      {!isHistoryView && (
+                        <div className="pointer-events-none absolute inset-x-4 top-0 z-30 h-24 bg-gradient-to-b from-white via-white/70 to-transparent sm:inset-x-6" />
+                      )}
+                      <div className="flex min-h-full flex-col items-center justify-end gap-6">
+                        {messages.map((msg, index) => {
+                          const meta = resolvePersonaMeta(msg);
+                          const isLatest = messages.length - 1 === index;
+                          return (
+                            <div
+                              key={msg.id}
+                              className={cn(
+                                "relative mx-auto flex w-full max-w-[82%] flex-col items-center gap-3 rounded-[28px] border px-6 py-5 text-sm leading-7 shadow-sm transition-all sm:max-w-[68%] sm:px-7 sm:py-6",
+                                meta.bubble,
+                                isLatest && "scale-[1.01] border-white/80 shadow-lg"
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  "pointer-events-none absolute left-1/2 top-0 h-1 w-20 -translate-x-1/2 rounded-full bg-gradient-to-r",
+                                  meta.accent
+                                )}
+                              />
+                              <div className="flex items-center gap-3 text-xs font-semibold text-slate-500 sm:text-sm">
+                                <span className="inline-flex items-center justify-center rounded-full bg-white/70 px-3 py-1 shadow-sm">
+                                  {meta.name}
+                                </span>
+                              </div>
+                              <p className="whitespace-pre-line text-[13px] leading-relaxed text-slate-700 sm:text-sm">
+                                {msg.text}
+                              </p>
+                            </div>
+                          );
+                        })}
+                        {activeTyping && typingMeta && (
+                          <div className="mx-auto flex items-center justify-center gap-3 rounded-full border border-dashed border-slate-200/70 bg-white/85 px-5 py-2 text-xs text-slate-500 shadow-sm">
+                            <span className="inline-flex items-center gap-2 font-semibold text-slate-500">
+                              <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-r from-violet-500 to-purple-500" />
+                              {activeTyping} در حال پاسخ…
                             </span>
+                            <div className="flex items-center gap-1 text-slate-400">
+                              <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" />
+                              <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:150ms]" />
+                              <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:300ms]" />
+                            </div>
                           </div>
-                          <p className="whitespace-pre-line text-[13px] leading-relaxed text-slate-700 sm:text-sm">
-                            {msg.text}
-                          </p>
-                        </div>
-                      );
-                    })}
-                    {activeTyping && typingMeta && (
-                      <div className="mx-auto flex items-center justify-center gap-3 rounded-full border border-dashed border-slate-200/70 bg-white/85 px-5 py-2 text-xs text-slate-500 shadow-sm">
-                        <span className="inline-flex items-center gap-2 font-semibold text-slate-500">
-                          <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-r from-violet-500 to-purple-500" />
-                          {activeTyping} در حال پاسخ…
-                        </span>
-                        <div className="flex items-center gap-1 text-slate-400">
-                          <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" />
-                          <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:150ms]" />
-                          <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:300ms]" />
-                        </div>
+                        )}
+                      </div>
+                    </div>
+                    {isHistoryView && (
+                      <div className="pointer-events-auto absolute bottom-10 left-1/2 z-40 -translate-x-1/2">
+                        <Button
+                          size="sm"
+                          onClick={scrollToLatest}
+                          className="rounded-full bg-gradient-to-r from-violet-500 to-purple-500 px-5 text-[13px] font-semibold text-white shadow-lg hover:from-violet-500 hover:to-purple-400"
+                        >
+                          مشاهده پیام جدید
+                        </Button>
                       </div>
                     )}
-                  </div>
-                </div>
-                {isHistoryView && (
-                  <div className="pointer-events-auto absolute bottom-10 left-1/2 z-40 -translate-x-1/2">
-                    <Button
-                      size="sm"
-                      onClick={scrollToLatest}
-                      className="rounded-full bg-gradient-to-r from-violet-500 to-purple-500 px-5 text-[13px] font-semibold text-white shadow-lg hover:from-violet-500 hover:to-purple-400"
-                    >
-                      مشاهده پیام جدید
-                    </Button>
+                  </>
+                ) : (
+                  <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 text-center sm:px-10">
+                    <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-3xl border border-white/70 bg-white/95 p-6 shadow-lg">
+                      <span className="text-sm font-semibold text-slate-600">
+                        {isInitializing ? "در حال آماده‌سازی پیام آغازین..." : "آماده‌ای شروع کنیم؟"}
+                      </span>
+                      <p className="text-xs leading-6 text-slate-500 sm:text-sm">
+                        وقتی روی دکمه زیر بزنی، مشاور پیام ابتدایی را می‌فرستد و گفتگو آغاز می‌شود.
+                      </p>
+                      <Button
+                        onClick={handleStartConversation}
+                        disabled={!assessmentState || isInitializing}
+                        className="rounded-full bg-gradient-to-r from-violet-500 to-sky-500 px-6 py-2 text-sm font-semibold text-white shadow-lg hover:from-violet-500 hover:to-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isInitializing ? "منتظر بمانید..." : "شروع کنیم"}
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -549,8 +642,10 @@ const AssessmentChat = () => {
                 size="icon"
                 className={cn(
                   "h-11 w-11 rounded-full border border-slate-200 bg-slate-100 text-slate-600 transition-all duration-300 hover:scale-105 hover:bg-slate-200 sm:h-12 sm:w-12",
-                  isRecording && "border-sky-300 bg-sky-50 text-sky-600 shadow-[0_10px_25px_-15px_rgba(56,189,248,1)]"
+                  isRecording && "border-sky-300 bg-sky-50 text-sky-600 shadow-[0_10px_25px_-15px_rgba(56,189,248,1)]",
+                  !hasConversationStarted && "cursor-not-allowed opacity-60"
                 )}
+                disabled={!hasConversationStarted}
               >
                 <Mic className="h-5 w-5" />
               </Button>
@@ -561,13 +656,25 @@ const AssessmentChat = () => {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleSendMessage();
                 }}
-                placeholder="اینجا بنویسید تا حلقه گفتگو ادامه یابد..."
-                className="h-11 flex-1 rounded-full border-none bg-transparent text-right text-sm text-slate-600 focus-visible:ring-0 sm:h-12"
+                placeholder={
+                  hasConversationStarted
+                    ? "اینجا بنویسید تا حلقه گفتگو ادامه یابد..."
+                    : "برای شروع گفتگو روی «شروع کنیم» بزنید"
+                }
+                className={cn(
+                  "h-11 flex-1 rounded-full border-none bg-transparent text-right text-sm text-slate-600 focus-visible:ring-0 sm:h-12",
+                  !hasConversationStarted && "cursor-not-allowed opacity-60"
+                )}
+                disabled={!hasConversationStarted}
               />
               <Button
                 onClick={handleSendMessage}
                 size="icon"
-                className="h-11 w-11 rounded-full bg-gradient-to-br from-violet-500 to-sky-500 text-white shadow-lg transition-all duration-300 hover:scale-105 hover:from-violet-500 hover:to-sky-400 sm:h-12 sm:w-12"
+                className={cn(
+                  "h-11 w-11 rounded-full bg-gradient-to-br from-violet-500 to-sky-500 text-white shadow-lg transition-all duration-300 hover:scale-105 hover:from-violet-500 hover:to-sky-400 sm:h-12 sm:w-12",
+                  !hasConversationStarted && "cursor-not-allowed opacity-60 hover:scale-100"
+                )}
+                disabled={!hasConversationStarted}
               >
                 <Send className="h-5 w-5" />
               </Button>
