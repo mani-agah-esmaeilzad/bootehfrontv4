@@ -13,6 +13,9 @@ import {
 } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
 
+const chartFontFamily = 'Vazirmatn, Tahoma, sans-serif';
+
+// --- Type Definitions ---
 interface ChartData {
   subject: string;
   score: number;
@@ -53,13 +56,13 @@ export function SpiderChart({ data }: SpiderChartProps) {
         <RadarChart data={data}>
           <PolarGrid gridType="polygon" stroke="#555" strokeDasharray="3 3" radialLines />
           <PolarAngleAxis
-            dataKey="subject"
-            tick={{ fill: "#fff", fontSize: 13, fontWeight: 600 }}
+            dataKey="subject" //  استفاده از 'subject' به جای 'factor'
+            tick={{ fill: '#fff', fontSize: 13, fontWeight: 600, fontFamily: chartFontFamily }}
           />
           <PolarRadiusAxis
             angle={90}
             domain={domain}
-            tick={{ fill: "#888", fontSize: 12 }}
+            tick={{ fill: '#888', fontSize: 12, fontFamily: chartFontFamily }}
             stroke="#666"
             axisLine={false}
           />
@@ -89,7 +92,8 @@ export function SpiderChart({ data }: SpiderChartProps) {
               color: "white",
               fontSize: "14px",
               fontWeight: 600,
-              paddingTop: "20px",
+              paddingTop: '20px',
+              fontFamily: chartFontFamily,
             }}
           />
         </RadarChart>

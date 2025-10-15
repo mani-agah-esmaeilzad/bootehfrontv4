@@ -64,6 +64,18 @@ const AdminReportDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const pdfPrintRef = useRef<HTMLDivElement>(null);
 
+  const ensureFontsLoaded = async () => {
+    if (typeof document === 'undefined') return;
+    const fontFaceSet = (document as any).fonts as FontFaceSet | undefined;
+    if (!fontFaceSet) return;
+    try {
+      await fontFaceSet.load("16px 'Vazirmatn'");
+      await fontFaceSet.ready;
+    } catch (err) {
+      console.warn('Font loading for PDF failed', err);
+    }
+  };
+
   useEffect(() => {
     if (!id || isNaN(Number(id))) {
       toast.error("شناسه گزارش معتبر نیست.");
@@ -93,16 +105,16 @@ const AdminReportDetail = () => {
     if (!input || !report) return;
     setIsDownloading(true);
     try {
-      if ((document as any).fonts?.ready) {
-        await (document as any).fonts.ready;
-      }
+      await ensureFontsLoaded();
       const canvas = await html2canvas(input, {
         scale: 2,
         useCORS: true,
-        backgroundColor: "#fff",
+        backgroundColor: '#fff',
+        windowWidth: input.scrollWidth,
+        windowHeight: input.scrollHeight,
       });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: "a4" });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const ratio = canvas.width / pdfWidth;
