@@ -13,6 +13,8 @@ import {
 } from 'recharts';
 import { ChartContainer } from '@/components/ui/chart';
 
+const chartFontFamily = 'Vazirmatn, Tahoma, sans-serif';
+
 // --- Type Definitions ---
 interface ChartData {
   subject: string;
@@ -67,14 +69,14 @@ export function SpiderChart({ data }: SpiderChartProps) {
           {/* لیبل‌های فاکتورها */}
           <PolarAngleAxis
             dataKey="subject" //  استفاده از 'subject' به جای 'factor'
-            tick={{ fill: '#fff', fontSize: 13, fontWeight: 600 }}
+            tick={{ fill: '#fff', fontSize: 13, fontWeight: 600, fontFamily: chartFontFamily }}
           />
 
           {/* محور امتیازات */}
           <PolarRadiusAxis
             angle={90}
             domain={domain}
-            tick={{ fill: '#888', fontSize: 12 }}
+            tick={{ fill: '#888', fontSize: 12, fontFamily: chartFontFamily }}
             stroke="#666"
             axisLine={false}
           />
@@ -108,6 +110,7 @@ export function SpiderChart({ data }: SpiderChartProps) {
               fontSize: '14px',
               fontWeight: 600,
               paddingTop: '20px',
+              fontFamily: chartFontFamily,
             }}
           />
         </RadarChart>

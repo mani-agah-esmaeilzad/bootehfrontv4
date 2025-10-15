@@ -20,6 +20,7 @@ import {
 
 import { SpiderChart } from '@/components/ui/SpiderChart';
 import { ReportPDFLayout } from '@/components/pdf/ReportPDFLayout';
+import { withRtlFields } from '@/lib/reports';
 
 // --- Types ---
 interface ReportDetail {
@@ -46,6 +47,18 @@ const AdminReportDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const pdfPrintRef = useRef<HTMLDivElement>(null);
 
+  const ensureFontsLoaded = async () => {
+    if (typeof document === 'undefined') return;
+    const fontFaceSet = (document as any).fonts as FontFaceSet | undefined;
+    if (!fontFaceSet) return;
+    try {
+      await fontFaceSet.load("16px 'Vazirmatn'");
+      await fontFaceSet.ready;
+    } catch (err) {
+      console.warn('Font loading for PDF failed', err);
+    }
+  };
+
   useEffect(() => {
     if (!id || isNaN(Number(id))) {
       toast.error('شناسه گزارش معتبر نیست.');
@@ -71,7 +84,14 @@ const AdminReportDetail = () => {
     if (!input || !report) return;
     setIsDownloading(true);
     try {
-      const canvas = await html2canvas(input, { scale: 2, useCORS: true, backgroundColor: '#fff' });
+      await ensureFontsLoaded();
+      const canvas = await html2canvas(input, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#fff',
+        windowWidth: input.scrollWidth,
+        windowHeight: input.scrollHeight,
+      });
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -122,7 +142,7 @@ const AdminReportDetail = () => {
     { name: "دوم شخص", value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.second_person) },
     { name: "سوم شخص", value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.third_person) }
   ];
-  const semanticFields = analysis.linguistic_semantic_analysis?.semantic_fields || [];
+  const semanticFields = withRtlFields(analysis.linguistic_semantic_analysis?.semantic_fields);
 
   return (
     <div className="space-y-6">
