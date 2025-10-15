@@ -17,6 +17,8 @@ const chartFontFamily = 'Vazirmatn, Tahoma, sans-serif';
 
 const chartFontFamily = 'Vazirmatn, Tahoma, sans-serif';
 
+const spiderChartFontFamily = 'Vazirmatn, Tahoma, sans-serif';
+
 // --- Type Definitions ---
 interface ChartData {
   subject: string;
@@ -59,12 +61,12 @@ export function SpiderChart({ data }: SpiderChartProps) {
           <PolarGrid gridType="polygon" stroke="#555" strokeDasharray="3 3" radialLines />
           <PolarAngleAxis
             dataKey="subject" //  استفاده از 'subject' به جای 'factor'
-            tick={{ fill: '#fff', fontSize: 13, fontWeight: 600, fontFamily: chartFontFamily }}
+            tick={{ fill: '#fff', fontSize: 13, fontWeight: 600, fontFamily: spiderChartFontFamily }}
           />
           <PolarRadiusAxis
             angle={90}
             domain={domain}
-            tick={{ fill: '#888', fontSize: 12, fontFamily: chartFontFamily }}
+            tick={{ fill: '#888', fontSize: 12, fontFamily: spiderChartFontFamily }}
             stroke="#666"
             axisLine={false}
           />
@@ -95,7 +97,7 @@ export function SpiderChart({ data }: SpiderChartProps) {
               fontSize: "14px",
               fontWeight: 600,
               paddingTop: '20px',
-              fontFamily: chartFontFamily,
+              fontFamily: spiderChartFontFamily,
             }}
           />
         </RadarChart>
