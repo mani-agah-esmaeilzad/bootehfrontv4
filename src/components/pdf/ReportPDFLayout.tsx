@@ -47,6 +47,14 @@ interface PDFLayoutProps {
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#A020F0", "#FF69B4"];
 const toNum = (val: any): number => Number(val) || 0;
+const chartFontFamily = "Vazirmatn, Tahoma, sans-serif";
+const baseAxisTick = { fill: "#1f2937", fontFamily: chartFontFamily, fontSize: 12 };
+const lightAxisTick = { fill: "#4b5563", fontFamily: chartFontFamily, fontSize: 12 };
+const legendStyle: React.CSSProperties = {
+  fontFamily: chartFontFamily,
+  fontSize: "12px",
+  direction: "rtl",
+};
 
 export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
   ({ report }, ref) => {
@@ -124,11 +132,21 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
           padding: "40px",
           backgroundColor: "white",
           color: "black",
-          fontFamily: "Vazir, Tahoma, sans-serif",
+          fontFamily: "Vazirmatn, Tahoma, sans-serif",
           direction: "rtl",
           textAlign: "right",
         }}
+        className="pdf-font"
       >
+        <style>
+          {`
+            .pdf-font *,
+            .pdf-font text,
+            .pdf-font tspan {
+              font-family: 'Vazirmatn', Tahoma, sans-serif !important;
+            }
+          `}
+        </style>
         {/* صفحه کاور */}
         <div className="flex flex-col items-center justify-center h-[90vh] border-4 border-gray-800 rounded-lg">
           <Logo variant="large" />
@@ -186,26 +204,26 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
               <ResponsiveContainer><PieChart>{sentimentData.length > 0 && (
                 <Pie data={sentimentData} dataKey="value" nameKey="name" outerRadius={80} label>
                   {sentimentData.map((e,i)=><Cell key={i} fill={COLORS[i%COLORS.length]} />)}
-                </Pie>)}<Tooltip/><Legend/></PieChart></ResponsiveContainer>
+                </Pie>)}<Tooltip/><Legend wrapperStyle={legendStyle}/></PieChart></ResponsiveContainer>
             </CardContent></Card>
 
             {/* ۲. کلمات کلیدی */}
             <Card><CardHeader><CardTitle>کلمات کلیدی پرتکرار</CardTitle></CardHeader><CardContent className="h-72">
               <ResponsiveContainer><BarChart data={keywordData} layout="vertical">
-                <XAxis type="number"/><YAxis dataKey="keyword" type="category" width={100}/><Tooltip/>
+                <XAxis type="number" tick={baseAxisTick}/><YAxis dataKey="keyword" type="category" width={100} tick={baseAxisTick}/><Tooltip/>
                 <Bar dataKey="mentions" fill="#82ca9d"/></BarChart></ResponsiveContainer>
             </CardContent></Card>
 
             {/* ۳. روند پرحرفی */}
             <Card><CardHeader><CardTitle>روند کلمات</CardTitle></CardHeader><CardContent className="h-72">
               <ResponsiveContainer><LineChart data={verbosityData}>
-                <XAxis dataKey="turn"/><YAxis/><Tooltip/><Line dataKey="word_count" stroke="#ffc658"/></LineChart></ResponsiveContainer>
+                <XAxis dataKey="turn" tick={baseAxisTick}/><YAxis tick={baseAxisTick}/><Tooltip/><Line dataKey="word_count" stroke="#ffc658"/></LineChart></ResponsiveContainer>
             </CardContent></Card>
 
             {/* ۴. کنش‌محوری */}
             <Card><CardHeader><CardTitle>کنش‌محوری</CardTitle></CardHeader><CardContent className="h-72">
               <ResponsiveContainer><BarChart data={actionData}>
-                <XAxis dataKey="name"/><YAxis/><Tooltip/><Legend/>
+                <XAxis dataKey="name" tick={baseAxisTick}/><YAxis tick={baseAxisTick}/><Tooltip/><Legend wrapperStyle={legendStyle}/>
                 <Bar dataKey="action_words" fill="#8884d8"/><Bar dataKey="passive_words" fill="#82ca9d"/>
               </BarChart></ResponsiveContainer>
             </CardContent></Card>
@@ -215,7 +233,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
               <ResponsiveContainer><PieChart>{problemSolvingData.length>0&&(
                 <Pie data={problemSolvingData} dataKey="value" nameKey="name" innerRadius={60} outerRadius={90} label>
                   {problemSolvingData.map((e,i)=><Cell key={i} fill={COLORS[i%COLORS.length]}/>)}
-                </Pie>)}<Tooltip/><Legend/></PieChart></ResponsiveContainer>
+                </Pie>)}<Tooltip/><Legend wrapperStyle={legendStyle}/></PieChart></ResponsiveContainer>
             </CardContent></Card>
 
             {/* ۶. سطح اطمینان */}
@@ -225,19 +243,19 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
             {/* ۷. سبک ارتباطی */}
             <Card><CardHeader><CardTitle>سبک ارتباطی</CardTitle></CardHeader><CardContent className="h-72">
-              <ResponsiveContainer><BarChart data={commStyle}><XAxis dataKey="name"/><YAxis/><Tooltip/>
+              <ResponsiveContainer><BarChart data={commStyle}><XAxis dataKey="name" tick={baseAxisTick}/><YAxis tick={baseAxisTick}/><Tooltip/>
               <Bar dataKey="value" fill="#A020F0"/></BarChart></ResponsiveContainer>
             </CardContent></Card>
 
             {/* ۸. توزیع نمرات */}
             <Card><CardHeader><CardTitle>توزیع نمرات</CardTitle></CardHeader><CardContent className="h-72">
-              <ResponsiveContainer><AreaChart data={chartData}><XAxis dataKey="subject"/><YAxis/><Tooltip/>
+              <ResponsiveContainer><AreaChart data={chartData}><XAxis dataKey="subject" tick={baseAxisTick}/><YAxis tick={baseAxisTick}/><Tooltip/>
               <Area dataKey="score" stroke="#8884d8" fill="#8884d8"/></AreaChart></ResponsiveContainer>
             </CardContent></Card>
 
             {/* ۹. Scatter */}
             <Card><CardHeader><CardTitle>همبستگی فاکتورها</CardTitle></CardHeader><CardContent className="h-72">
-              <ResponsiveContainer><ScatterChart><XAxis dataKey="score"/><YAxis dataKey="fullMark"/><Tooltip/>
+              <ResponsiveContainer><ScatterChart><XAxis dataKey="score" tick={baseAxisTick}/><YAxis dataKey="fullMark" tick={baseAxisTick}/><Tooltip/>
               <Scatter data={chartData} fill="#FF8042"/></ScatterChart></ResponsiveContainer>
             </CardContent></Card>
 
@@ -248,7 +266,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
             {/* ۱۱. شاخص‌های زبانی */}
             <Card><CardHeader><CardTitle>شاخص‌های زبانی</CardTitle></CardHeader><CardContent className="h-72">
-              <ResponsiveContainer><RadarChart data={semanticRadar}><PolarGrid/><PolarAngleAxis dataKey="name"/><PolarRadiusAxis/>
+              <ResponsiveContainer><RadarChart data={semanticRadar}><PolarGrid/><PolarAngleAxis dataKey="name" tick={lightAxisTick}/><PolarRadiusAxis tick={lightAxisTick}/>
               <Radar name="Semantic" dataKey="value" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6}/></RadarChart></ResponsiveContainer>
             </CardContent></Card>
 
@@ -256,13 +274,13 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             <Card><CardHeader><CardTitle>استفاده از ضمایر</CardTitle></CardHeader><CardContent className="h-72">
               <ResponsiveContainer><PieChart><Pie data={pronouns} dataKey="value" nameKey="name" outerRadius={80} label>
                 {pronouns.map((e,i)=><Cell key={i} fill={COLORS[i%COLORS.length]}/>)}
-              </Pie><Tooltip/><Legend/></PieChart></ResponsiveContainer>
+              </Pie><Tooltip/><Legend wrapperStyle={legendStyle}/></PieChart></ResponsiveContainer>
             </CardContent></Card>
 
             {/* ۱۳. حوزه‌های معنایی */}
             <Card><CardHeader><CardTitle>حوزه‌های معنایی پرتکرار</CardTitle></CardHeader><CardContent className="h-72">
               <ResponsiveContainer><BarChart data={semanticFields} layout="vertical">
-                <XAxis type="number"/><YAxis dataKey="field" type="category" width={100}/><Tooltip/>
+                <XAxis type="number" tick={baseAxisTick}/><YAxis dataKey="field" type="category" width={100} tick={baseAxisTick}/><Tooltip/>
                 <Bar dataKey="mentions" fill="#82ca9d"/></BarChart></ResponsiveContainer>
             </CardContent></Card>
           </div>

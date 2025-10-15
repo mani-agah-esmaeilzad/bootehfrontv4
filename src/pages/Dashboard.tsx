@@ -1,6 +1,6 @@
 // src/pages/Dashboard.tsx
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ interface Assessment {
   description: string;
   status: "completed" | "current" | "locked";
   category?: string;
+  display_order?: number;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -42,12 +43,24 @@ const CATEGORY_COLORS: Record<string, string> = {
 const DEFAULT_CATEGORY_COLOR = "#6366F1";
 
 const SPIRAL_POSITIONS = [
-  { top: "12%", left: "64%" },
-  { top: "30%", left: "78%" },
-  { top: "52%", left: "68%" },
-  { top: "70%", left: "46%" },
-  { top: "48%", left: "28%" },
+  { top: "260px", left: "78%" },
+  { top: "420px", left: "20%" },
+  { top: "600px", left: "74%" },
+  { top: "780px", left: "24%" },
+  { top: "960px", left: "70%" },
+  { top: "1140px", left: "30%" },
 ];
+
+type CategoryAnchor = {
+  name: string;
+  color: string;
+  startIndex: number;
+  x: number;
+  y: number;
+};
+
+const clampPositionTop = (value: number) => Math.max(value, 48);
+const clampPositionLeft = (value: number) => Math.min(Math.max(value, 12), 88);
 
 const hexToRgba = (hex: string, alpha: number) => {
   const sanitized = hex.replace('#', '');
@@ -60,6 +73,8 @@ const hexToRgba = (hex: string, alpha: number) => {
 
 const truncate = (value: string, maxLength = 18) =>
   value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
+
+const formatStageLabel = (index: number) => `مرحله ${(index + 1).toLocaleString("fa-IR")}`;
 
 const getStageStyles = (status: string, color: string): CSSProperties => {
   if (status === "completed") {
@@ -89,6 +104,7 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [startingAssessmentId, setStartingAssessmentId] = useState<number | null>(null);
+  const [categoryAnchorPositions, setCategoryAnchorPositions] = useState<Record<string, { top: string; left: string }>>({});
 
   const navigate = useNavigate();
 
@@ -155,47 +171,63 @@ const Dashboard = () => {
       }
     });
 
-    const grouped = new Map<string, Assessment[]>();
-    Array.from(map.values()).forEach((assessment) => {
-      const category = assessment.category || "سایر دسته‌بندی‌ها";
-      if (!grouped.has(category)) {
-        grouped.set(category, []);
+    return Array.from(map.values()).sort((a, b) => {
+      const orderA = a.display_order ?? Number.MAX_SAFE_INTEGER;
+      const orderB = b.display_order ?? Number.MAX_SAFE_INTEGER;
+      if (orderA !== orderB) return orderA - orderB;
+      if (a.status !== b.status) {
+        return (statusPriority[b.status] ?? 0) - (statusPriority[a.status] ?? 0);
       }
-      grouped.get(category)!.push(assessment);
+      return (a.id ?? 0) - (b.id ?? 0);
     });
-
-    const entries = Array.from(grouped.entries()).sort(([a], [b]) => a.localeCompare(b, "fa"));
-
-    const ordered: Assessment[] = [];
-    entries.forEach(([, cats]) => {
-      const sortedCats = cats.sort((lhs, rhs) => {
-        const statusWeight = (statusPriority[rhs.status] ?? 0) - (statusPriority[lhs.status] ?? 0);
-        if (statusWeight !== 0) return statusWeight;
-        return (lhs.display_order ?? 0) - (rhs.display_order ?? 0);
-      });
-      ordered.push(...sortedCats);
-    });
-
-    return ordered;
   }, [assessments]);
+
+  const stageLabels = useMemo(() => {
+    const labels = new Map<string, string>();
+    dedupedAssessments.forEach((assessment, index) => {
+      const key = assessment.stringId || String(assessment.id);
+      labels.set(key, formatStageLabel(index));
+    });
+    return labels;
+  }, [dedupedAssessments]);
+
+  const resolveStageLabel = useCallback(
+    (assessment: Assessment, fallbackIndex = 0) => {
+      const key = assessment.stringId || String(assessment.id);
+      const direct = stageLabels.get(key);
+      if (direct) return direct;
+      const globalIndex = dedupedAssessments.findIndex(
+        (item) => (item.stringId || String(item.id)) === key
+      );
+      if (globalIndex >= 0) {
+        return formatStageLabel(globalIndex);
+      }
+      return formatStageLabel(fallbackIndex);
+    },
+    [stageLabels, dedupedAssessments]
+  );
 
   const mapSteps: AssessmentMapStep[] = useMemo(
     () =>
-      dedupedAssessments.map((a) => {
-        const accentColor = CATEGORY_COLORS[a.category ?? ""] ?? DEFAULT_CATEGORY_COLOR;
+      dedupedAssessments.map((assessment, index) => {
+        const accentColor = CATEGORY_COLORS[assessment.category ?? ""] ?? DEFAULT_CATEGORY_COLOR;
+        const key = assessment.stringId || String(assessment.id);
         return {
-          id: a.stringId || String(a.id),
-          title: a.title,
-          description: a.description,
-          status: a.status,
-          category: a.category,
+          id: key,
+          title: resolveStageLabel(assessment, index),
+          status: assessment.status,
+          category: assessment.category,
           accentColor,
         };
       }),
-    [dedupedAssessments]
+    [dedupedAssessments, resolveStageLabel]
   );
 
   const currentAssessment = dedupedAssessments.find((a) => a.status === "current");
+  const currentStageLabel = useMemo(() => {
+    if (!currentAssessment) return null;
+    return resolveStageLabel(currentAssessment);
+  }, [currentAssessment, resolveStageLabel]);
   const totalCount = dedupedAssessments.length;
   const completedCount = dedupedAssessments.filter((a) => a.status === "completed").length;
   const lockedCount = dedupedAssessments.filter((a) => a.status === "locked").length;
@@ -215,33 +247,61 @@ const Dashboard = () => {
       grouped.get(category)!.push(assessment);
     });
 
-    const entries = Array.from(grouped.entries());
+    const entries = Array.from(grouped.entries()).sort(([categoryA], [categoryB]) => {
+      const anchorA = categoryAnchorPositions[categoryA];
+      const anchorB = categoryAnchorPositions[categoryB];
+      const topA = anchorA ? parseFloat(anchorA.top) : Number.POSITIVE_INFINITY;
+      const topB = anchorB ? parseFloat(anchorB.top) : Number.POSITIVE_INFINITY;
+      if (topA !== topB) return topA - topB;
+      return categoryA.localeCompare(categoryB, "fa");
+    });
 
     return entries.map(([category, steps], index) => {
       const color = CATEGORY_COLORS[category] ?? DEFAULT_CATEGORY_COLOR;
-      const position = SPIRAL_POSITIONS[index % SPIRAL_POSITIONS.length];
-      const statusOrder: Record<Assessment["status"], number> = {
-        completed: 0,
-        current: 1,
-        locked: 2,
-      };
-
-      const orderedSteps = steps
-        .slice()
-        .sort((a, b) => (statusOrder[a.status] ?? 3) - (statusOrder[b.status] ?? 3))
-        .slice(0, 6);
+      const fallbackPosition = SPIRAL_POSITIONS[index % SPIRAL_POSITIONS.length];
+      const anchorPosition = categoryAnchorPositions[category];
+      const position = anchorPosition ?? fallbackPosition;
+      const isAnchor = Boolean(anchorPosition);
+      const orderedSteps = steps.slice(0, 6);
 
       return {
         name: category,
         color,
         position,
-        stages: orderedSteps.map((step) => ({
-          label: step.title,
+        isAnchor,
+        stages: orderedSteps.map((step, stepIndex) => ({
+          label: resolveStageLabel(step, stepIndex),
           status: step.status,
         })),
       };
     });
-  }, [dedupedAssessments]);
+  }, [dedupedAssessments, categoryAnchorPositions, resolveStageLabel]);
+
+  const handleMapLayoutChange = useCallback(
+    (_nodes: { step: AssessmentMapStep; index: number; x: number; y: number }[], categories: CategoryAnchor[]) => {
+      setCategoryAnchorPositions(() => {
+        const next: Record<string, { top: string; left: string }> = {};
+        const sorted = [...categories].sort((a, b) => a.startIndex - b.startIndex);
+        let lastTop = -Infinity;
+
+        sorted.forEach((category) => {
+          let topPx = clampPositionTop(category.y - 110);
+          if (Number.isFinite(lastTop) && topPx - lastTop < 90) {
+            topPx = lastTop + 90;
+          }
+          lastTop = topPx;
+
+          const leftPercent = clampPositionLeft(category.x + (category.x >= 50 ? 6 : -6));
+          next[category.name] = {
+            top: `${topPx}px`,
+            left: `${leftPercent}%`,
+          };
+        });
+        return next;
+      });
+    },
+    []
+  );
 
   // رندر محتوا
   const renderContent = () => {
@@ -351,8 +411,8 @@ const Dashboard = () => {
               </span>
               <div className="space-y-4">
                 <h2 className="text-3xl font-bold leading-tight text-slate-900">
-                  {currentAssessment
-                    ? `مرحله «${currentAssessment.title}» آماده آغاز است`
+                  {currentAssessment && currentStageLabel
+                    ? `${currentStageLabel} آماده آغاز است`
                     : "برای مرحله بعدی آماده شوید"}
                 </h2>
                 <p className="max-w-xl text-sm leading-relaxed text-slate-500">
@@ -450,11 +510,12 @@ const Dashboard = () => {
                     toast.info("برای دسترسی به این مرحله ابتدا مرحله‌های قبلی را تکمیل کنید.");
                   }
                 }}
+                onLayoutChange={handleMapLayoutChange}
               />
-{stations.map((station) => (
+              {stations.map((station) => (
                 <div
                   key={station.name}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 space-y-2 text-right"
+                  className={`absolute -translate-x-1/2 ${station.isAnchor ? "-translate-y-full" : "-translate-y-1/2"} space-y-2 text-right`}
                   style={{ top: station.position.top, left: station.position.left }}
                 >
                   <div
@@ -495,10 +556,14 @@ const Dashboard = () => {
                     toast.info("برای دسترسی به این مرحله ابتدا مرحله‌های قبلی را تکمیل کنید.");
                   }
                 }}
+                onLayoutChange={handleMapLayoutChange}
               />
               <div className="mt-6 grid gap-3">
                 {stations.map((station) => (
-                  <div key={station.name} className="flex items-center justify-between rounded-2xl border border-purple-100 bg-white/95 p-3">
+                  <div
+                    key={station.name}
+                    className="flex items-center justify-between rounded-2xl border border-purple-100 bg-white/95 p-3"
+                  >
                     <div>
                       <p className="text-xs font-semibold text-slate-900">{station.name}</p>
                       <div className="mt-2 flex flex-wrap justify-end gap-1.5 text-xs">
