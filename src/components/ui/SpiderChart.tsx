@@ -13,10 +13,6 @@ import {
 } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
 
-const chartFontFamily = 'Vazirmatn, Tahoma, sans-serif';
-
-const chartFontFamily = 'Vazirmatn, Tahoma, sans-serif';
-
 const spiderChartFontFamily = 'Vazirmatn, Tahoma, sans-serif';
 
 // --- Type Definitions ---
