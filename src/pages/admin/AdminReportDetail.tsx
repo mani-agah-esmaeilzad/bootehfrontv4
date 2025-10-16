@@ -100,13 +100,15 @@ const ChartFlipCard = ({ title, front, back, className, corner = "left" }: Chart
   const cornerPosition = corner === "right" ? "right-2" : "left-2";
 
   return (
-    <Card className={cn("relative h-full overflow-hidden [perspective:2000px]", className)}>
+    <Card className={cn("relative min-h-[320px] overflow-hidden [perspective:2000px]", className)}>
       <button
         type="button"
         onClick={() => setFlipped((prev) => !prev)}
         aria-pressed={flipped}
         className={cn(
-          "absolute top-2 z-30 inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary transition hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          "absolute top-2 z-30 inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary transition",
+          "hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+          "focus-visible:ring-offset-2 focus-visible:ring-offset-background",
           cornerPosition,
         )}
       >
@@ -119,7 +121,7 @@ const ChartFlipCard = ({ title, front, back, className, corner = "left" }: Chart
           flipped ? "[transform:rotateY(180deg)]" : "",
         )}
       >
-        <div className="absolute inset-0 flex flex-col bg-card [backface-visibility:hidden]">
+        <div className="absolute inset-0 flex h-full flex-col bg-card [backface-visibility:hidden]">
           <CardHeader className="space-y-1 pb-2 pt-6">
             <CardTitle>{title}</CardTitle>
           </CardHeader>
@@ -127,7 +129,7 @@ const ChartFlipCard = ({ title, front, back, className, corner = "left" }: Chart
             <div className="h-full">{front}</div>
           </CardContent>
         </div>
-        <div className="absolute inset-0 flex flex-col bg-card [backface-visibility:hidden] [transform:rotateY(180deg)]">
+        <div className="absolute inset-0 flex h-full flex-col bg-card [backface-visibility:hidden] [transform:rotateY(180deg)]">
           <CardHeader className="space-y-1 pb-2 pt-6">
             <CardTitle>{title}</CardTitle>
           </CardHeader>
@@ -404,7 +406,7 @@ const AdminReportDetail = () => {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <ChartFlipCard
-          className="lg:col-span-2"
+          className="lg:col-span-2 min-h-[420px]"
           title="نمودار شایستگی‌ها"
           front={
             <div className="h-[350px]">
@@ -444,6 +446,7 @@ const AdminReportDetail = () => {
       </div>
 
       <ChartFlipCard
+        className="min-h-[520px]"
         title="چرخ توانمندی پاور ویل (نسخه آزمایشی)"
         front={
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
