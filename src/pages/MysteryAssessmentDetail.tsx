@@ -58,6 +58,79 @@ const MysteryAssessmentDetail = () => {
   const sliderRef = useRef<HTMLDivElement | null>(null);
   const touchStartRef = useRef<number | null>(null);
 
+  const handleChangeSlide = (nextIndex: number) => {
+    if (nextIndex === activeIndex || nextIndex < 0 || nextIndex >= slides.length) {
+      return;
+    }
+    setDirection(nextIndex > activeIndex ? "next" : "prev");
+    setActiveIndex(nextIndex);
+    setIsTransitioning(true);
+  };
+
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [slides.length]);
+
+  useEffect(() => {
+    const slider = sliderRef.current;
+    if (!slider) return;
+
+    const handleWheel = (event: WheelEvent) => {
+      if (isTransitioning) return;
+      if (event.deltaY > 12 && activeIndex < slides.length - 1) {
+        event.preventDefault();
+        handleChangeSlide(activeIndex + 1);
+      } else if (event.deltaY < -12 && activeIndex > 0) {
+        event.preventDefault();
+        handleChangeSlide(activeIndex - 1);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+        if (activeIndex < slides.length - 1 && !isTransitioning) {
+          handleChangeSlide(activeIndex + 1);
+          event.preventDefault();
+        }
+      }
+      if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+        if (activeIndex > 0 && !isTransitioning) {
+          handleChangeSlide(activeIndex - 1);
+          event.preventDefault();
+        }
+      }
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      touchStartRef.current = event.touches[0]?.clientY ?? null;
+    };
+
+    const handleTouchEnd = (event: TouchEvent) => {
+      const startY = touchStartRef.current;
+      if (startY === null) return;
+      const endY = event.changedTouches[0]?.clientY ?? startY;
+      const deltaY = startY - endY;
+      if (Math.abs(deltaY) < 40 || isTransitioning) return;
+      if (deltaY > 0 && activeIndex < slides.length - 1) {
+        handleChangeSlide(activeIndex + 1);
+      } else if (deltaY < 0 && activeIndex > 0) {
+        handleChangeSlide(activeIndex - 1);
+      }
+    };
+
+    slider.addEventListener("wheel", handleWheel, { passive: false });
+    slider.addEventListener("touchstart", handleTouchStart, { passive: true });
+    slider.addEventListener("touchend", handleTouchEnd, { passive: true });
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      slider.removeEventListener("wheel", handleWheel);
+      slider.removeEventListener("touchstart", handleTouchStart);
+      slider.removeEventListener("touchend", handleTouchEnd);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activeIndex, slides.length, isTransitioning]);
+
   const ensureAuth = (redirectTo: string) => {
     const isLoggedIn = !!localStorage.getItem("isLoggedIn") || !!localStorage.getItem("isAdminLoggedIn");
     if (!isLoggedIn) {
@@ -94,79 +167,6 @@ const MysteryAssessmentDetail = () => {
       </div>
     );
   }
-
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [slides.length]);
-
-  const handleChangeSlide = (nextIndex: number) => {
-    if (nextIndex === activeIndex || nextIndex < 0 || nextIndex >= slides.length) {
-      return;
-    }
-    setDirection(nextIndex > activeIndex ? 'next' : 'prev');
-    setActiveIndex(nextIndex);
-    setIsTransitioning(true);
-  };
-
-  useEffect(() => {
-    const slider = sliderRef.current;
-    if (!slider) return;
-
-    const handleWheel = (event: WheelEvent) => {
-      if (isTransitioning) return;
-      if (event.deltaY > 12 && activeIndex < slides.length - 1) {
-        event.preventDefault();
-        handleChangeSlide(activeIndex + 1);
-      } else if (event.deltaY < -12 && activeIndex > 0) {
-        event.preventDefault();
-        handleChangeSlide(activeIndex - 1);
-      }
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
-        if (activeIndex < slides.length - 1 && !isTransitioning) {
-          handleChangeSlide(activeIndex + 1);
-          event.preventDefault();
-        }
-      }
-      if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
-        if (activeIndex > 0 && !isTransitioning) {
-          handleChangeSlide(activeIndex - 1);
-          event.preventDefault();
-        }
-      }
-    };
-
-    const handleTouchStart = (event: TouchEvent) => {
-      touchStartRef.current = event.touches[0]?.clientY ?? null;
-    };
-
-    const handleTouchEnd = (event: TouchEvent) => {
-      const startY = touchStartRef.current;
-      if (startY === null) return;
-      const endY = event.changedTouches[0]?.clientY ?? startY;
-      const deltaY = startY - endY;
-      if (Math.abs(deltaY) < 40 || isTransitioning) return;
-      if (deltaY > 0 && activeIndex < slides.length - 1) {
-        handleChangeSlide(activeIndex + 1);
-      } else if (deltaY < 0 && activeIndex > 0) {
-        handleChangeSlide(activeIndex - 1);
-      }
-    };
-
-    slider.addEventListener('wheel', handleWheel, { passive: false });
-    slider.addEventListener('touchstart', handleTouchStart, { passive: true });
-    slider.addEventListener('touchend', handleTouchEnd, { passive: true });
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      slider.removeEventListener('wheel', handleWheel);
-      slider.removeEventListener('touchstart', handleTouchStart);
-      slider.removeEventListener('touchend', handleTouchEnd);
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [activeIndex, slides.length, isTransitioning]);
 
   const slideVariants = {
     enter: ({ dir, offset }: { dir: 'next' | 'prev'; offset: { x: number; y: number } }) => ({
