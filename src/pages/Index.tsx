@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { useNavigate } from "react-router-dom";
@@ -6,12 +7,29 @@ import {
   ArrowUpRight,
   BarChart3,
   BookOpen,
+  Calendar,
   LineChart,
+  LoaderCircle,
   PanelsTopLeft,
   ShieldCheck,
   Sparkles,
   UsersRound,
 } from "lucide-react";
+import { getBlogPosts } from "@/services/apiService";
+import type { BlogPostSummary } from "@/types/blog";
+
+const formatPersianDate = (value: string | null | undefined) => {
+  if (!value) return "در انتظار انتشار";
+  try {
+    return new Date(value).toLocaleDateString("fa-IR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  } catch {
+    return "در انتظار انتشار";
+  }
+};
 
 const heroStats = [
   { label: "سازمان‌های همکار", value: "۴۲+" },
@@ -213,6 +231,28 @@ const footerLinks = [
 
 const Index = () => {
   const navigate = useNavigate();
+  const [latestPosts, setLatestPosts] = useState<BlogPostSummary[]>([]);
+  const [isLoadingBlogs, setIsLoadingBlogs] = useState(true);
+
+  useEffect(() => {
+    const fetchLatestPosts = async () => {
+      setIsLoadingBlogs(true);
+      try {
+        const response = await getBlogPosts(3);
+        if (response.success) {
+          setLatestPosts(response.data);
+        } else {
+          console.error("Blog fetch error:", response.message);
+        }
+      } catch (error) {
+        console.error("Blog fetch error:", error);
+      } finally {
+        setIsLoadingBlogs(false);
+      }
+    };
+
+    fetchLatestPosts();
+  }, []);
 
   return (
     <div dir="rtl" className="min-h-screen bg-white text-slate-900">
@@ -224,7 +264,7 @@ const Index = () => {
               <a className="transition hover:text-slate-900" href="#hero">
                 درباره ما
               </a>
-              <a className="transition hover:text-slate-900" href="#capabilities">
+              <a className="transition hover:text-slate-900" href="#blog">
                 بلاگ
               </a>
               <a className="transition hover:text-slate-900" href="#path">
@@ -520,6 +560,73 @@ const Index = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="blog" className="mx-auto w-full max-w-6xl px-4 md:px-6">
+          <div className="rounded-[32px] border border-purple-100 bg-white px-6 py-16 shadow-sm md:px-12">
+            <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
+              <div className="max-w-xl space-y-4 text-right">
+                <h2 className="text-3xl font-bold text-slate-900">مقاله‌های تازه بوته</h2>
+                <p className="text-base leading-7 text-slate-600">
+                  رویکردهای نوآورانه در ارزیابی شایستگی، تجربه‌های واقعی سازمان‌ها و راهکارهای عملی توسعه منابع انسانی را در بلاگ بوته بخوانید.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                className="border border-purple-200 px-6 py-3 text-sm font-semibold text-slate-900 hover:border-purple-400 hover:text-purple-600"
+                onClick={() => navigate("/blog")}
+              >
+                مشاهده همه مقالات
+              </Button>
+            </div>
+            <div className="mt-12">
+              {isLoadingBlogs ? (
+                <div className="flex items-center justify-center py-16">
+                  <LoaderCircle className="h-10 w-10 animate-spin text-purple-500" />
+                </div>
+              ) : latestPosts.length > 0 ? (
+                <div className="grid gap-6 md:grid-cols-3">
+                  {latestPosts.map((post) => (
+                    <article
+                      key={post.id}
+                      className="flex h-full flex-col overflow-hidden rounded-3xl border border-purple-100 bg-white/90 text-right shadow-sm transition hover:-translate-y-1 hover:border-purple-200"
+                    >
+                      {post.cover_image_url && (
+                        <div className="h-40 w-full overflow-hidden bg-slate-100">
+                          <img src={post.cover_image_url} alt={post.title} className="h-full w-full object-cover" />
+                        </div>
+                      )}
+                      <div className="flex h-full flex-col justify-between gap-4 p-6">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-end gap-2 text-xs text-slate-500">
+                            <Calendar className="h-4 w-4" />
+                            <span>{formatPersianDate(post.published_at || post.created_at)}</span>
+                          </div>
+                          <h3 className="text-lg font-semibold text-slate-900">{post.title}</h3>
+                          <p className="text-sm leading-7 text-slate-600">{post.excerpt}</p>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-slate-500">
+                          <span>{post.author || "تیم بوته"}</span>
+                          <Button
+                            variant="ghost"
+                            className="flex items-center gap-2 text-purple-600 hover:bg-purple-50 hover:text-purple-700"
+                            onClick={() => navigate(`/blog/${post.slug}`)}
+                          >
+                            ادامه مطلب
+                            <ArrowUpRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-3xl border border-dashed border-purple-200 bg-white/70 p-10 text-center text-sm text-slate-600">
+                  هنوز مقاله‌ای منتشر نشده است. به زودی با تازه‌ترین محتواهای تخصصی در خدمت شما خواهیم بود.
+                </div>
+              )}
             </div>
           </div>
         </section>

@@ -18,6 +18,8 @@ import PersonalityAssessments from './pages/PersonalityAssessments';
 import PersonalityAssessmentDetail from './pages/PersonalityAssessmentDetail';
 import PersonalityChat from './pages/PersonalityChat';
 import PersonalityResultsPage from './pages/PersonalityResults';
+import Blog from './pages/Blog';
+import BlogDetail from './pages/BlogDetail';
 
 // Admin Pages
 import AdminLogin from './pages/admin/AdminLogin';
@@ -33,6 +35,7 @@ import AdminReportDetail from './pages/admin/AdminReportDetail';
 import AdminOrganizations from './pages/admin/AdminOrganizations';
 import AdminPersonalityAssessments from './pages/admin/AdminPersonalityAssessments';
 import AdminPersonalityResults from './pages/admin/AdminPersonalityResults';
+import AdminBlogs from './pages/admin/AdminBlogs';
 
 // --- Route Protection Components ---
 
@@ -61,6 +64,8 @@ function App() {
           <Route path="/personality/:slug" element={<PersonalityAssessmentDetail />} />
           <Route path="/personality/:slug/chat" element={<PersonalityChat />} />
           <Route path="/personality/results" element={<PersonalityResultsPage />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:slug" element={<BlogDetail />} />
 
           {/* ====== Private User Routes ====== */}
           <Route element={<UserPrivateRoute />}>
@@ -83,6 +88,7 @@ function App() {
               <Route path="/admin/reports" element={<AdminReports />} />
               <Route path="/admin/reports/:id" element={<AdminReportDetail />} />
               <Route path="/admin/organizations" element={<AdminOrganizations />} />
+              <Route path="/admin/blog" element={<AdminBlogs />} />
               <Route path="/admin/personality-tests" element={<AdminPersonalityAssessments />} />
               <Route path="/admin/personality-results" element={<AdminPersonalityResults />} />
             </Route>

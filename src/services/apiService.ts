@@ -162,3 +162,27 @@ export const getPersonalityResult = async (sessionId: string) =>
 
 export const adminGetPersonalityResults = async () =>
     await apiFetch('admin/personality-tests/results');
+
+// --- بلاگ ---
+
+export type BlogPostPayload = {
+    title: string;
+    slug: string;
+    excerpt?: string;
+    content: string;
+    cover_image_url?: string;
+    author?: string;
+    is_published?: boolean;
+};
+
+export const getBlogPosts = async (limit?: number) =>
+    await apiFetch(limit ? `blog?limit=${limit}` : 'blog');
+
+export const getBlogPost = async (slug: string) =>
+    await apiFetch(`blog/${slug}`);
+
+export const adminGetBlogPosts = async () =>
+    await apiFetch('admin/blog');
+
+export const adminCreateBlogPost = async (data: BlogPostPayload) =>
+    await apiFetch('admin/blog', { method: 'POST', body: JSON.stringify(data) });
