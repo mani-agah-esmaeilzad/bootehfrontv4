@@ -20,6 +20,9 @@ import PersonalityChat from './pages/PersonalityChat';
 import PersonalityResultsPage from './pages/PersonalityResults';
 import Blog from './pages/Blog';
 import BlogDetail from './pages/BlogDetail';
+import MysteryAssessments from './pages/MysteryAssessments';
+import MysteryAssessmentDetail from './pages/MysteryAssessmentDetail';
+import MysteryChat from './pages/MysteryChat';
 
 // Admin Pages
 import AdminLogin from './pages/admin/AdminLogin';
@@ -36,6 +39,7 @@ import AdminOrganizations from './pages/admin/AdminOrganizations';
 import AdminPersonalityAssessments from './pages/admin/AdminPersonalityAssessments';
 import AdminPersonalityResults from './pages/admin/AdminPersonalityResults';
 import AdminBlogs from './pages/admin/AdminBlogs';
+import AdminMysteryAssessments from './pages/admin/AdminMysteryAssessments';
 
 // --- Route Protection Components ---
 
@@ -64,6 +68,9 @@ function App() {
           <Route path="/personality/:slug" element={<PersonalityAssessmentDetail />} />
           <Route path="/personality/:slug/chat" element={<PersonalityChat />} />
           <Route path="/personality/results" element={<PersonalityResultsPage />} />
+          <Route path="/mystery" element={<MysteryAssessments />} />
+          <Route path="/mystery/:slug" element={<MysteryAssessmentDetail />} />
+          <Route path="/mystery/:slug/chat" element={<MysteryChat />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogDetail />} />
 
@@ -89,6 +96,7 @@ function App() {
               <Route path="/admin/reports/:id" element={<AdminReportDetail />} />
               <Route path="/admin/organizations" element={<AdminOrganizations />} />
               <Route path="/admin/blog" element={<AdminBlogs />} />
+              <Route path="/admin/mystery" element={<AdminMysteryAssessments />} />
               <Route path="/admin/personality-tests" element={<AdminPersonalityAssessments />} />
               <Route path="/admin/personality-results" element={<AdminPersonalityResults />} />
             </Route>

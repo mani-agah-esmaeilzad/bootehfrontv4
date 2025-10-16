@@ -15,8 +15,9 @@ import {
   Sparkles,
   UsersRound,
 } from "lucide-react";
-import { getBlogPosts } from "@/services/apiService";
+import { getBlogPosts, getMysteryTests } from "@/services/apiService";
 import type { BlogPostSummary } from "@/types/blog";
+import type { MysteryTestSummary } from "@/types/mystery";
 
 const formatPersianDate = (value: string | null | undefined) => {
   if (!value) return "در انتظار انتشار";
@@ -233,6 +234,8 @@ const Index = () => {
   const navigate = useNavigate();
   const [latestPosts, setLatestPosts] = useState<BlogPostSummary[]>([]);
   const [isLoadingBlogs, setIsLoadingBlogs] = useState(true);
+  const [mysteryTests, setMysteryTests] = useState<MysteryTestSummary[]>([]);
+  const [isLoadingMystery, setIsLoadingMystery] = useState(true);
 
   useEffect(() => {
     const fetchLatestPosts = async () => {
@@ -254,6 +257,24 @@ const Index = () => {
     fetchLatestPosts();
   }, []);
 
+  useEffect(() => {
+    const fetchMystery = async () => {
+      setIsLoadingMystery(true);
+      try {
+        const response = await getMysteryTests();
+        if (response.success) {
+          const highlights = Array.isArray(response.data) ? response.data.slice(0, 3) : [];
+          setMysteryTests(highlights);
+        }
+      } catch (error) {
+        console.error("Mystery fetch error:", error);
+      } finally {
+        setIsLoadingMystery(false);
+      }
+    };
+    fetchMystery();
+  }, []);
+
   return (
     <div dir="rtl" className="min-h-screen bg-white text-slate-900">
       <header className="sticky top-0 z-40 border-b border-purple-100/60 bg-white/80 backdrop-blur">
@@ -266,6 +287,9 @@ const Index = () => {
               </a>
               <a className="transition hover:text-slate-900" href="#blog">
                 بلاگ
+              </a>
+              <a className="transition hover:text-slate-900" href="#mystery">
+                رازمایی
               </a>
               <a className="transition hover:text-slate-900" href="#path">
                 تماس با ما
@@ -485,6 +509,67 @@ const Index = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="mystery" className="mx-auto w-full max-w-6xl px-4 md:px-6">
+          <div className="rounded-[32px] border border-purple-100 bg-gradient-to-br from-slate-900 via-slate-800 to-purple-900 px-6 py-16 text-white shadow-lg md:px-12">
+            <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
+              <div className="max-w-xl space-y-4 text-right">
+                <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-medium text-white/80 backdrop-blur">
+                  <Sparkles className="h-4 w-4" />
+                  تجربه جدید: رازمایی
+                </span>
+                <h2 className="text-3xl font-bold text-white">با رازمایی، تصاویر حرف می‌زنند</h2>
+                <p className="text-base leading-7 text-white/80">
+                  مجموعه‌ای از تصاویر روایت‌محور را با اسکرول سینمایی ببینید، سرنخ‌ها را کشف کنید و در گفتگوی تعاملی با رازمَستر، عمق نگاه تحلیلی خود را بسنجید.
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                className="flex items-center gap-2 border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white hover:bg-white/20"
+                onClick={() => navigate("/mystery")}
+              >
+                شروع سفر رازمایی
+                <ArrowUpRight className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="mt-12">
+              {isLoadingMystery ? (
+                <div className="flex items-center justify-center py-14">
+                  <LoaderCircle className="h-10 w-10 animate-spin text-purple-200" />
+                </div>
+              ) : mysteryTests.length > 0 ? (
+                <div className="grid gap-6 md:grid-cols-3">
+                  {mysteryTests.map((test) => (
+                    <article
+                      key={test.id}
+                      className="group flex h-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/10 p-6 backdrop-blur transition hover:-translate-y-1 hover:bg-white/15"
+                    >
+                      <div className="space-y-3 text-right">
+                        <h3 className="text-lg font-semibold text-white">{test.name}</h3>
+                        <p className="text-sm leading-7 text-white/70">{test.short_description}</p>
+                      </div>
+                      <div className="mt-6 flex items-center justify-between text-xs text-white/60">
+                        <span>کد: {test.slug}</span>
+                        <Button
+                          variant="ghost"
+                          className="flex items-center gap-2 text-purple-200 hover:bg-white/20 hover:text-white"
+                          onClick={() => navigate(`/mystery/${test.slug}`)}
+                        >
+                          مشاهده
+                          <ArrowUpRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-3xl border border-dashed border-white/20 bg-white/10 p-10 text-center text-sm text-white/70">
+                  به زودی رازمایی‌های تازه برای شما فعال می‌شود.
+                </div>
+              )}
             </div>
           </div>
         </section>

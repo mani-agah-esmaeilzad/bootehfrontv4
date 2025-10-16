@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, FileText, Users, BarChart3, Sparkles, BarChart4, LogOut, Newspaper } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, BarChart3, Sparkles, BarChart4, LogOut, Newspaper, Images } from 'lucide-react';
 import { Logo } from '@/components/ui/logo';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -23,6 +23,7 @@ const AdminLayout = () => {
         { to: "/admin/users", icon: <Users className="h-5 w-5" />, label: "کاربران" },
         { to: "/admin/reports", icon: <BarChart3 className="h-5 w-5" />, label: "گزارش‌ها" },
         { to: "/admin/blog", icon: <Newspaper className="h-5 w-5" />, label: "بلاگ" },
+        { to: "/admin/mystery", icon: <Images className="h-5 w-5" />, label: "رازمایی" },
         { to: "/admin/personality-tests", icon: <Sparkles className="h-5 w-5" />, label: "آزمون‌های شخصیتی" },
         { to: "/admin/personality-results", icon: <BarChart4 className="h-5 w-5" />, label: "نتایج شخصیتی" },
     ];

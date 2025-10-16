@@ -186,3 +186,53 @@ export const adminGetBlogPosts = async () =>
 
 export const adminCreateBlogPost = async (data: BlogPostPayload) =>
     await apiFetch('admin/blog', { method: 'POST', body: JSON.stringify(data) });
+
+// --- رازمایی ---
+
+export type MysteryImagePayload = {
+    image_url: string;
+    title: string;
+    description?: string;
+    ai_notes?: string;
+    display_order?: number;
+};
+
+export type MysteryAssessmentPayload = {
+    name: string;
+    slug: string;
+    short_description: string;
+    intro_message: string;
+    guide_name?: string;
+    system_prompt: string;
+    analysis_prompt?: string;
+    is_active?: boolean;
+    images: MysteryImagePayload[];
+};
+
+export const getMysteryTests = async () => await apiFetch('mystery');
+
+export const getMysteryTest = async (slug: string) => await apiFetch(`mystery/${slug}`);
+
+export const startMysteryTest = async (slug: string) =>
+    await apiFetch(`mystery/start/${slug}`, { method: 'POST' });
+
+export const sendMysteryMessage = async (sessionId: string, message: string) =>
+    await apiFetch(`mystery/chat/${sessionId}`, {
+        method: 'POST',
+        body: JSON.stringify({ message }),
+    });
+
+export const finishMysteryTest = async (sessionId: string) =>
+    await apiFetch(`mystery/finish/${sessionId}`, { method: 'POST' });
+
+export const adminGetMysteryAssessments = async () =>
+    await apiFetch('admin/mystery');
+
+export const adminCreateMysteryAssessment = async (data: MysteryAssessmentPayload) =>
+    await apiFetch('admin/mystery', { method: 'POST', body: JSON.stringify(data) });
+
+export const adminUpdateMysteryAssessment = async (id: number, data: MysteryAssessmentPayload) =>
+    await apiFetch(`admin/mystery/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+
+export const adminDeleteMysteryAssessment = async (id: number) =>
+    await apiFetch(`admin/mystery/${id}`, { method: 'DELETE' });
