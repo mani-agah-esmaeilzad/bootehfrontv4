@@ -212,6 +212,44 @@ const AdminReportDetail = () => {
   ];
   const semanticFields = withRtlFields(analysis.linguistic_semantic_analysis?.semantic_fields);
 
+  const powerWheelCategories = [
+    { key: "teamwork", label: "کار تیمی", color: "#f97316" },
+    { key: "communication", label: "ارتباطات", color: "#22c55e" },
+    { key: "cognitive", label: "توانایی‌های شناختی", color: "#0ea5e9" },
+    { key: "workEthic", label: "اخلاق کاری", color: "#facc15" },
+    { key: "problemSolving", label: "حل مسئله", color: "#ec4899" },
+    { key: "leadership", label: "رهبری", color: "#6366f1" },
+  ];
+
+  const powerWheelDimensions = [
+    { dimension: "همکاری تیمی", category: "teamwork", score: 82 },
+    { dimension: "مدیریت تعارض", category: "teamwork", score: 76 },
+    { dimension: "ساخت روابط", category: "teamwork", score: 88 },
+    { dimension: "گوش دادن فعال", category: "communication", score: 91 },
+    { dimension: "مهارت ارائه", category: "communication", score: 84 },
+    { dimension: "ارائه بازخورد", category: "communication", score: 79 },
+    { dimension: "تفکر تحلیلی", category: "cognitive", score: 86 },
+    { dimension: "برنامه‌ریزی راهبردی", category: "cognitive", score: 90 },
+    { dimension: "چابکی یادگیری", category: "cognitive", score: 83 },
+    { dimension: "مدیریت زمان", category: "workEthic", score: 88 },
+    { dimension: "قابل اتکا بودن", category: "workEthic", score: 81 },
+    { dimension: "پاسخگویی", category: "workEthic", score: 85 },
+    { dimension: "خلاقیت", category: "problemSolving", score: 87 },
+    { dimension: "تفکر انتقادی", category: "problemSolving", score: 92 },
+    { dimension: "تصمیم‌گیری", category: "problemSolving", score: 78 },
+    { dimension: "تعیین چشم‌انداز", category: "leadership", score: 93 },
+    { dimension: "مدیریت تغییر", category: "leadership", score: 89 },
+    { dimension: "مربی‌گری", category: "leadership", score: 81 },
+  ];
+
+  const powerWheelData = powerWheelDimensions.map((dimension) => {
+    const baseEntry = { dimension: dimension.dimension } as Record<string, number | string>;
+    powerWheelCategories.forEach((category) => {
+      baseEntry[category.key] = category.key === dimension.category ? dimension.score : 0;
+    });
+    return baseEntry;
+  });
+
   return (
     <div className="space-y-6">
       <div style={{ position: "absolute", left: -9999, top: 0, pointerEvents: "none" }}>
@@ -298,6 +336,73 @@ const AdminReportDetail = () => {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>چرخ توانمندی پاور ویل (نسخه آزمایشی)</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
+          <div className="h-[420px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart data={powerWheelData} outerRadius="75%">
+                <PolarGrid strokeDasharray="3 6" />
+                <PolarAngleAxis
+                  dataKey="dimension"
+                  tick={{ fill: "#475569", fontSize: 11 }}
+                />
+                <PolarRadiusAxis
+                  angle={90}
+                  domain={[0, 100]}
+                  stroke="#cbd5f5"
+                  tick={{ fill: "#94a3b8", fontSize: 10 }}
+                />
+                {powerWheelCategories.map((category) => (
+                  <Radar
+                    key={category.key}
+                    name={category.label}
+                    dataKey={category.key}
+                    stroke={category.color}
+                    fill={category.color}
+                    fillOpacity={0.2}
+                    strokeWidth={2}
+                  />
+                ))}
+                <Tooltip
+                  formatter={(value: number, _name: string, item: any) => {
+                    if (typeof value !== "number" || value === 0 || !item) return null;
+                    const categoryLabel = powerWheelCategories.find((cat) => cat.key === item.dataKey)?.label;
+                    return [`${value} از ۱۰۰`, categoryLabel];
+                  }}
+                  labelFormatter={(label: string) => `مهارت: ${label}`}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="space-y-4">
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              این نمودار نمونه‌ای آزمایشی است تا نحوه نمایش ۱۸ مهارت کلیدی را در قالب چرخ توانمندی نشان دهد. هر ناحیه
+              رنگی نماینده یک حوزه شایستگی است و امتیازهای نمایش داده شده صرفاً برای تست رابط کاربری می‌باشند.
+            </p>
+            <div className="grid grid-cols-1 gap-3">
+              {powerWheelCategories.map((category) => (
+                <div key={category.key} className="flex items-center gap-3 rounded-md border px-3 py-2">
+                  <span
+                    className="h-3 w-3 rounded-full"
+                    style={{ backgroundColor: category.color }}
+                    aria-hidden
+                  />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{category.label}</p>
+                    <p className="text-xs text-muted-foreground">
+                      مجموعه‌ای از مهارت‌های مرتبط که در این گروه توانمندی ارزیابی می‌شوند.
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <h2 className="pt-4 text-2xl font-bold">تحلیل‌های تکمیلی</h2>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
