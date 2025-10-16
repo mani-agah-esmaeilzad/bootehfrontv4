@@ -37,6 +37,26 @@ const MysteryAssessmentDetail = () => {
   }, [slug]);
 
   const images = useMemo(() => test?.images ?? [], [test]);
+  const slides = useMemo(() => {
+    if (images.length > 0) {
+      return images;
+    }
+    return [
+      {
+        id: -1,
+        title: "هنوز تصویری برای این راز ثبت نشده است",
+        description: "برای ادامه می‌توانید مستقیم به گفتگو بروید.",
+        image_url: "",
+        display_order: 0,
+      },
+    ];
+  }, [images]);
+
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [direction, setDirection] = useState<"next" | "prev">("next");
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const sliderRef = useRef<HTMLDivElement | null>(null);
+  const touchStartRef = useRef<number | null>(null);
 
   const ensureAuth = (redirectTo: string) => {
     const isLoggedIn = !!localStorage.getItem("isLoggedIn") || !!localStorage.getItem("isAdminLoggedIn");
@@ -75,25 +95,9 @@ const MysteryAssessmentDetail = () => {
     );
   }
 
-  const slides = images.length > 0 ? images : [
-    {
-      id: -1,
-      title: "هنوز تصویری برای این راز ثبت نشده است",
-      description: "برای ادامه می‌توانید مستقیم به گفتگو بروید.",
-      image_url: "",
-      display_order: 0,
-    },
-  ];
-
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [direction, setDirection] = useState<'next' | 'prev'>('next');
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const sliderRef = useRef<HTMLDivElement | null>(null);
-  const touchStartRef = useRef<number | null>(null);
-
   useEffect(() => {
     setActiveIndex(0);
-  }, [images.length]);
+  }, [slides.length]);
 
   const handleChangeSlide = (nextIndex: number) => {
     if (nextIndex === activeIndex || nextIndex < 0 || nextIndex >= slides.length) {
