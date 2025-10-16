@@ -53,7 +53,13 @@ type MysteryAssessment = {
 };
 
 const imageSchema = z.object({
-  image_url: z.string().url({ message: "آدرس تصویر معتبر نیست." }),
+  image_url: z
+    .string({ required_error: "آدرس تصویر الزامی است." })
+    .min(1, { message: "آدرس تصویر نباید خالی باشد." })
+    .refine((value) => {
+      const trimmed = value.trim();
+      return /^https?:\/\//i.test(trimmed) || trimmed.startsWith("/");
+    }, { message: "آدرس تصویر معتبر نیست. از لینک کامل یا مسیر نسبی (شروع با /) استفاده کنید." }),
   title: z.string().min(3, { message: "عنوان تصویر حداقل باید ۳ کاراکتر باشد." }),
   description: z.string().optional(),
   ai_notes: z.string().optional(),
