@@ -5,6 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LoaderCircle, ArrowLeft, BarChart, Download } from "lucide-react";
+import {
+    ResponsiveContainer,
+    RadarChart,
+    PolarGrid,
+    PolarAngleAxis,
+    PolarRadiusAxis,
+    Radar,
+    Tooltip as RechartsTooltip,
+} from "recharts";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import apiFetch from "@/services/apiService";
@@ -24,6 +33,27 @@ const AdminReports = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isDownloading, setIsDownloading] = useState<number | null>(null);
     const navigate = useNavigate();
+
+    const powerWheelData = [
+        { dimension: "بینش فردی", score: 86 },
+        { dimension: "رهبری", score: 92 },
+        { dimension: "ارتباطات", score: 78 },
+        { dimension: "نوآوری", score: 84 },
+        { dimension: "مدیریت زمان", score: 73 },
+        { dimension: "حل مسئله", score: 88 },
+        { dimension: "تصمیم‌گیری", score: 81 },
+        { dimension: "انعطاف‌پذیری", score: 76 },
+        { dimension: "همکاری", score: 89 },
+        { dimension: "هوش هیجانی", score: 94 },
+        { dimension: "تفکر استراتژیک", score: 83 },
+        { dimension: "اخلاق حرفه‌ای", score: 91 },
+        { dimension: "انگیزش", score: 79 },
+        { dimension: "برنامه‌ریزی", score: 87 },
+        { dimension: "تاب‌آوری", score: 82 },
+        { dimension: "مدیریت تعارض", score: 77 },
+        { dimension: "هوش فرهنگی", score: 75 },
+        { dimension: "یادگیری مستمر", score: 90 },
+    ];
 
     useEffect(() => {
         fetchReports();
@@ -61,6 +91,46 @@ const AdminReports = () => {
                     بازگشت به داشبورد
                 </Button>
             </header>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Power Wheel Overview</CardTitle>
+                    <CardDescription>
+                        نمای کلی آزمایشی از عملکرد کلی کاربران شرکت‌کننده در ۱۸ بعد کلیدی.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="h-[420px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart data={powerWheelData} outerRadius="80%">
+                            <defs>
+                                <radialGradient id="powerWheelGradient" cx="50%" cy="50%" r="80%">
+                                    <stop offset="0%" stopColor="#c084fc" stopOpacity={0.8} />
+                                    <stop offset="100%" stopColor="#6366f1" stopOpacity={0.4} />
+                                </radialGradient>
+                            </defs>
+                            <PolarGrid strokeDasharray="4 8" radialLines={false} />
+                            <PolarAngleAxis dataKey="dimension" tick={{ fill: "#475569", fontSize: 12 }} />
+                            <PolarRadiusAxis
+                                angle={90}
+                                domain={[0, 100]}
+                                tick={{ fill: "#94a3b8", fontSize: 10 }}
+                                stroke="#cbd5f5"
+                            />
+                            <Radar
+                                name="امتیاز ترکیبی"
+                                dataKey="score"
+                                stroke="#7c3aed"
+                                strokeWidth={2}
+                                fill="url(#powerWheelGradient)"
+                                fillOpacity={0.7}
+                            />
+                            <RechartsTooltip
+                                formatter={(value: number) => [`${value} از ۱۰۰`, "امتیاز"]}
+                                labelFormatter={(label) => `بعد: ${label}`}
+                            />
+                        </RadarChart>
+                    </ResponsiveContainer>
+                </CardContent>
+            </Card>
             <Card>
                 <CardHeader>
                     <CardTitle>ارزیابی‌های تکمیل شده</CardTitle>
