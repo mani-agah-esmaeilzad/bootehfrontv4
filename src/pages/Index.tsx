@@ -22,34 +22,34 @@ const heroStats = [
 const capabilityCards = [
   {
     icon: BookOpen,
-    title: "تجربه داستانی",
+    title: "گزارش های جامع",
     description:
-      "هر جلسه با یک روایت هدایت‌شده آغاز می‌شود و نقش‌ها به‌صورت مرحله‌ای مسیر را برای کاربر روشن می‌کنند.",
+      "گزارش های جامع با قابلیت شخصی سازی متناسب با نیازهای کاربران مختلف به همراه قابلیت فردی, گروهی و سازمانی",
   },
   {
     icon: PanelsTopLeft,
-    title: "هم‌آهنگی لحظه‌ای",
+    title: "شخصی و بومی سازی شده",
     description:
-      "مبصر، مدیر و کاربر در یک داشبورد مینیمال قرار می‌گیرند تا در لحظه تصمیم‌های خود را هماهنگ کنند.",
+      "ارزیابی های مبتنی بر واقعیت متناسب با شغل. جنسیت و سن افراد و نیازهای سازمان",
   },
   {
     icon: BarChart3,
-    title: "تحلیل شفاف",
+    title: "تطبیق با نقشه شایستگی سازمان",
     description:
-      "نمودارهای ساده اما عمیق، نبض احساس، پیشرفت مهارت و نقاط حساس گفتگو را به تصویر می‌کشند.",
+      "شایستگی های مورد سنجش بر اساس نقشه شایستگی سازمان طراح و افراد بر اساس ملاک های سازمان مورد آزمون قرار می گیرند.",
   },
 ];
 
 const pathMilestones = [
-  { title: "تعریف هدف", caption: "انتخاب نقش‌ها و تنظیم انتظار" },
-  { title: "جریان گفتگو", caption: "پیگیری نقاط اوج روی مسیر خمیده" },
-  { title: "تحلیل پایانی", caption: "جمع‌بندی داده و پیشنهاد بعدی" },
+  { title: "سنجش بر مبنای عملکرد", caption: "هر کاربر یک سفر منحصر به فرد و سفارشی را تجربه می کند. و بینش بی طرفانه ای را در مورد قابلیت های خود دریافت می کند." },
+  { title: "کارنامه عملکرد بدون سوگیری و منحصر به فرد", caption: "ارائه نتایج کامل عملکرد برای هر فرد در شایستگی های مدنظر, با برجسته کردن نقاط قوت و زمینه رشد او" },
+  { title: "حذف فشار زمانی و استرس آزمون", caption: "با فراهم سازی دسترسی ۲۴ ساعته, کاربر در زمان های مناسب میتواند شایستگی های مختلف خود را بیازماید" },
 ];
 
 const chartGallery = [
   {
-    title: "نبض گفتگو",
-    description: "روند انرژی سه نقش در طول جلسه با خطوط نرم و محو دنبال می‌شود.",
+    title: "مدیران",
+    description: "ارزیابی مداوم و دوره ای شایستگی ها در مسیر سفر سازمانی کارکنان",
     accent: "from-purple-500/20 via-white to-white",
     chart: (
       <svg viewBox="0 0 220 120" className="h-32 w-full text-purple-600">
@@ -75,8 +75,8 @@ const chartGallery = [
     ),
   },
   {
-    title: "تحلیل احساس",
-    description: "پراکندگی احساسات مخاطبان با نقطه‌های شاخص روی نمودار موجی نمایش داده می‌شود.",
+    title: "استخدام کنندگان",
+    description: "تعریف شایستگی های مورد نیاز هر شغل و اطمینان از تطبیق آن با شایستگی های شاغل",
     accent: "from-slate-900/10 via-white to-purple-200/20",
     chart: (
       <svg viewBox="0 0 220 120" className="h-32 w-full text-slate-900">
@@ -101,8 +101,8 @@ const chartGallery = [
     ),
   },
   {
-    title: "پیش‌بینی مهارت",
-    description: "ستون‌های مینیمال روند رشد مهارت را برای نقش‌های مختلف نمایش می‌دهند.",
+    title: "کارجویان",
+    description: "برای کسب شناخت از شایستگی های فعلی و میزان تناسب آنها با چشم انداز شغلی و برنامه ریزی برای تقویت شایستگی های مدنظر",
     accent: "from-purple-600/15 via-white to-slate-900/10",
     chart: (
       <svg viewBox="0 0 220 120" className="h-32 w-full text-purple-600">
@@ -201,16 +201,13 @@ const insightStories = [
 
 const footerLinks = [
   {
-    title: "محصول",
-    items: ["جریان گفتگو", "گزارش مدیر", "پلتفرم یادگیری"],
+    title: "لینک های مرتبط",
+    items: ["بلاگ", "کاربران ما", "اچ آر لرنیوم", "اچ آر 720"],
   },
+
   {
-    title: "منابع",
-    items: ["وبینارها", "مستندات", "مجله بینش"],
-  },
-  {
-    title: "ارتباط",
-    items: ["درخواست دمو", "پشتیبانی", "همکاری شرکتی"],
+    title: "ارتباط با ما",
+    items: ["نشانی: تهران, چهارراه جهان کودک, بزرگراه حقانی, مرکز رشد دانشگاه علامه طباطبائی", "شماره تماس: ۰۲۱۷۱۰۵۸۷۲۰", "ایمیل: info@hrbooteh.com", "ما را در شکبه های اجتماعی دنبال کنید: "],
   },
 ];
 
@@ -225,13 +222,13 @@ const Index = () => {
             <Logo variant="large" />
             <nav className="hidden items-center gap-6 text-sm text-slate-500 md:flex">
               <a className="transition hover:text-slate-900" href="#hero">
-                خانه
+                درباره ما
               </a>
               <a className="transition hover:text-slate-900" href="#capabilities">
-                امکانات
+                بلاگ
               </a>
               <a className="transition hover:text-slate-900" href="#path">
-                مسیر
+                تماس با ما
               </a>
               <a className="transition hover:text-slate-900" href="#personality">
                 آزمون‌های شخصیتی
@@ -290,16 +287,26 @@ const Index = () => {
             <div className="space-y-10 text-right">
               <span className="inline-flex items-center gap-2 rounded-full border border-purple-200/60 bg-white/60 px-4 py-2 text-xs font-medium text-purple-600 shadow-sm backdrop-blur">
                 <Sparkles className="h-4 w-4" />
-                نسل جدید هم‌افزایی تیمی
+                نسل جدید ارزیابی شایستگی ها
               </span>
-              <h1 className="text-4xl font-bold leading-tight text-slate-900 md:text-5xl">
-                سکویی مینیمال برای گفتگوهای سه‌نفره با الهام از Wiseworld
+              <h1 className="text-4xl font-bold leading-[1.15!important] text-slate-900 md:text-5xl text-center">
+                ارزیابی شایستگی ها
+                <br />
+                <span className="text-slate-700 text-3xl">
+                  سرعت،&nbsp;
+                  <span className="text-purple-600">
+                    دقت
+                  </span>
+                  ،  کیفیت
+                </span>
+
               </h1>
-              <p className="text-lg leading-9 text-slate-600">
-                بوته با ترکیب خطوط منحنی، نمودارهای آرام و رابطی خنثی، جلسات ارزیابی و کوچینگ را به تجربه‌ای مدرن تبدیل می‌کند.
-                هر نقش مسیر خود را روی خط خمیده پیدا می‌کند و داده‌ها به سادگی خوانده می‌شوند.
-              </p>
-              <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+
+              {/* <p className="text-lg leading-9 text-slate-600">
+                در گذشته زرگر ها برای ذوب کردن طلا یا نقره از ظرفی گلی استفاده می کردند تا ضمن جدا کردن
+                ناخالصی ها به آنها شکل بدهند. انسان نیز وقتی در معرض تجربه جدید قرار می گیرد در حقیقت در بوته آزمایشی نو است تا استعداد بالقوه ی وی ظاهر شود.
+              </p> */}
+              {/* <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
                 <Button
                   variant="default"
                   className="w-full bg-slate-900 px-6 py-3 text-base font-semibold text-white transition hover:bg-slate-800 hover:shadow-lg sm:w-auto"
@@ -315,7 +322,7 @@ const Index = () => {
                   مشاهده دمو
                   <ArrowUpRight className="h-4 w-4" />
                 </Button>
-              </div>
+              </div> */}
               <div className="grid gap-4 sm:grid-cols-3">
                 {heroStats.map(({ label, value }) => (
                   <div
@@ -336,7 +343,7 @@ const Index = () => {
                 <div className="flex items-center justify-between">
                   <div className="space-y-1 text-right">
                     <p className="text-xs text-slate-500">جلسه فعال</p>
-                    <p className="text-2xl font-semibold text-slate-900">گفتگوی سه‌نفره</p>
+                    <p className="text-2xl font-semibold text-slate-900">گفتگو های تعاملی</p>
                   </div>
                   <span className="rounded-full bg-purple-600 px-3 py-1 text-xs font-semibold text-white">آنلاین</span>
                 </div>
@@ -363,7 +370,7 @@ const Index = () => {
                       fill="none"
                       strokeLinecap="round"
                     />
-                    {[{ x: 42, y: 142, label: "راوی" }, { x: 155, y: 94, label: "مبصر" }, { x: 272, y: 58, label: "کاربر" }].map((node) => (
+                    {[{ x: 42, y: 142, label: "گام ۳" }, { x: 155, y: 94, label: "گام ۲" }, { x: 272, y: 58, label: "گام ۱" }].map((node) => (
                       <g key={node.label}>
                         <circle cx={node.x} cy={node.y} r={18} fill="#7C3AED" className="opacity-90" />
                         <text
@@ -381,9 +388,9 @@ const Index = () => {
                   </svg>
                   <div className="absolute inset-x-0 -bottom-4 flex justify-around">
                     {[
-                      { title: "چک‌این", subtitle: "پرسش اولیه" },
-                      { title: "تحلیل", subtitle: "بازخورد زنده" },
-                      { title: "جمع‌بندی", subtitle: "گزارش نهایی" },
+                      { title: "شخصی سازی شده", subtitle: "" },
+                      { title: "بومی سازی شده", subtitle: "" },
+                      { title: "گزارش های حرفه ای", subtitle: "" },
                     ].map((item) => (
                       <div
                         key={item.title}
@@ -402,27 +409,26 @@ const Index = () => {
 
         <section id="capabilities" className="mx-auto w-full max-w-6xl px-4 md:px-6">
           <div className="rounded-[32px] border border-purple-100 bg-white px-6 py-16 shadow-sm md:px-12">
-            <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
-              <div className="max-w-xl space-y-4 text-right">
-                <h2 className="text-3xl font-bold text-slate-900">قابلیت‌های کلیدی</h2>
-                <p className="text-base leading-7 text-slate-600">
-                  مینیمالیسم به ما اجازه می‌دهد روی تجربه تمرکز کنیم. هر کارت برای معرفی یکی از نقاط قوت اصلی پلتفرم طراحی شده است.
-                </p>
+            <div className="flex flex-col items-center gap-8 text-center">
+              <div className="max-w-xl space-y-4">
+                <h2 className="text-3xl font-bold text-slate-900">قدرت گرفته از</h2>
+                <div className="flex flex-wrap justify-center gap-3 text-xs text-slate-500">
+
+                  <span className="inline-flex items-center gap-2 rounded-full border border-purple-200/70 px-4 py-2">
+                    <PanelsTopLeft className="h-4 w-4 text-purple-500" />
+                    هوش مصنوعی
+                  </span>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-purple-200/70 px-4 py-2">
+                    <UsersRound className="h-4 w-4 text-purple-500" />
+                    گیمیفیکشن
+                  </span>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-purple-200/70 px-4 py-2">
+                    <ShieldCheck className="h-4 w-4 text-purple-500" />
+                    سناریو محیط واقتی
+                  </span>
+                </div>
               </div>
-              <div className="flex flex-wrap justify-end gap-3 text-xs text-slate-500">
-                <span className="inline-flex items-center gap-2 rounded-full border border-purple-200/70 px-4 py-2">
-                  <PanelsTopLeft className="h-4 w-4 text-purple-500" />
-                  طراحی هوشمند
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-purple-200/70 px-4 py-2">
-                  <UsersRound className="h-4 w-4 text-purple-500" />
-                  سه نقش هماهنگ
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-purple-200/70 px-4 py-2">
-                  <ShieldCheck className="h-4 w-4 text-purple-500" />
-                  امنیت داده
-                </span>
-              </div>
+
             </div>
             <div className="mt-12 grid gap-6 md:grid-cols-3">
               {capabilityCards.map(({ icon: Icon, title, description }) => (
@@ -462,9 +468,9 @@ const Index = () => {
           </div>
           <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 md:px-6">
             <div className="space-y-4 text-right text-white">
-              <h2 className="text-3xl font-bold">مسیر حرکت تیم شما</h2>
+              <h2 className="text-3xl font-bold">بوته چگونه کار میکند.</h2>
               <p className="max-w-2xl text-base leading-7 text-white/85">
-                خط خمیده‌ی مسیر از شروع تا تحلیل نهایی را نشان می‌دهد و نقاط کلیدی را با درخشش‌های ظریف مشخص می‌کند.
+                بوته همانند روش های تصویربرداری پزشکی می تواند درک مناسبی از وضعیت شایستگی های کاربران ارائه دهد.
               </p>
             </div>
             <div className="grid gap-6 md:grid-cols-3">
@@ -486,9 +492,9 @@ const Index = () => {
           <div className="rounded-[32px] border border-purple-100 bg-white px-6 py-16 shadow-sm md:px-12">
             <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
               <div className="max-w-xl space-y-4 text-right">
-                <h2 className="text-3xl font-bold text-slate-900">نگاه بصری به داده‌ها</h2>
+                <h2 className="text-3xl font-bold text-slate-900">بوته برای چه کسانی مناسب است</h2>
                 <p className="text-base leading-7 text-slate-600">
-                  مجموعه‌ای از نمودارهای نرم و ساده که بینش لازم برای تصمیم‌های بعدی را فراهم می‌کنند.
+                  بوته برای طیف گسترده ای از مخاطبان طراحی شده است.
                 </p>
               </div>
               <Button
@@ -633,9 +639,9 @@ const Index = () => {
           <div className="relative overflow-hidden rounded-[32px] border border-purple-100 bg-slate-900 px-6 py-16 text-white md:px-12">
             <div className="absolute -right-24 h-48 w-48 rounded-full bg-purple-500/30 blur-3xl" />
             <div className="relative space-y-6 text-center">
-              <h2 className="text-3xl font-bold">آماده ورود به گفتگوی نسل جدید هستید؟</h2>
+              <h2 className="text-3xl font-bold">آماده ورود به بوته آزمون هستید؟</h2>
               <p className="mx-auto max-w-2xl text-base leading-7 text-slate-200">
-                تنها چند گام تا راه‌اندازی سفر گفتگو باقی مانده است. تیم شما از اولین لحظه، دقت و سادگی طراحی را لمس خواهد کرد.
+                تنها چند قدم تا کشف دقیق شایستگی های کارکنان شما باقی مانده! فقط کافیست با کارشناسان ما تماس بگیرید.
               </p>
               <div className="flex flex-col justify-center gap-3 sm:flex-row">
                 <Button
@@ -643,14 +649,14 @@ const Index = () => {
                   className="w-full bg-purple-500 px-6 py-3 text-base font-semibold text-white transition hover:bg-purple-600 hover:shadow-lg sm:w-auto"
                   onClick={() => navigate("/register")}
                 >
-                  شروع رایگان
+                  شروع رایگان با آزمون های شخصیت
                 </Button>
                 <Button
                   variant="ghost"
                   className="w-full bg-white/10 px-6 py-3 text-base font-semibold text-white transition hover:bg-white/20 hover:shadow-lg sm:w-auto"
                   onClick={() => navigate("/login")}
                 >
-                  ورود به حساب کاربری
+                  تماس با کارشناسان
                 </Button>
               </div>
             </div>
@@ -662,35 +668,85 @@ const Index = () => {
           <div className="space-y-5 text-right">
             <Logo variant="large" />
             <p className="text-sm leading-6 text-slate-600">
-              سکوی گفتگوی سه‌نفره برای سازمان‌هایی که به دنبال تصمیم‌گیری آگاهانه و سریع هستند.
+              سنجش , رشد , تعالی
             </p>
-            <div className="flex items-center justify-end gap-3 text-sm">
-              <Button
-                variant="ghost"
-                className="text-slate-600 transition hover:bg-purple-50 hover:text-slate-900"
-                onClick={() => navigate("/login")}
-              >
-                ورود
-              </Button>
-              <Button
-                variant="default"
-                className="bg-purple-600 px-5 text-white hover:bg-purple-700"
-                onClick={() => navigate("/register")}
-              >
-                شروع کنید
-              </Button>
-            </div>
           </div>
+
           {footerLinks.map((column) => (
             <div key={column.title} className="space-y-3 text-right text-sm">
               <p className="text-sm font-semibold text-slate-900">{column.title}</p>
               <ul className="space-y-2 text-slate-600">
-                {column.items.map((item) => (
-                  <li key={item} className="transition hover:text-slate-900">
-                    {item}
-                  </li>
-                ))}
+                {column.items.map((item, index) => {
+                  // لینک قابل کلیک برای شماره تلفن
+                  if (item.includes("شماره تماس")) {
+                    const phone = item.match(/\d+/g)?.join("") || "";
+                    return (
+                      <li key={index}>
+                        <a
+                          href={`tel:${phone}`}
+                          className="transition hover:text-purple-600"
+                        >
+                          {item}
+                        </a>
+                      </li>
+                    );
+                  }
+
+                  // لینک آدرس ایمیل
+                  if (item.includes("ایمیل")) {
+                    const email = item.split(":")[1].trim();
+                    return (
+                      <li key={index}>
+                        <a
+                          href={`mailto:${email}`}
+                          className="transition hover:text-purple-600"
+                        >
+                          {item}
+                        </a>
+                      </li>
+                    );
+                  }
+
+                  return <li key={index}>{item}</li>;
+                })}
               </ul>
+
+              {/* آیکون‌های شبکه‌های اجتماعی */}
+              {column.title === "ارتباط با ما" && (
+                <div className="flex justify-end gap-3 pt-3">
+                  <a
+                    href="https://t.me/hrbooteh"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 text-purple-700 transition hover:bg-purple-200"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                      className="h-4 w-4"
+                    >
+                      <path d="M9.5 16.5l.4-3.2 6.5-5.9-8.4 5.3-3.1-1 .1.5 3.5 1.4-1.2 3.8 2.2-.9zM21.9 2.1c.3.2.4.5.3.8L18.4 21c-.1.5-.5.8-.9.8h-.1c-.2 0-.5-.1-.6-.2l-4.9-3.7-2.7 2.6c-.2.2-.5.3-.8.3-.2 0-.4-.1-.6-.2a.9.9 0 01-.4-.8v-5.6L19.2 4l-14.8 9-.4-1.5c0-.2 0-.3.1-.5.1-.2.2-.3.4-.4l17-6.9c.3-.1.6-.1.9.1z" />
+                    </svg>
+                  </a>
+
+                  <a
+                    href="https://www.linkedin.com/company/hrbooteh"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 text-purple-700 transition hover:bg-purple-200"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                      className="h-4 w-4"
+                    >
+                      <path d="M19 0h-14C2.2 0 0 2.2 0 5v14c0 2.8 2.2 5 5 5h14c2.8 0 5-2.2 5-5V5c0-2.8-2.2-5-5-5zm-8 19H7V9h4v10zm-2-11.2c-1 0-1.8-.8-1.8-1.8S7 4.2 8 4.2 9.8 5 9.8 6 9 7.8 8 7.8zm11 11.2h-4v-5.4c0-1.3-.5-2.2-1.6-2.2-1 0-1.5.7-1.7 1.4v6.2h-4V9h4v1.4c.6-.9 1.5-1.6 2.9-1.6 2.1 0 3.4 1.4 3.4 4.3V19z" />
+                    </svg>
+                  </a>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -700,10 +756,11 @@ const Index = () => {
           <div className="flex gap-4">
             <span>حریم خصوصی</span>
             <span>شرایط استفاده</span>
-            <span>حمایت</span>
+            <span>سوالات متداول</span>
           </div>
         </div>
       </footer>
+
     </div>
   );
 };
