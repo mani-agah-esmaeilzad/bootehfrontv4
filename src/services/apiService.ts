@@ -2,6 +2,10 @@
 
 // const API_BASE_URL = import.meta.env.API_BASE_URL;
 const API_BASE_URL = 'https://hrbooteh.com/api';
+const API_BASE_ORIGIN =
+    typeof window !== "undefined"
+        ? window.location.origin
+        : API_BASE_URL.replace(/\/api\/?$/, "");
 
 export const resolveApiAssetUrl = (path?: string | null): string => {
     if (!path) return '';
@@ -12,7 +16,7 @@ export const resolveApiAssetUrl = (path?: string | null): string => {
     }
     try {
         const target = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-        return new URL(target, API_BASE_URL).toString();
+        return new URL(target, API_BASE_ORIGIN).toString();
     } catch {
         return trimmed;
     }
