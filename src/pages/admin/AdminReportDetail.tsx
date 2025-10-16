@@ -35,11 +35,13 @@ import {
   ScatterChart,
   Scatter,
   Treemap,
+  CartesianGrid,
+  ReferenceLine,
 } from "recharts";
 
-import { SpiderChart } from '@/components/ui/SpiderChart';
-import { ReportPDFLayout } from '@/components/pdf/ReportPDFLayout';
-import { withRtlFields } from '@/lib/reports';
+import { SpiderChart } from "@/components/ui/SpiderChart";
+import { ReportPDFLayout } from "@/components/pdf/ReportPDFLayout";
+import { withRtlFields } from "@/lib/reports";
 
 interface ReportDetail {
   id: number;
@@ -53,8 +55,36 @@ interface ReportDetail {
   analysis: any;
 }
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#A020F0", "#FF69B4"];
+const COLORS = ["#0ea5e9", "#22c55e", "#f97316", "#6366f1", "#facc15", "#ec4899"];
 const toNum = (val: any): number => Number(val) || 0;
+
+const tooltipStyle = {
+  backgroundColor: "rgba(15,23,42,0.92)",
+  borderRadius: "12px",
+  border: "none",
+  color: "#f8fafc",
+  boxShadow: "0 12px 30px -12px rgba(15,23,42,0.65)",
+  direction: "rtl" as const,
+};
+
+const axisProps = {
+  tickLine: false,
+  axisLine: { stroke: "#cbd5f5" },
+  tick: { fill: "#475569", fontSize: 12 },
+};
+
+const verticalAxisProps = {
+  ...axisProps,
+  tick: { fill: "#475569", fontSize: 11 },
+};
+
+const chartGridColor = "rgba(148, 163, 184, 0.25)";
+
+const noData = (message = "داده‌ای وجود ندارد.") => (
+  <div className="flex h-full items-center justify-center rounded-lg bg-slate-50 text-center text-sm text-muted-foreground">
+    {message}
+  </div>
+);
 
 const AdminReportDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -178,6 +208,10 @@ const AdminReportDetail = () => {
       ...i,
       word_count: toNum(i.word_count),
     })) || [];
+  const averageWordCount =
+    analysis.average_word_count !== undefined && analysis.average_word_count !== null
+      ? toNum(analysis.average_word_count)
+      : null;
   const actionData = analysis.action_orientation
     ? [
         {
@@ -187,6 +221,8 @@ const AdminReportDetail = () => {
         },
       ]
     : [];
+  const confidenceScore = toNum(analysis.confidence_level?.score);
+  const confidenceAngle = Math.min(Math.max(confidenceScore, 0), 10) * 36;
   const problemSolvingData = analysis.problem_solving_approach
     ? Object.entries(analysis.problem_solving_approach).map(([name, value]) => ({
         name,
@@ -411,19 +447,43 @@ const AdminReportDetail = () => {
             <CardTitle>۱. تحلیل احساسات</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer>
-              <PieChart>
-                {sentimentData.length > 0 && (
-                  <Pie data={sentimentData} dataKey="value" nameKey="name" outerRadius={80} label>
+            {sentimentData.length === 0 ? (
+              noData()
+            ) : (
+              <ResponsiveContainer>
+                <PieChart>
+                  <defs>
+                    <radialGradient id="sentimentGradient" cx="0.5" cy="0.5" r="0.75">
+                      <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#6366f1" stopOpacity={0.8} />
+                    </radialGradient>
+                  </defs>
+                  <Pie
+                    data={sentimentData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={55}
+                    outerRadius={90}
+                    paddingAngle={3}
+                    stroke="rgba(15,23,42,0.1)"
+                    strokeWidth={2}
+                    label={({ name, value }) => `${name} (%${value})`}
+                    labelLine={false}
+                    fill="url(#sentimentGradient)"
+                  >
                     {sentimentData.map((entry, index) => (
                       <Cell key={index} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                )}
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Legend
+                    wrapperStyle={{ paddingTop: 12 }}
+                    iconType="circle"
+                    formatter={(value) => <span className="text-xs text-slate-600">{value}</span>}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -431,14 +491,25 @@ const AdminReportDetail = () => {
             <CardTitle>۲. کلمات کلیدی</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer>
-              <BarChart data={keywordData} layout="vertical">
-                <XAxis type="number" />
-                <YAxis type="category" dataKey="keyword" width={80} />
-                <Tooltip />
-                <Bar dataKey="mentions" fill="#82ca9d" />
-              </BarChart>
-            </ResponsiveContainer>
+            {keywordData.length === 0 ? (
+              noData("کلمه کلیدی ثبت نشده است.")
+            ) : (
+              <ResponsiveContainer>
+                <BarChart data={keywordData} layout="vertical" barCategoryGap={18}>
+                  <CartesianGrid stroke={chartGridColor} horizontal={false} />
+                  <XAxis type="number" {...axisProps} />
+                  <YAxis type="category" dataKey="keyword" width={100} {...verticalAxisProps} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [`${value} تکرار`, "ذکر شده"]} />
+                  <defs>
+                    <linearGradient id="keywordGradient" x1="0" x2="1" y1="0" y2="0">
+                      <stop offset="0%" stopColor="#22c55e" />
+                      <stop offset="100%" stopColor="#0ea5e9" />
+                    </linearGradient>
+                  </defs>
+                  <Bar dataKey="mentions" radius={[10, 10, 10, 10]} fill="url(#keywordGradient)" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -446,14 +517,39 @@ const AdminReportDetail = () => {
             <CardTitle>۳. روند پرحرفی</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer>
-              <LineChart data={verbosityData}>
-                <XAxis dataKey="turn" />
-                <YAxis />
-                <Tooltip />
-                <Line dataKey="word_count" stroke="#ffc658" />
-              </LineChart>
-            </ResponsiveContainer>
+            {verbosityData.length === 0 ? (
+              noData("داده‌ای برای روند گفتگو وجود ندارد.")
+            ) : (
+              <ResponsiveContainer>
+                <LineChart data={verbosityData}>
+                  <defs>
+                    <linearGradient id="verbosityGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#f97316" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#facc15" stopOpacity={0.4} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke={chartGridColor} />
+                  <XAxis dataKey="turn" {...axisProps} />
+                  <YAxis {...axisProps} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(value: number) => [`${value} کلمه`, "حجم پاسخ"]}
+                    labelFormatter={(label: string | number) => `نوبت ${label}`}
+                  />
+                  {averageWordCount !== null && (
+                    <ReferenceLine y={averageWordCount} strokeDasharray="4 6" stroke="#6366f1" />
+                  )}
+                  <Line
+                    type="monotone"
+                    dataKey="word_count"
+                    stroke="url(#verbosityGradient)"
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: "#f97316", strokeWidth: 2, stroke: "#fff" }}
+                    activeDot={{ r: 6, strokeWidth: 0 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -461,16 +557,31 @@ const AdminReportDetail = () => {
             <CardTitle>۴. کنش‌محوری</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer>
-              <BarChart data={actionData}>
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="action_words" fill="#8884d8" />
-                <Bar dataKey="passive_words" fill="#82ca9d" />
-              </BarChart>
-            </ResponsiveContainer>
+            {actionData.length === 0 ? (
+              noData("داده‌ای برای مقایسه واژگان کنشی موجود نیست.")
+            ) : (
+              <ResponsiveContainer>
+                <BarChart data={actionData} barSize={32}>
+                  <CartesianGrid stroke={chartGridColor} />
+                  <XAxis dataKey="name" {...axisProps} />
+                  <YAxis {...axisProps} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(value: number, key: string) => [
+                      `${value} واژه`,
+                      key === "action_words" ? "واژگان کنشی" : "واژگان غیرکنشی",
+                    ]}
+                  />
+                  <Legend
+                    wrapperStyle={{ paddingTop: 10 }}
+                    iconType="circle"
+                    formatter={(value) => <span className="text-xs text-slate-600">{value}</span>}
+                  />
+                  <Bar dataKey="action_words" radius={[8, 8, 0, 0]} fill="#6366f1" />
+                  <Bar dataKey="passive_words" radius={[8, 8, 0, 0]} fill="#22c55e" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -478,36 +589,65 @@ const AdminReportDetail = () => {
             <CardTitle>۵. رویکرد حل مسئله</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer>
-              <PieChart>
-                {problemSolvingData.length > 0 && (
+            {problemSolvingData.length === 0 ? (
+              noData("داده‌ای از رویکرد حل مسئله ثبت نشده است.")
+            ) : (
+              <ResponsiveContainer>
+                <PieChart>
                   <Pie
                     data={problemSolvingData}
                     dataKey="value"
                     nameKey="name"
                     innerRadius={60}
-                    outerRadius={80}
-                    label
+                    outerRadius={90}
+                    paddingAngle={4}
+                    stroke="rgba(15,23,42,0.12)"
+                    strokeWidth={2}
+                    label={({ name, value }) => `${name}: ${value}`}
+                    labelLine={false}
                   >
                     {problemSolvingData.map((entry, index) => (
                       <Cell key={index} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                )}
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Legend
+                    wrapperStyle={{ paddingTop: 12 }}
+                    iconType="circle"
+                    formatter={(value) => <span className="text-xs text-slate-600">{value}</span>}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardTitle>۶. سطح اطمینان</CardTitle>
           </CardHeader>
-          <CardContent className="flex h-64 items-center justify-center">
-            <p className="text-6xl font-bold text-blue-700">
-              {toNum(analysis.confidence_level?.score)}/10
-            </p>
+          <CardContent className="flex h-64 flex-col items-center justify-center gap-3">
+            {analysis.confidence_level ? (
+              <>
+                <div
+                  className="relative flex h-36 w-36 items-center justify-center rounded-full bg-slate-100 shadow-inner"
+                  style={{
+                    background: `conic-gradient(#38bdf8 0deg ${confidenceAngle}deg, #e2e8f0 ${confidenceAngle}deg 360deg)`,
+                  }}
+                >
+                  <div className="flex h-28 w-28 flex-col items-center justify-center rounded-full bg-white">
+                    <span className="text-4xl font-bold text-slate-800">
+                      {confidenceScore}
+                    </span>
+                    <span className="text-xs text-muted-foreground">از ۱۰</span>
+                  </div>
+                </div>
+                <p className="max-w-[220px] text-center text-xs text-muted-foreground">
+                  {analysis.confidence_level?.comment || "شاخص اعتماد به نفس محاسبه شده بر اساس تحلیل گفتار."}
+                </p>
+              </>
+            ) : (
+              noData("سطح اطمینان موجود نیست.")
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -515,54 +655,101 @@ const AdminReportDetail = () => {
             <CardTitle>۷. سبک ارتباطی</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer>
-              <BarChart data={commStyle}>
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="#A020F0" />
-              </BarChart>
-            </ResponsiveContainer>
+            {commStyle.length === 0 ? (
+              noData("تحلیلی برای سبک ارتباطی موجود نیست.")
+            ) : (
+              <ResponsiveContainer>
+                <BarChart data={commStyle} barCategoryGap={20}>
+                  <CartesianGrid stroke={chartGridColor} vertical={false} />
+                  <XAxis dataKey="name" {...axisProps} />
+                  <YAxis {...axisProps} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [`${value}`, "امتیاز"]} />
+                  <defs>
+                    <linearGradient id="commGradient" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor="#ec4899" />
+                      <stop offset="100%" stopColor="#6366f1" />
+                    </linearGradient>
+                  </defs>
+                  <Bar dataKey="value" radius={[10, 10, 4, 4]} fill="url(#commGradient)" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>۸. توزیع نمرات (Histogram)</CardTitle>
+            <CardTitle>۸. توزیع نمرات</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer>
-              <AreaChart data={chartData}>
-                <XAxis dataKey="subject" />
-                <YAxis />
-                <Tooltip />
-                <Area dataKey="score" stroke="#8884d8" fill="#8884d8" />
-              </AreaChart>
-            </ResponsiveContainer>
+            {chartData.length === 0 ? (
+              noData("داده‌ای برای نمرات فاکتور‌ها موجود نیست.")
+            ) : (
+              <ResponsiveContainer>
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="scoreArea" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.8} />
+                      <stop offset="100%" stopColor="#38bdf8" stopOpacity={0.2} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke={chartGridColor} />
+                  <XAxis dataKey="subject" {...axisProps} interval={0} angle={-20} textAnchor="end" height={60} />
+                  <YAxis {...axisProps} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [`${value}`, "امتیاز"]} />
+                  <Area
+                    dataKey="score"
+                    type="monotone"
+                    stroke="#0ea5e9"
+                    strokeWidth={3}
+                    fill="url(#scoreArea)"
+                    activeDot={{ r: 6, stroke: "#fff", strokeWidth: 2 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>۹. همبستگی فاکتورها (Scatter)</CardTitle>
+            <CardTitle>۹. همبستگی فاکتورها</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer>
-              <ScatterChart>
-                <XAxis dataKey="score" />
-                <YAxis dataKey="fullMark" />
-                <Tooltip />
-                <Scatter data={chartData} fill="#FF8042" />
-              </ScatterChart>
-            </ResponsiveContainer>
+            {chartData.length === 0 ? (
+              noData()
+            ) : (
+              <ResponsiveContainer>
+                <ScatterChart>
+                  <CartesianGrid stroke={chartGridColor} />
+                  <XAxis dataKey="score" name="امتیاز" {...axisProps} />
+                  <YAxis dataKey="fullMark" name="حداکثر" {...axisProps} />
+                  <Tooltip
+                    cursor={{ strokeDasharray: "4 4" }}
+                    contentStyle={tooltipStyle}
+                    formatter={(value: number, name: string) => [`${value}`, name === "score" ? "امتیاز" : "حداکثر"]}
+                  />
+                  <Scatter
+                    data={chartData}
+                    fill="#f97316"
+                    shape="circle"
+                    legendType="circle"
+                  />
+                </ScatterChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>۱۰. سهم فاکتورها (Treemap)</CardTitle>
+            <CardTitle>۱۰. سهم فاکتورها</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer>
-              <Treemap data={chartData} dataKey="score" nameKey="subject" stroke="#fff" fill="#8884d8" />
-            </ResponsiveContainer>
+            {chartData.length === 0 ? (
+              noData()
+            ) : (
+              <ResponsiveContainer>
+                <Treemap data={chartData} dataKey="score" nameKey="subject" stroke="#fff" fill="#6366f1" />
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -570,14 +757,25 @@ const AdminReportDetail = () => {
             <CardTitle>۱۱. شاخص‌های زبانی</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer>
-              <RadarChart data={semanticRadar}>
-                <PolarGrid />
-                <PolarAngleAxis dataKey="name" />
-                <PolarRadiusAxis />
-                <Radar name="Semantic" dataKey="value" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
-              </RadarChart>
-            </ResponsiveContainer>
+            {semanticRadar.every((entry) => !entry.value) ? (
+              noData("شاخص‌های زبانی محاسبه نشده‌اند.")
+            ) : (
+              <ResponsiveContainer>
+                <RadarChart data={semanticRadar} outerRadius="75%">
+                  <PolarGrid stroke={chartGridColor} />
+                  <PolarAngleAxis dataKey="name" tick={{ fill: "#475569", fontSize: 11 }} />
+                  <PolarRadiusAxis stroke="#cbd5f5" tick={{ fill: "#475569", fontSize: 10 }} />
+                  <Radar
+                    name="شاخص زبانی"
+                    dataKey="value"
+                    stroke="#6366f1"
+                    fill="#6366f1"
+                    fillOpacity={0.4}
+                  />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [`${value}`, "امتیاز"]} />
+                </RadarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -585,19 +783,34 @@ const AdminReportDetail = () => {
             <CardTitle>۱۲. استفاده از ضمایر</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer>
-              <PieChart>
-                {pronouns.length > 0 && (
-                  <Pie data={pronouns} dataKey="value" nameKey="name" outerRadius={80} label>
+            {pronouns.every((entry) => !entry.value) ? (
+              noData("تحلیلی از ضمایر یافت نشد.")
+            ) : (
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={pronouns}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={50}
+                    outerRadius={90}
+                    paddingAngle={2}
+                    label={({ name, value }) => `${name}: ${value}`}
+                    labelLine={false}
+                  >
                     {pronouns.map((entry, index) => (
                       <Cell key={index} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                )}
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Legend
+                    wrapperStyle={{ paddingTop: 12 }}
+                    iconType="circle"
+                    formatter={(value) => <span className="text-xs text-slate-600">{value}</span>}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -605,14 +818,25 @@ const AdminReportDetail = () => {
             <CardTitle>۱۳. حوزه‌های معنایی پرتکرار</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer>
-              <BarChart data={semanticFields} layout="vertical">
-                <XAxis type="number" />
-                <YAxis dataKey="field" type="category" width={100} />
-                <Tooltip />
-                <Bar dataKey="mentions" fill="#82ca9d" />
-              </BarChart>
-            </ResponsiveContainer>
+            {semanticFields.length === 0 ? (
+              noData("حوزه معنایی شناسایی نشد.")
+            ) : (
+              <ResponsiveContainer>
+                <BarChart data={semanticFields} layout="vertical" barCategoryGap={20}>
+                  <CartesianGrid stroke={chartGridColor} horizontal={false} />
+                  <XAxis type="number" {...axisProps} />
+                  <YAxis dataKey="field" type="category" width={120} {...verticalAxisProps} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [`${value} بار`, "تکرار"]} />
+                  <defs>
+                    <linearGradient id="semanticGradient" x1="0" x2="1" y1="0" y2="0">
+                      <stop offset="0%" stopColor="#22c55e" />
+                      <stop offset="100%" stopColor="#facc15" />
+                    </linearGradient>
+                  </defs>
+                  <Bar dataKey="mentions" radius={[12, 12, 12, 12]} fill="url(#semanticGradient)" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>
