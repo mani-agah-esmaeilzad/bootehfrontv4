@@ -12,8 +12,9 @@ const getToken = (endpoint: string): string | null => {
 
 const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     const token = getToken(endpoint);
+    const isFormData = options.body instanceof FormData;
     const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...(options.headers as Record<string, string>),
     };
     if (token) {
@@ -236,3 +237,19 @@ export const adminUpdateMysteryAssessment = async (id: number, data: MysteryAsse
 
 export const adminDeleteMysteryAssessment = async (id: number) =>
     await apiFetch(`admin/mystery/${id}`, { method: 'DELETE' });
+
+export const adminUploadMysteryImage = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = localStorage.getItem('adminAuthToken');
+    const response = await fetch(`${API_BASE_URL}/admin/mystery/images/upload`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: formData,
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'آپلود تصویر با خطا مواجه شد' }));
+        throw new Error(errorData.message || 'آپلود تصویر با خطا مواجه شد');
+    }
+    return response.json();
+};

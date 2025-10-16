@@ -1,6 +1,6 @@
 // src/pages/admin/AdminMysteryAssessments.tsx
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,8 +24,9 @@ import {
   adminDeleteMysteryAssessment,
   adminGetMysteryAssessments,
   adminUpdateMysteryAssessment,
+  adminUploadMysteryImage,
 } from "@/services/apiService";
-import { LoaderCircle, Pencil, PlusCircle, Trash2, ImagePlus } from "lucide-react";
+import { LoaderCircle, Pencil, PlusCircle, Trash2, ImagePlus, Upload } from "lucide-react";
 
 type MysteryImage = {
   id?: number;
@@ -90,6 +91,8 @@ const AdminMysteryAssessments = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAssessment, setEditingAssessment] = useState<MysteryAssessment | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+  const fileInputsRef = useRef<Record<string, HTMLInputElement | null>>({});
 
   const form = useForm<MysteryFormValues>({
     resolver: zodResolver(assessmentSchema),
@@ -209,6 +212,34 @@ const AdminMysteryAssessments = () => {
   };
 
   const assessmentsCount = useMemo(() => assessments.length, [assessments]);
+
+  const triggerUploadDialog = (fieldId: string) => {
+    const node = fileInputsRef.current[fieldId];
+    node?.click();
+  };
+
+  const handleFileSelection = async (index: number, event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploadingIndex(index);
+    try {
+      const response = await adminUploadMysteryImage(file);
+      if (response.success) {
+        const url = response.data?.url;
+        if (url) {
+          form.setValue(`images.${index}.image_url`, url, { shouldDirty: true });
+          toast.success("تصویر با موفقیت بارگذاری شد.");
+        }
+      } else {
+        throw new Error(response.message || "آپلود تصویر ناموفق بود");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "آپلود تصویر ناموفق بود");
+    } finally {
+      setUploadingIndex(null);
+      event.target.value = "";
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -420,9 +451,9 @@ const AdminMysteryAssessments = () => {
                 </div>
                 <div className="space-y-4">
                   {fields.map((field, index) => (
-                    <div key={field.id} className="rounded-3xl border border-purple-100 bg-purple-50/40 p-5">
-                      <div className="mb-3 flex items-center justify-between">
-                        <span className="text-sm font-semibold text-slate-700">تصویر {index + 1}</span>
+                  <div key={field.id} className="rounded-3xl border border-purple-100 bg-purple-50/40 p-5">
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="text-sm font-semibold text-slate-700">تصویر {index + 1}</span>
                         {fields.length > 1 ? (
                           <Button
                             type="button"
@@ -435,19 +466,61 @@ const AdminMysteryAssessments = () => {
                           </Button>
                         ) : null}
                       </div>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <FormField
-                          control={form.control}
-                          name={`images.${index}.image_url` as const}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>آدرس تصویر</FormLabel>
-                              <FormControl>
-                                <Input placeholder="https://example.com/image.jpg" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="md:col-span-2">
+                        <div className="flex flex-col gap-3 rounded-2xl border border-purple-100 bg-white/70 p-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-slate-600">پیش‌نمایش تصویر</span>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-2"
+                              onClick={() => triggerUploadDialog(field.id)}
+                              disabled={uploadingIndex === index}
+                            >
+                              {uploadingIndex === index ? (
+                                <LoaderCircle className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Upload className="h-4 w-4" />
+                              )}
+                              بارگذاری تصویر
+                            </Button>
+                          </div>
+                          <div className="flex items-center justify-center overflow-hidden rounded-xl bg-slate-100 p-3">
+                            {form.watch(`images.${index}.image_url`) ? (
+                              <img
+                                src={form.watch(`images.${index}.image_url`)}
+                                alt={`preview-${index}`}
+                                className="max-h-48 w-full rounded-lg object-cover"
+                              />
+                            ) : (
+                              <span className="text-xs text-slate-400">هنوز تصویری انتخاب نشده است.</span>
+                            )}
+                          </div>
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            className="hidden"
+                            ref={(node) => {
+                              fileInputsRef.current[field.id] = node;
+                            }}
+                            onChange={(event) => handleFileSelection(index, event)}
+                          />
+                        </div>
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name={`images.${index}.image_url` as const}
+                        render={({ field: imageField }) => (
+                          <FormItem>
+                            <FormLabel>آدرس تصویر</FormLabel>
+                            <FormControl>
+                                <Input placeholder="https://example.com/image.jpg" {...imageField} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                         />
                         <FormField
                           control={form.control}
