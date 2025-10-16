@@ -691,57 +691,6 @@ const Index = () => {
           </div>
         </section>
 
-        <section
-          id="insights"
-          className="relative overflow-hidden border-y border-purple-100/70 bg-gradient-to-tr from-purple-50 via-white to-white py-20"
-        >
-          <div className="absolute inset-0 opacity-40">
-            <svg viewBox="0 0 1440 600" className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M0 480C180 420 360 320 540 360C720 400 900 560 1080 520C1260 480 1350 360 1440 320"
-                stroke="rgba(124,58,237,0.18)"
-                strokeWidth="3"
-                fill="none"
-              />
-            </svg>
-          </div>
-          <div className="relative mx-auto w-full max-w-6xl px-4 md:px-6">
-            <div className="flex flex-col gap-10 md:flex-row md:items-center md:justify-between">
-              <div className="max-w-xl space-y-4 text-right">
-                <h2 className="text-3xl font-bold text-slate-900">بینش‌های قابل عمل</h2>
-                <p className="text-base leading-7 text-slate-700">
-                  کارت‌های داده با نمودارهای کوچک و اعداد کلیدی نشان می‌دهند چگونه تیم شما به سمت هدف حرکت می‌کند.
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                className="text-sm font-semibold text-purple-600 transition hover:bg-purple-50 hover:text-purple-700"
-                onClick={() => navigate("/login")}
-              >
-                مرور همه گزارش‌ها
-              </Button>
-            </div>
-            <div className="mt-12 grid gap-6 md:grid-cols-3">
-              {insightStories.map((story) => (
-                <div
-                  key={story.title}
-                  className="flex h-full flex-col justify-between rounded-3xl border border-purple-100 bg-white/80 p-7 text-right shadow-sm backdrop-blur"
-                >
-                  <div className="space-y-3">
-                    <span className="inline-flex items-center gap-2 rounded-full bg-purple-50 px-3 py-1 text-xs text-purple-600">
-                      <LineChart className="h-4 w-4" />
-                      {story.label}
-                    </span>
-                    <h3 className="text-lg font-semibold text-slate-900">{story.title}</h3>
-                    <p className="text-sm leading-6 text-slate-700">{story.description}</p>
-                  </div>
-                  <p className="mt-6 text-3xl font-bold text-slate-900">{story.metric}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         <section className="mx-auto w-full max-w-5xl px-4 md:px-6">
           <div className="relative overflow-hidden rounded-[32px] border border-purple-100 bg-slate-900 px-6 py-16 text-white md:px-12">
             <div className="absolute -right-24 h-48 w-48 rounded-full bg-purple-500/30 blur-3xl" />
