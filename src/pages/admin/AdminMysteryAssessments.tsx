@@ -25,6 +25,7 @@ import {
   adminGetMysteryAssessments,
   adminUpdateMysteryAssessment,
   adminUploadMysteryImage,
+  resolveApiAssetUrl,
 } from "@/services/apiService";
 import { LoaderCircle, Pencil, PlusCircle, Trash2, ImagePlus, Upload } from "lucide-react";
 
@@ -494,15 +495,19 @@ const AdminMysteryAssessments = () => {
                             </Button>
                           </div>
                           <div className="flex items-center justify-center overflow-hidden rounded-xl bg-slate-100 p-3">
-                            {form.watch(`images.${index}.image_url`) ? (
-                              <img
-                                src={form.watch(`images.${index}.image_url`)}
+                            {(() => {
+                              const raw = form.watch(`images.${index}.image_url`);
+                              const previewSrc = resolveApiAssetUrl(raw);
+                              return raw ? (
+                                <img
+                                src={previewSrc}
                                 alt={`preview-${index}`}
                                 className="max-h-48 w-full rounded-lg object-cover"
                               />
-                            ) : (
-                              <span className="text-xs text-slate-400">هنوز تصویری انتخاب نشده است.</span>
-                            )}
+                              ) : (
+                                <span className="text-xs text-slate-400">هنوز تصویری انتخاب نشده است.</span>
+                              );
+                            })()}
                           </div>
                           <input
                             type="file"

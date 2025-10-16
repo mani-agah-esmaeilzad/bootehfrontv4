@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LoaderCircle, ArrowLeft } from "lucide-react";
-import { getMysteryTest } from "@/services/apiService";
+import { getMysteryTest, resolveApiAssetUrl } from "@/services/apiService";
 import type { MysteryTestDetail } from "@/types/mystery";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
@@ -39,7 +39,10 @@ const MysteryAssessmentDetail = () => {
   const images = useMemo(() => test?.images ?? [], [test]);
   const slides = useMemo(() => {
     if (images.length > 0) {
-      return images;
+      return images.map((image) => ({
+        ...image,
+        image_url: resolveApiAssetUrl(image.image_url),
+      }));
     }
     return [
       {

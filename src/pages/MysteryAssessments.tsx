@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, LoaderCircle, Sparkles, ArrowLeft, ArrowUpRight } from "lucide-react";
-import { getMysteryTests } from "@/services/apiService";
+import { getMysteryTests, resolveApiAssetUrl } from "@/services/apiService";
 import type { MysteryTestSummary } from "@/types/mystery";
 import { toast } from "sonner";
 
@@ -126,7 +126,7 @@ const MysteryAssessments = () => {
               هنوز رازمایی فعال ثبت نشده است. به زودی با داستان‌های تصویری تازه برمی‌گردیم.
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
               {tests.map((test) => (
                 <article
                   key={test.id}
@@ -135,7 +135,7 @@ const MysteryAssessments = () => {
                   {test.preview_image ? (
                     <div className="relative h-48 overflow-hidden">
                       <img
-                        src={test.preview_image}
+                        src={resolveApiAssetUrl(test.preview_image)}
                         alt={test.name}
                         className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                       />

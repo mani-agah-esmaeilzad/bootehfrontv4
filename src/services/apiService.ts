@@ -3,6 +3,21 @@
 // const API_BASE_URL = import.meta.env.API_BASE_URL;
 const API_BASE_URL = 'https://hrbooteh.com/api';
 
+export const resolveApiAssetUrl = (path?: string | null): string => {
+    if (!path) return '';
+    const trimmed = path.trim();
+    if (!trimmed) return '';
+    if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
+        return trimmed;
+    }
+    try {
+        const target = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+        return new URL(target, API_BASE_URL).toString();
+    } catch {
+        return trimmed;
+    }
+};
+
 const getToken = (endpoint: string): string | null => {
     if (endpoint.startsWith('admin/')) {
         return localStorage.getItem('adminAuthToken');
