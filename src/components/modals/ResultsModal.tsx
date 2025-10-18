@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Button } from "@/components/ui/button";
 import { LoaderCircle, AlertTriangle } from 'lucide-react';
 import apiFetch from '@/services/apiService';
-import { SpiderChart } from '@/components/ui/SpiderChart';
+import { PowerWheelChart } from '@/components/ui/PowerWheelChart';
 import ReactMarkdown from 'react-markdown';
 
 // --- Type Definitions ---
@@ -74,8 +74,8 @@ const ResultsModal = ({ isOpen, onClose, assessmentId }: ResultsModalProps) => {
 
     const chartData = analysis?.factor_scores.map(item => ({
         subject: item.factor,
-        score: item.score,
-        fullMark: item.maxScore,
+        score: Number(item.score) || 0,
+        fullMark: Number(item.maxScore) || 0,
     })) || [];
 
     const renderContent = () => {
@@ -103,7 +103,7 @@ const ResultsModal = ({ isOpen, onClose, assessmentId }: ResultsModalProps) => {
                         <h3 className="text-lg font-semibold text-hrbooteh-text-primary">نمودار شایستگی‌ها</h3>
                         <div className="w-full h-80 flex items-center justify-center">
                             {chartData.length > 0 ? (
-                                <SpiderChart data={chartData} />
+                                <PowerWheelChart data={chartData} />
                             ) : <p className="text-sm text-gray-500">داده‌ای برای نمایش نمودار وجود ندارد.</p>}
                         </div>
                         <div className="text-center">
