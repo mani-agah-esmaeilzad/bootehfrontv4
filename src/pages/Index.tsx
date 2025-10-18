@@ -824,7 +824,7 @@ const Index = () => {
                     return (
                       <li key={index}>
                         <a
-                          href={`tel:${phone}`}
+                          href={`tel:02171058720`}
                           className="transition hover:text-purple-600"
                         >
                           {item}
@@ -856,7 +856,7 @@ const Index = () => {
               {column.title === "ارتباط با ما" && (
                 <div className="flex justify-end gap-3 pt-3">
                   <a
-                    href="https://t.me/hrbooteh"
+                    href="https://t.me/hr720ir"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 text-purple-700 transition hover:bg-purple-200"
@@ -872,7 +872,7 @@ const Index = () => {
                   </a>
 
                   <a
-                    href="https://www.linkedin.com/company/hrbooteh"
+                    href="http://linkedin.com/company/hr720"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 text-purple-700 transition hover:bg-purple-200"
