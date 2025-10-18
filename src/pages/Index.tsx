@@ -593,7 +593,7 @@ const Index = () => {
           </div>
           <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 md:px-6">
             <div className="space-y-4 text-right text-white">
-              <h2 className="text-3xl font-bold">بوته چگونه کار میکند.</h2>
+              <h2 className="text-3xl font-bold">بوته چگونه کار می کند?</h2>
               <p className="max-w-2xl text-base leading-7 text-white/85">
                 بوته همانند روش های تصویربرداری پزشکی می تواند درک مناسبی از وضعیت شایستگی های کاربران ارائه دهد.
               </p>
@@ -617,7 +617,7 @@ const Index = () => {
           <div className="rounded-[32px] border border-purple-100 bg-white px-6 py-16 shadow-sm md:px-12">
             <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
               <div className="max-w-xl space-y-4 text-right">
-                <h2 className="text-3xl font-bold text-slate-900">بوته برای چه کسانی مناسب است</h2>
+                <h2 className="text-3xl font-bold text-slate-900">بوته برای چه کسانی مناسب است؟</h2>
                 <p className="text-base leading-7 text-slate-600">
                   بوته برای طیف گسترده ای از مخاطبان طراحی شده است.
                 </p>
