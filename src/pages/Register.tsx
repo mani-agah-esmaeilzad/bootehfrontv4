@@ -2,8 +2,9 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Logo } from "@/components/ui/logo";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Eye, EyeOff, LoaderCircle, Sparkles } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import apiFetch from "@/services/apiService";
 
@@ -145,7 +146,6 @@ const Register = () => {
         body: JSON.stringify(submissionData),
       });
 
-      // Backend now returns a message, not a token on register
       if (response.success) {
         toast.success("ثبت‌نام با موفقیت انجام شد! لطفاً وارد شوید.");
         setTimeout(() => {
@@ -193,124 +193,95 @@ const Register = () => {
   };
 
   return (
-    <div dir="rtl" className="relative min-h-screen overflow-hidden bg-[#050509] text-white">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -right-24 top-10 h-64 w-64 rounded-full bg-purple-500/20 blur-3xl" />
-        <div className="absolute bottom-0 left-10 h-72 w-72 rounded-full bg-fuchsia-500/10 blur-3xl" />
-        <div className="absolute inset-x-0 top-1/2 h-96 -translate-y-1/2 bg-gradient-to-r from-transparent via-white/5 to-transparent blur-3xl" />
-      </div>
-
-      <div className="relative z-10 flex min-h-screen flex-col lg:flex-row">
-        <div className="flex flex-1 flex-col justify-between px-6 py-10 sm:px-10 lg:px-16">
-          <div className="flex items-center gap-3 text-sm text-white/70">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur">
-              <Sparkles className="h-6 w-6" />
-            </div>
-            <span className="tracking-[0.4em]">بوته</span>
-          </div>
-
-          <div className="mt-12 max-w-xl space-y-6">
-            <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
-              ثبت‌نام در اکوسیستم گفتگو
-            </h1>
-            <p className="text-base text-white/70 sm:text-lg">
-              با تکمیل اطلاعات، حساب {primaryField} آماده‌ی گفتگوهای چندنقشه خواهد شد.
+    <div dir="rtl" className="flex min-h-screen flex-col items-center justify-center bg-white px-6 py-12 text-gray-900">
+      <div className="w-full max-w-xl space-y-10">
+        <div className="flex flex-col items-center space-y-4">
+          <Logo className="h-12 w-12 text-gray-900" />
+          <div className="space-y-1 text-center">
+            <h1 className="text-2xl font-semibold">ساخت حساب جدید</h1>
+            <p className="text-sm text-gray-500">
+              اطلاعات موردنیاز را مرحله‌به‌مرحله وارد کنید تا حساب {primaryField} ایجاد شود.
             </p>
-          </div>
-
-          <div className="mt-10 flex items-center justify-between text-xs text-white/50">
-            <span>© {new Date().getFullYear()} بوته</span>
-            <span>مسیر رشد فردی و سازمانی</span>
           </div>
         </div>
 
-        <div className="flex flex-1 items-center justify-center px-6 py-16 sm:px-10 lg:px-16">
-          <div className="w-full max-w-xl space-y-8">
-            <div className="space-y-3 text-center lg:text-right">
-              <p className="text-sm text-white/50">اطلاعات خواسته‌شده را گام‌به‌گام وارد کنید</p>
-              <h2 className="text-2xl font-semibold text-white">{activeField.label}</h2>
-            </div>
-
-            <div className="space-y-6">
-              <div className="relative">
-                <Input
-                  key={activeField.key}
-                  name={activeField.key}
-                  type={(() => {
-                    if (activeField.key === "password" && !showPassword) return "password";
-                    if (activeField.key === "passwordConfirmation" && !showPasswordConfirmation) return "password";
-                    return activeField.type || "text";
-                  })()}
-                  dir={activeField.dir ?? "rtl"}
-                  placeholder={activeField.placeholder}
-                  autoComplete={activeField.autoComplete}
-                  value={formData[activeField.key]}
-                  onChange={handleChange}
-                  onKeyDown={handleKeyDown}
-                  disabled={isLoading}
-                  className={`h-14 rounded-full border border-white/10 bg-white/5 pr-5 text-base text-white placeholder:text-white/40 focus-visible:border-white/40 focus-visible:ring-0 ${
-                    activeField.dir === "ltr" ? "text-left" : "text-right"
-                  }`}
-                />
-
-                {activeField.key === "password" && (
-                  <Button
-                    type="button"
-                    size="icon-sm"
-                    variant="ghost"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute left-4 top-1/2 h-9 w-9 -translate-y-1/2 rounded-full bg-white/10 text-white/70 hover:bg-white/15"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                )}
-
-                {activeField.key === "passwordConfirmation" && (
-                  <Button
-                    type="button"
-                    size="icon-sm"
-                    variant="ghost"
-                    onClick={() => setShowPasswordConfirmation((prev) => !prev)}
-                    className="absolute left-4 top-1/2 h-9 w-9 -translate-y-1/2 rounded-full bg-white/10 text-white/70 hover:bg-white/15"
-                  >
-                    {showPasswordConfirmation ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                )}
-              </div>
-
-              <div className="flex justify-start text-sm text-white/60">
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  disabled={currentStep === 0 || isLoading}
-                  className="flex items-center justify-center gap-2 rounded-full border border-white/10 px-5 py-3 transition hover:border-white/30 disabled:opacity-40"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  بازگشت
-                </button>
-              </div>
-
-              <Button
-                type="button"
-                onClick={() => void handleContinue()}
+        <div className="space-y-6">
+          <label className="flex flex-col gap-2 text-sm font-medium text-gray-900">
+            {activeField.label}
+            <div className="relative">
+              <Input
+                key={activeField.key}
+                name={activeField.key}
+                type={(() => {
+                  if (activeField.key === "password" && !showPassword) return "password";
+                  if (activeField.key === "passwordConfirmation" && !showPasswordConfirmation) return "password";
+                  return activeField.type || "text";
+                })()}
+                dir={activeField.dir ?? "rtl"}
+                placeholder={activeField.placeholder}
+                autoComplete={activeField.autoComplete}
+                value={formData[activeField.key]}
+                onChange={handleChange}
+                onKeyDown={handleKeyDown}
                 disabled={isLoading}
-                className="w-full rounded-full bg-gradient-to-r from-purple-500 via-fuchsia-500 to-blue-500 py-4 text-base font-semibold text-white shadow-lg transition hover:shadow-fuchsia-500/30 disabled:opacity-60"
-              >
-                {isLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : currentStep === totalSteps - 1 ? "ثبت‌نام" : "ادامه"}
-              </Button>
-            </div>
+                className={`h-12 rounded-none border-0 border-b border-gray-300 bg-transparent px-0 text-base text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-900 focus-visible:ring-0 ${
+                  activeField.dir === "ltr" ? "text-left" : "text-right"
+                }`}
+              />
 
-            <div className="text-center text-sm text-white/70">
-              <span>قبلاً ثبت‌نام کرده‌اید؟ </span>
-              <button
-                type="button"
-                onClick={() => navigate("/login")}
-                className="font-medium text-white transition hover:text-white/80 hover:underline"
-              >
-                ورود به حساب
-              </button>
+              {activeField.key === "password" && (
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant="ghost"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute left-0 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full text-gray-500 hover:text-gray-900"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              )}
+
+              {activeField.key === "passwordConfirmation" && (
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant="ghost"
+                  onClick={() => setShowPasswordConfirmation((prev) => !prev)}
+                  className="absolute left-0 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full text-gray-500 hover:text-gray-900"
+                >
+                  {showPasswordConfirmation ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              )}
             </div>
+          </label>
+
+          <div className="flex items-center justify-between text-sm text-gray-500">
+            <button
+              type="button"
+              onClick={handleBack}
+              disabled={currentStep === 0 || isLoading}
+              className="flex items-center gap-2 text-gray-500 transition hover:text-gray-900 disabled:opacity-40"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              بازگشت
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/login")}
+              className="text-sm font-medium text-gray-700 transition hover:text-gray-900"
+            >
+              قبلاً ثبت‌نام کرده‌اید؟ ورود
+            </button>
           </div>
+
+          <Button
+            type="button"
+            onClick={() => void handleContinue()}
+            disabled={isLoading}
+            className="w-full rounded-full bg-gray-900 py-3 text-base font-semibold text-white transition hover:bg-gray-800 disabled:opacity-60"
+          >
+            {isLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : currentStep === totalSteps - 1 ? "ثبت‌نام" : "ادامه"}
+          </Button>
         </div>
       </div>
     </div>
