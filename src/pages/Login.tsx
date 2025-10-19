@@ -2,49 +2,68 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/logo";
 import { useNavigate } from "react-router-dom";
 import apiFetch from "@/services/apiService";
 import { toast } from "sonner";
 import { ArrowLeft, Eye, EyeOff, LoaderCircle } from "lucide-react";
 
-const highlights = [
+const steps = [
   {
-    title: "ورود امن",
-    description: "تمامی داده‌ها با استانداردهای رمزنگاری سازمانی محافظت می‌شوند.",
+    key: "email",
+    label: "ایمیل سازمانی",
+    type: "email",
+    placeholder: "you@example.com",
+    autoComplete: "email",
   },
   {
-    title: "گزارش لحظه‌ای",
-    description: "پس از ورود، داشبورد گفتگوها با نمودارهای خمیده به‌روزرسانی می‌شود.",
-  },
-  {
-    title: "همراهی نقش‌ها",
-    description: "راوی، مبصر و کاربر در یک مسیر ساده و مینیمال کنار شما هستند.",
+    key: "password",
+    label: "رمز عبور",
+    type: "password",
+    placeholder: "••••••••",
+    autoComplete: "current-password",
   },
 ];
 
 const Login = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+  const [currentStep, setCurrentStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const highlightedText = useMemo(
+    () => formData.email.trim() || "به اکوسیستم گفتگو خوش آمدید",
+    [formData.email],
+  );
+
+  const isLastStep = currentStep === steps.length - 1;
+  const activeField = steps[currentStep];
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({
+      ...prev,
+      [event.target.name]: event.target.value,
+    }));
+  };
+
+  const handleLogin = async () => {
     setIsLoading(true);
     try {
       const response = await apiFetch("auth/login", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
       });
 
       if (response.success) {
         localStorage.setItem("isLoggedIn", "true");
-
         toast.success("ورود با موفقیت انجام شد!");
         navigate("/dashboard");
       } else {
@@ -57,153 +76,105 @@ const Login = () => {
     }
   };
 
-  const highlightedText = useMemo(
-    () => email.trim() || "به اکوسیستم گفتگو خوش آمدید",
-    [email],
-  );
+  const handleContinue = async () => {
+    if (isLoading) return;
+    const value = formData[activeField.key as keyof typeof formData]?.toString().trim();
+
+    if (!value) {
+      toast.error("لطفاً این فیلد را تکمیل کنید");
+      return;
+    }
+
+    if (isLastStep) {
+      await handleLogin();
+      return;
+    }
+
+    setCurrentStep((prev) => prev + 1);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void handleContinue();
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep === 0 || isLoading) return;
+    setCurrentStep((prev) => Math.max(0, prev - 1));
+  };
 
   return (
-    <div dir="rtl" className="min-h-screen bg-white text-slate-900">
-      <div className="grid min-h-screen items-center lg:grid-cols-[1.1fr_1fr]">
-        <section className="relative hidden h-full items-center justify-center overflow-hidden bg-slate-950 text-white lg:flex">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-600/60 via-slate-950 to-slate-900" />
-          <div className="absolute inset-x-0 -top-24 h-[420px] bg-gradient-to-b from-purple-500/20 via-purple-500/5 to-transparent" />
-          <div className="absolute inset-0">
-            <svg className="h-full w-full opacity-20" viewBox="0 0 800 600" preserveAspectRatio="none">
-              <path
-                d="M0 520 Q200 440 400 480 T800 420"
-                fill="none"
-                stroke="url(#loginLineGradient)"
-                strokeWidth="2"
-              />
-              <path
-                d="M0 360 Q220 300 420 340 T800 300"
-                fill="none"
-                stroke="url(#loginLineGradient)"
-                strokeWidth="2"
-              />
-              <defs>
-                <linearGradient id="loginLineGradient" x1="0" x2="1" y1="0" y2="0">
-                  <stop offset="0%" stopColor="rgba(255,255,255,0.05)" />
-                  <stop offset="50%" stopColor="rgba(168,85,247,0.35)" />
-                  <stop offset="100%" stopColor="rgba(255,255,255,0.05)" />
-                </linearGradient>
-              </defs>
-            </svg>
+    <div dir="rtl" className="flex min-h-screen flex-col items-center justify-center bg-white px-6 py-12 text-gray-900">
+      <div className="w-full max-w-sm space-y-10">
+        <div className="flex flex-col items-center space-y-4">
+          <Logo className="h-12 w-12 text-gray-900" />
+          <div className="space-y-1 text-center">
+            <h1 className="text-2xl font-semibold">ورود به حساب کاربری</h1>
+            <p className="text-sm text-gray-500">{highlightedText}</p>
           </div>
-          <div className="relative z-10 flex w-full max-w-lg flex-col gap-12 px-12">
-            <div className="flex items-center justify-between text-xs uppercase tracking-[0.35em] text-white/70">
-              <span>بوته</span>
-              <span>پلتفرم گفتگوی چندنقشه</span>
-            </div>
-            <div className="space-y-6">
-              <Logo variant="large" className="h-12 w-auto text-white" />
-              <h1 className="text-3xl font-semibold leading-tight md:text-4xl">
-                ورود سریع به فضای تحلیل گفتگو.
-              </h1>
-              <p className="max-w-md text-sm leading-7 text-white/70">
-                پس از ورود، روند گفتگوهای سه‌نقشی روی مسیر خمیده نمایش داده می‌شود و نمودارهای بنفش نبض جلسات شما را دنبال می‌کنند.
-              </p>
-            </div>
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
-              <div className="flex items-center justify-between text-xs text-white/60">
-                <span>هایلایت بعدی</span>
-                <ArrowLeft className="h-4 w-4" />
-              </div>
-              <p className="mt-4 text-base font-medium text-white">
-                {highlightedText}
-              </p>
-              <div className="mt-6 grid gap-3 text-sm text-white/70">
-                {highlights.map((item) => (
-                  <div key={item.title} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <p className="font-medium text-white">{item.title}</p>
-                    <p className="text-xs leading-6 text-white/70">{item.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
+        </div>
 
-        <main className="flex h-full w-full items-center justify-center px-4 py-12 sm:px-8">
-          <div className="relative w-full max-w-md">
-            <div className="absolute -top-16 right-6 hidden h-32 w-32 rounded-full bg-purple-500/20 blur-3xl sm:block" />
-            <div className="absolute -bottom-12 left-0 hidden h-28 w-28 rounded-full bg-slate-900/10 blur-2xl sm:block" />
-            <Card className="relative z-10 border border-slate-200/80 bg-white/95 shadow-hrbooteh-md backdrop-blur">
-              <CardContent className="space-y-8 p-8">
-                <div className="space-y-3 text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-purple-50 text-purple-600">
-                    <ArrowLeft className="h-5 w-5" />
-                  </div>
-                  <h2 className="text-2xl font-semibold tracking-tight">ورود به حساب</h2>
-                  <p className="text-sm leading-6 text-slate-500">
-                    ایمیل سازمانی خود را وارد کنید تا مسیر گفتگوها و نمودارهای شخصی‌سازی‌شده را ببینید.
-                  </p>
-                </div>
-                <form onSubmit={handleLogin} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-right text-sm font-medium text-slate-700">
-                      ایمیل
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      dir="rtl"
-                      inputMode="email"
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                      required
-                      className="text-right"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password" className="text-right text-sm font-medium text-slate-700">
-                      رمز عبور
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        dir="rtl"
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                        required
-                        className="pr-4 text-right"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        className="absolute left-2 top-1/2 h-8 w-8 -translate-y-1/2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
-                        onClick={() => setShowPassword((prev) => !prev)}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                  </div>
-                  <Button
-                    type="submit"
-                    variant="default"
-                    className="w-full rounded-full bg-slate-900 py-6 text-base font-medium text-white transition hover:bg-slate-800"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : "ورود"}
-                  </Button>
-                </form>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 text-center text-sm text-slate-600">
-                  <span>حساب کاربری ندارید؟ </span>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/register")}
-                    className="font-medium text-purple-600 transition hover:text-purple-700 hover:underline"
-                  >
-                    ساخت حساب جدید
-                  </button>
-                </div>
-              </CardContent>
-            </Card>
+        <div className="space-y-6">
+          <label className="flex flex-col gap-2 text-sm font-medium text-gray-900">
+            {activeField.label}
+            <div className="relative">
+              <Input
+                key={activeField.key}
+                name={activeField.key}
+                type={activeField.key === "password" && !showPassword ? "password" : activeField.type}
+                dir="ltr"
+                placeholder={activeField.placeholder}
+                autoComplete={activeField.autoComplete}
+                value={formData[activeField.key as keyof typeof formData]}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                disabled={isLoading}
+                className="h-12 rounded-none border-0 border-b border-gray-300 bg-transparent px-0 text-left text-base text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-900 focus-visible:ring-0"
+              />
+              {activeField.key === "password" && (
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant="ghost"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute left-0 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full text-gray-500 hover:text-gray-900"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              )}
+            </div>
+          </label>
+
+          <div className="flex items-center justify-between text-sm text-gray-500">
+            <button
+              type="button"
+              onClick={handleBack}
+              disabled={currentStep === 0 || isLoading}
+              className="flex items-center gap-2 text-gray-500 transition hover:text-gray-900 disabled:opacity-40"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              بازگشت
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/register")}
+              className="text-sm font-medium text-gray-700 transition hover:text-gray-900"
+            >
+              ساخت حساب جدید
+            </button>
           </div>
-        </main>
+
+          <Button
+            type="button"
+            onClick={() => void handleContinue()}
+            disabled={isLoading}
+            className="w-full rounded-full bg-gray-900 py-3 text-base font-semibold text-white transition hover:bg-gray-800 disabled:opacity-60"
+          >
+            {isLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : isLastStep ? "ورود" : "ادامه"}
+          </Button>
+        </div>
       </div>
     </div>
   );
