@@ -40,6 +40,7 @@ import {
   Treemap,
   CartesianGrid,
   ReferenceLine,
+  Customized,
 } from "recharts";
 
 import { SpiderChart } from "@/components/ui/SpiderChart";
@@ -89,6 +90,82 @@ const noData = (message = "داده‌ای وجود ندارد.") => (
     {message}
   </div>
 );
+
+const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+const hexToRgb = (hex: string) => {
+  const normalized = hex.replace("#", "");
+  const bigint = parseInt(normalized, 16);
+  return {
+    r: (bigint >> 16) & 255,
+    g: (bigint >> 8) & 255,
+    b: bigint & 255,
+  };
+};
+
+const rgbToHex = (r: number, g: number, b: number) =>
+  `#${clamp(Math.round(r), 0, 255).toString(16).padStart(2, "0")}${clamp(Math.round(g), 0, 255)
+    .toString(16)
+    .padStart(2, "0")}${clamp(Math.round(b), 0, 255).toString(16).padStart(2, "0")}`;
+
+const interpolateColor = (start: string, end: string, ratio: number) => {
+  const boundedRatio = clamp(ratio, 0, 1);
+  const startRgb = hexToRgb(start);
+  const endRgb = hexToRgb(end);
+  const r = startRgb.r + (endRgb.r - startRgb.r) * boundedRatio;
+  const g = startRgb.g + (endRgb.g - startRgb.g) * boundedRatio;
+  const b = startRgb.b + (endRgb.b - startRgb.b) * boundedRatio;
+  return rgbToHex(r, g, b);
+};
+
+const gaugeGradientStops = [
+  { value: 0, color: "#22c55e" },
+  { value: 50, color: "#facc15" },
+  { value: 75, color: "#f97316" },
+  { value: 100, color: "#ef4444" },
+];
+
+const computeGaugeColor = (value: number) => {
+  const capped = clamp(value, 0, 100);
+  for (let i = 0; i < gaugeGradientStops.length - 1; i += 1) {
+    const current = gaugeGradientStops[i];
+    const next = gaugeGradientStops[i + 1];
+    if (capped <= next.value) {
+      const span = next.value - current.value || 1;
+      const ratio = (capped - current.value) / span;
+      return interpolateColor(current.color, next.color, ratio);
+    }
+  }
+  return gaugeGradientStops[gaugeGradientStops.length - 1].color;
+};
+
+const buildGaugeSegments = (value: number) => {
+  const sanitized = clamp(value, 0, 100);
+  const segments: { name: string; value: number; fill: string }[] = [];
+  const step = 5;
+  const wholeSteps = Math.floor(sanitized / step);
+
+  for (let index = 0; index < wholeSteps; index += 1) {
+    const midpoint = index * step + step / 2;
+    segments.push({
+      name: `active-${index}`,
+      value: step,
+      fill: computeGaugeColor(midpoint),
+    });
+  }
+
+  const remainder = sanitized - wholeSteps * step;
+  if (remainder > 0) {
+    const midpoint = wholeSteps * step + remainder / 2;
+    segments.push({
+      name: `active-${wholeSteps}`,
+      value: remainder,
+      fill: computeGaugeColor(midpoint),
+    });
+  }
+
+  return segments;
+};
 
 interface ChartFlipCardProps {
   title: string;
@@ -338,13 +415,17 @@ const AdminReportDetail = () => {
   ];
 
   const gaugePreviewValue = 72;
-  const gaugePreviewData = [
-    { name: "شاخص آمادگی", value: gaugePreviewValue, fill: "#22c55e" },
-  ];
+  const gaugeStartAngle = 220;
+  const gaugeEndAngle = -40;
+  const gaugeAngleSpan = Math.abs(gaugeStartAngle - gaugeEndAngle);
+  const sanitizedGaugeValue = clamp(gaugePreviewValue, 0, 100);
+  const gaugeValueAngle = gaugeStartAngle - (sanitizedGaugeValue / 100) * gaugeAngleSpan;
+  const gaugeSegments = buildGaugeSegments(gaugePreviewValue);
   const gaugePreviewRanges = [
-    { label: "نیازمند تقویت", range: "۰ تا ۴۰", color: "#f97316" },
-    { label: "در حال توسعه", range: "۴۰ تا ۷۰", color: "#facc15" },
-    { label: "آماده", range: "۷۰ تا ۱۰۰", color: "#22c55e" },
+    { label: "آمادگی پایدار", range: "۰ تا ۲۵", color: "#22c55e" },
+    { label: "رشد مطلوب", range: "۲۵ تا ۵۰", color: "#84cc16" },
+    { label: "نیاز به تمرکز", range: "۵۰ تا ۷۵", color: "#f97316" },
+    { label: "هشدار فوری", range: "۷۵ تا ۱۰۰", color: "#ef4444" },
   ];
 
   const scatterLinePreviewData = [
@@ -355,6 +436,22 @@ const AdminReportDetail = () => {
     { iteration: 5, performance: 74, trend: 72 },
     { iteration: 6, performance: 81, trend: 79 },
   ];
+  const scatterAverage =
+    scatterLinePreviewData.length > 0
+      ?
+          scatterLinePreviewData.reduce((total, item) => total + toNum(item.performance), 0) /
+        scatterLinePreviewData.length
+      : 0;
+  const renderScatterPoint = (props: any) => {
+    const { cx, cy } = props;
+    if (typeof cx !== "number" || typeof cy !== "number") return null;
+    return (
+      <g>
+        <circle cx={cx} cy={cy} r={9} fill="url(#scatterGlow)" opacity={0.55} />
+        <circle cx={cx} cy={cy} r={5} fill="#6366f1" stroke="#ffffff" strokeWidth={2} />
+      </g>
+    );
+  };
 
   const powerWheelData = powerWheelDimensions.map((dimension) => {
     const baseEntry = { dimension: dimension.dimension } as Record<string, number | string>;
@@ -1082,36 +1179,68 @@ const AdminReportDetail = () => {
           }
         />
         <ChartFlipCard
-          title="۱۴. شاخص آمادگی (نمایش آزمایشی)"
+          title="۱۴. شاخص آمادگی"
           front={
             <div className="h-64">
               <div className="relative h-full">
                 <ResponsiveContainer>
-                  <RadialBarChart
-                    cx="50%"
-                    cy="60%"
-                    innerRadius="55%"
-                    outerRadius="100%"
-                    startAngle={220}
-                    endAngle={-40}
-                    data={gaugePreviewData}
-                  >
-                    <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-                    <RadialBar
+                  <PieChart>
+                    <defs>
+                      <filter id="gaugeShadow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="6" stdDeviation="6" floodColor="rgba(15,23,42,0.25)" />
+                      </filter>
+                    </defs>
+                    <Pie
+                      data={[{ name: "track", value: 100 }]}
                       dataKey="value"
-                      minAngle={15}
-                      cornerRadius={16}
-                      clockWise
-                      background={{ fill: "#e2e8f0" }}
+                      startAngle={gaugeStartAngle}
+                      endAngle={gaugeEndAngle}
+                      innerRadius={70}
+                      outerRadius={100}
+                      fill="#e2e8f0"
+                      stroke="none"
                     />
-                  </RadialBarChart>
+                    <Pie
+                      data={gaugeSegments}
+                      dataKey="value"
+                      startAngle={gaugeStartAngle}
+                      endAngle={gaugeValueAngle}
+                      innerRadius={70}
+                      outerRadius={100}
+                      stroke="none"
+                      paddingAngle={1.2}
+                      cornerRadius={12}
+                      filter="url(#gaugeShadow)"
+                    >
+                      {gaugeSegments.map((segment, index) => (
+                        <Cell key={`${segment.name}-${index}`} fill={segment.fill} />
+                      ))}
+                    </Pie>
+                    <Customized
+                      component={({ cx, cy, innerRadius, outerRadius }) => {
+                        if (typeof cx !== "number" || typeof cy !== "number") return null;
+                        const inner = typeof innerRadius === "number" ? innerRadius : 0;
+                        const outer = typeof outerRadius === "number" ? outerRadius : 0;
+                        const needleRadius = (inner + outer) / 2;
+                        const radians = (gaugeValueAngle * Math.PI) / 180;
+                        const x = cx + needleRadius * Math.cos(radians);
+                        const y = cy + needleRadius * Math.sin(radians);
+                        return (
+                          <g>
+                            <line x1={cx} y1={cy} x2={x} y2={y} stroke="#0f172a" strokeWidth={4} strokeLinecap="round" />
+                            <circle cx={cx} cy={cy} r={8} fill="#0f172a" stroke="#ffffff" strokeWidth={2} />
+                          </g>
+                        );
+                      }}
+                    />
+                  </PieChart>
                 </ResponsiveContainer>
                 <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1">
                   <span className="text-3xl font-bold text-slate-700">{gaugePreviewValue}</span>
-                  <span className="text-xs text-muted-foreground">امتیاز نمونه</span>
+                  <span className="text-xs text-muted-foreground">امتیاز لحظه‌ای</span>
                 </div>
               </div>
-              <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
+              <div className="mt-4 grid grid-cols-2 gap-2 text-center text-xs text-muted-foreground sm:grid-cols-4">
                 {gaugePreviewRanges.map((item) => (
                   <div key={item.label} className="rounded-md border border-slate-200 px-2 py-1">
                     <p className="font-semibold" style={{ color: item.color }}>
@@ -1126,25 +1255,34 @@ const AdminReportDetail = () => {
           back={
             <>
               <p>
-                این گیج نمادین نشان می‌دهد در سناریوی آزمایشی شاخص آمادگی کلی کاربر روی چه عددی قرار گرفته و چه فاصله‌ای با
-                سقف دارد.
+                این گیج طیفی با طیف سبز تا قرمز نشان می‌دهد شاخص آمادگی کنونی در چه نقطه‌ای از مسیر مطلوب تا وضعیت هشدار قرار
+                گرفته است.
               </p>
               <ul className="list-disc space-y-1 pr-5">
-                <li>نوار سبز مقدار فعلی را نشان می‌دهد و پس‌زمینه خاکستری فاصله تا سقف را نمایش می‌دهد.</li>
-                <li>عدد ۷۲ در مرکز صرفاً داده‌ای ساختگی است تا چیدمان گیج تست شود.</li>
-                <li>در اتصال به داده واقعی می‌توانید این ساختار را برای هر شاخص دلخواه استفاده کنید.</li>
+                <li>رنگ‌های تدریجی تصویرگر گذر آرام از وضعیت پایدار به ناحیه‌های حساس‌تر هستند.</li>
+                <li>سوزن مرکزی به صورت پویا مقدار عددی را روی بازه صفر تا صد مشخص می‌کند.</li>
+                <li>می‌توانید با اتصال این کارت به داده‌های زنده، پالس سریعی از آمادگی کلی هر ارزیابی دریافت کنید.</li>
               </ul>
-              <p className="text-xs text-muted-foreground">داده‌های این کارت صرفاً برای تست رابط کاربری وارد شده‌اند.</p>
             </>
           }
         />
         <ChartFlipCard
-          title="۱۵. پراکندگی پیشرفت با خط روند (نمایش آزمایشی)"
+          title="۱۵. پراکندگی پیشرفت با خط روند"
           front={
             <div className="h-64">
               <ResponsiveContainer>
-                <ComposedChart data={scatterLinePreviewData}>
-                  <CartesianGrid stroke={chartGridColor} />
+                <ComposedChart data={scatterLinePreviewData} margin={{ top: 10, right: 16, left: 0, bottom: 10 }}>
+                  <defs>
+                    <linearGradient id="trendArea" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.4} />
+                      <stop offset="100%" stopColor="#6366f1" stopOpacity={0.05} />
+                    </linearGradient>
+                    <radialGradient id="scatterGlow" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stopColor="#6366f1" stopOpacity={0.75} />
+                      <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                    </radialGradient>
+                  </defs>
+                  <CartesianGrid stroke={chartGridColor} strokeDasharray="6 6" />
                   <XAxis
                     dataKey="iteration"
                     {...axisProps}
@@ -1163,19 +1301,27 @@ const AdminReportDetail = () => {
                     iconType="circle"
                     formatter={(value) => <span className="text-xs text-slate-600">{value}</span>}
                   />
+                  <ReferenceLine
+                    y={scatterAverage}
+                    stroke="#c084fc"
+                    strokeDasharray="4 4"
+                    ifOverflow="extendDomain"
+                    label={{ value: "میانگین عملکرد", position: "right", fill: "#7c3aed", fontSize: 11 }}
+                  />
+                  <Area type="monotone" dataKey="trend" fill="url(#trendArea)" stroke="none" name="" legendType="none" />
                   <Scatter
                     name="نتیجه مشاهده‌شده"
                     dataKey="performance"
-                    fill="#6366f1"
-                    shape="circle"
+                    shape={renderScatterPoint}
                   />
                   <Line
                     name="خط روند"
                     type="monotone"
                     dataKey="trend"
-                    stroke="#38bdf8"
+                    stroke="#2563eb"
                     strokeWidth={3}
                     dot={false}
+                    activeDot={{ r: 6, fill: "#2563eb", stroke: "#ffffff", strokeWidth: 2 }}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -1184,15 +1330,14 @@ const AdminReportDetail = () => {
           back={
             <>
               <p>
-                این نمودار پراکندگی نمونه‌ای نشان می‌دهد چطور امتیازهای چند مرحله آزمایشی در کنار یک خط روند قراردادی قابل
-                مشاهده هستند.
+                این نمودار ترکیبی توزیع امتیازهای مراحل متوالی را در کنار خط روند نرم و سطح اطمینان رنگی نمایش می‌دهد تا جهت
+                حرکت کلی را سریع متوجه شوید.
               </p>
               <ul className="list-disc space-y-1 pr-5">
-                <li>نقاط بنفش داده‌های ساختگی هر مرحله را نمایش می‌دهند.</li>
-                <li>خط آبی روشن روند تقریبی را از همان داده‌ها استخراج کرده تا جهت حرکت کلی مشخص شود.</li>
-                <li>در نسخه نهایی می‌توان به‌جای این داده‌ها خروجی واقعی سنجش عملکرد را قرار داد.</li>
+                <li>نقاط درخشان بنفش تغییرات هر مرحله را مشخص می‌کنند و با نگه‌داشتن نشانگر جزئیات دقیق را می‌بینید.</li>
+                <li>نوار گرادیانی زیر خط روند میزان ثبات و سرعت رشد را برجسته می‌کند.</li>
+                <li>خط راهنمای بنفش روشن میانگین عملکرد را برای مقایسه سریع نمایش می‌دهد.</li>
               </ul>
-                <p className="text-xs text-muted-foreground">این کارت برای ارزیابی تجربه کاربری اضافه شده و هنوز به داده واقعی متصل نیست.</p>
             </>
           }
         />
