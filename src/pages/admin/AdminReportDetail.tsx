@@ -250,9 +250,9 @@ const AdminReportDetail = () => {
     })) || [];
   const sentimentData = analysis.sentiment_analysis
     ? Object.entries(analysis.sentiment_analysis).map(([name, value]) => ({
-        name,
-        value: toNum(value),
-      }))
+      name,
+      value: toNum(value),
+    }))
     : [];
   const keywordData =
     analysis.keyword_analysis?.map((i: any) => ({
@@ -270,26 +270,26 @@ const AdminReportDetail = () => {
       : null;
   const actionData = analysis.action_orientation
     ? [
-        {
-          name: "مقایسه",
-          action_words: toNum(analysis.action_orientation.action_words),
-          passive_words: toNum(analysis.action_orientation.passive_words),
-        },
-      ]
+      {
+        name: "مقایسه",
+        action_words: toNum(analysis.action_orientation.action_words),
+        passive_words: toNum(analysis.action_orientation.passive_words),
+      },
+    ]
     : [];
   const confidenceScore = toNum(analysis.confidence_level?.score);
   const confidenceAngle = Math.min(Math.max(confidenceScore, 0), 10) * 36;
   const problemSolvingData = analysis.problem_solving_approach
     ? Object.entries(analysis.problem_solving_approach).map(([name, value]) => ({
-        name,
-        value: toNum(value),
-      }))
+      name,
+      value: toNum(value),
+    }))
     : [];
   const commStyle = analysis.communication_style
     ? Object.entries(analysis.communication_style).map(([name, value]) => ({
-        name,
-        value: toNum(value),
-      }))
+      name,
+      value: toNum(value),
+    }))
     : [];
   const semanticRadar = [
     { name: "تنوع واژگانی", value: toNum(analysis.linguistic_semantic_analysis?.lexical_diversity) },
