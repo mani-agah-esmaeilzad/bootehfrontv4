@@ -1,7 +1,6 @@
 // src/pages/Register.tsx
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, LoaderCircle, Sparkles } from "lucide-react";
@@ -194,28 +193,42 @@ const Register = () => {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen bg-[#0b0b10] text-white">
-      <div className="flex min-h-screen flex-col items-center justify-center gap-10 px-4 py-10">
-        <div className="flex flex-col items-center gap-2 text-center">
-          <span className="text-xs uppercase tracking-[0.4em] text-white/50">بوته</span>
-          <h1 className="text-3xl font-semibold">ساخت حساب جدید</h1>
-          <p className="max-w-md text-sm text-white/60">
-            مراحل را یک‌به‌یک تکمیل کنید تا حساب {primaryField} برای گفتگوهای چندنقشه فعال شود.
-          </p>
+    <div dir="rtl" className="relative min-h-screen overflow-hidden bg-[#050509] text-white">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -right-24 top-10 h-64 w-64 rounded-full bg-purple-500/20 blur-3xl" />
+        <div className="absolute bottom-0 left-10 h-72 w-72 rounded-full bg-fuchsia-500/10 blur-3xl" />
+        <div className="absolute inset-x-0 top-1/2 h-96 -translate-y-1/2 bg-gradient-to-r from-transparent via-white/5 to-transparent blur-3xl" />
+      </div>
+
+      <div className="relative z-10 flex min-h-screen flex-col lg:flex-row">
+        <div className="flex flex-1 flex-col justify-between px-6 py-10 sm:px-10 lg:px-16">
+          <div className="flex items-center gap-3 text-sm text-white/70">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur">
+              <Sparkles className="h-6 w-6" />
+            </div>
+            <span className="tracking-[0.4em]">بوته</span>
+          </div>
+
+          <div className="mt-12 max-w-xl space-y-6">
+            <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
+              ثبت‌نام در اکوسیستم گفتگو
+            </h1>
+            <p className="text-base text-white/70 sm:text-lg">
+              با تکمیل اطلاعات، حساب {primaryField} آماده‌ی گفتگوهای چندنقشه خواهد شد.
+            </p>
+          </div>
+
+          <div className="mt-10 flex items-center justify-between text-xs text-white/50">
+            <span>© {new Date().getFullYear()} بوته</span>
+            <span>مسیر رشد فردی و سازمانی</span>
+          </div>
         </div>
 
-        <Card className="w-full max-w-xl border border-white/10 bg-white/5 backdrop-blur-xl">
-          <CardContent className="space-y-8 p-8">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-purple-500 to-fuchsia-500 text-white shadow-lg">
-                <Sparkles className="h-7 w-7" />
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-white/50">
-                  مرحله {currentStep + 1} از {totalSteps}
-                </p>
-                <h2 className="text-xl font-medium text-white">{activeField.label}</h2>
-              </div>
+        <div className="flex flex-1 items-center justify-center px-6 py-16 sm:px-10 lg:px-16">
+          <div className="w-full max-w-xl space-y-8">
+            <div className="space-y-3 text-center lg:text-right">
+              <p className="text-sm text-white/50">اطلاعات خواسته‌شده را گام‌به‌گام وارد کنید</p>
+              <h2 className="text-2xl font-semibold text-white">{activeField.label}</h2>
             </div>
 
             <div className="space-y-6">
@@ -235,7 +248,7 @@ const Register = () => {
                   onChange={handleChange}
                   onKeyDown={handleKeyDown}
                   disabled={isLoading}
-                  className={`h-12 rounded-2xl border-white/10 bg-white/10 pr-4 text-base text-white placeholder:text-white/35 focus-visible:border-white/40 focus-visible:ring-0 ${
+                  className={`h-14 rounded-full border border-white/10 bg-white/5 pr-5 text-base text-white placeholder:text-white/40 focus-visible:border-white/40 focus-visible:ring-0 ${
                     activeField.dir === "ltr" ? "text-left" : "text-right"
                   }`}
                 />
@@ -246,7 +259,7 @@ const Register = () => {
                     size="icon-sm"
                     variant="ghost"
                     onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute left-3 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full bg-white/10 text-white/70 hover:bg-white/20"
+                    className="absolute left-4 top-1/2 h-9 w-9 -translate-y-1/2 rounded-full bg-white/10 text-white/70 hover:bg-white/15"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
@@ -258,56 +271,46 @@ const Register = () => {
                     size="icon-sm"
                     variant="ghost"
                     onClick={() => setShowPasswordConfirmation((prev) => !prev)}
-                    className="absolute left-3 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full bg-white/10 text-white/70 hover:bg-white/20"
+                    className="absolute left-4 top-1/2 h-9 w-9 -translate-y-1/2 rounded-full bg-white/10 text-white/70 hover:bg-white/15"
                   >
                     {showPasswordConfirmation ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 )}
               </div>
 
-              <div className="flex items-center justify-between text-xs text-white/40">
+              <div className="flex justify-start text-sm text-white/60">
                 <button
                   type="button"
                   onClick={handleBack}
                   disabled={currentStep === 0 || isLoading}
-                  className="flex items-center gap-1 rounded-full px-3 py-2 transition hover:bg-white/10 disabled:opacity-40"
+                  className="flex items-center justify-center gap-2 rounded-full border border-white/10 px-5 py-3 transition hover:border-white/30 disabled:opacity-40"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   بازگشت
                 </button>
-                <div className="flex flex-wrap justify-end gap-1">
-                  {fields.map((_, index) => (
-                    <span
-                      key={index}
-                      className={`h-2 w-6 rounded-full transition ${
-                        index <= currentStep ? "bg-gradient-to-r from-purple-500 to-fuchsia-500" : "bg-white/20"
-                      }`}
-                    />
-                  ))}
-                </div>
               </div>
 
               <Button
                 type="button"
                 onClick={() => void handleContinue()}
                 disabled={isLoading}
-                className="w-full rounded-2xl bg-gradient-to-r from-purple-500 to-fuchsia-500 py-6 text-base font-semibold text-white shadow-lg transition hover:shadow-purple-500/30 disabled:opacity-60"
+                className="w-full rounded-full bg-gradient-to-r from-purple-500 via-fuchsia-500 to-blue-500 py-4 text-base font-semibold text-white shadow-lg transition hover:shadow-fuchsia-500/30 disabled:opacity-60"
               >
                 {isLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : currentStep === totalSteps - 1 ? "ثبت‌نام" : "ادامه"}
               </Button>
             </div>
-          </CardContent>
-        </Card>
 
-        <div className="rounded-2xl border border-white/10 bg-white/5 px-6 py-4 text-center text-sm text-white/70">
-          <span>قبلاً ثبت‌نام کرده‌اید؟ </span>
-          <button
-            type="button"
-            onClick={() => navigate("/login")}
-            className="font-medium text-white transition hover:text-white/80 hover:underline"
-          >
-            ورود به حساب
-          </button>
+            <div className="text-center text-sm text-white/70">
+              <span>قبلاً ثبت‌نام کرده‌اید؟ </span>
+              <button
+                type="button"
+                onClick={() => navigate("/login")}
+                className="font-medium text-white transition hover:text-white/80 hover:underline"
+              >
+                ورود به حساب
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

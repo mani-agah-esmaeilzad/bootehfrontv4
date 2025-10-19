@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/ui/logo";
 import { useNavigate } from "react-router-dom";
@@ -107,91 +106,95 @@ const Login = () => {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen bg-[#0b0b10] text-white">
-      <div className="flex min-h-screen items-center justify-center px-4 py-10">
-        <Card className="w-full max-w-md border border-white/10 bg-white/5 backdrop-blur-xl">
-          <CardContent className="space-y-8 p-8">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-purple-500 to-fuchsia-500 text-white shadow-lg">
-                <Logo className="h-8 w-8" />
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs uppercase tracking-[0.4em] text-white/60">بوته</p>
-                <h1 className="text-2xl font-semibold">به فضای گفتگو خوش آمدید</h1>
-                <p className="text-sm text-white/60">{highlightedText}</p>
-              </div>
-            </div>
+    <div dir="rtl" className="relative min-h-screen overflow-hidden bg-[#050509] text-white">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -left-20 top-10 h-64 w-64 rounded-full bg-fuchsia-500/20 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-blue-500/10 blur-3xl" />
+        <div className="absolute -bottom-24 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-purple-500/10 blur-3xl" />
+      </div>
 
-            <div className="space-y-3 text-center">
-              <span className="text-xs text-white/50">
-                مرحله {currentStep + 1} از {steps.length}
-              </span>
-              <h2 className="text-xl font-medium text-white">{activeField.label}</h2>
+      <div className="relative z-10 flex min-h-screen flex-col lg:flex-row">
+        <div className="flex flex-1 flex-col justify-between px-6 py-10 sm:px-10 lg:px-16">
+          <div className="flex items-center gap-3 text-sm text-white/70">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur">
+              <Logo className="h-7 w-7" />
+            </div>
+            <span className="tracking-[0.4em]">بوته</span>
+          </div>
+
+          <div className="mt-12 max-w-xl space-y-6">
+            <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
+              ورود به فضای گفتگو
+            </h1>
+            <p className="text-base text-white/70 sm:text-lg">
+              {highlightedText}
+            </p>
+          </div>
+
+          <div className="mt-10 flex items-center justify-between text-xs text-white/50">
+            <span>© {new Date().getFullYear()} بوته</span>
+            <span>تجربه‌ای روان برای تیم شما</span>
+          </div>
+        </div>
+
+        <div className="flex flex-1 items-center justify-center px-6 py-16 sm:px-10 lg:px-16">
+          <div className="w-full max-w-md space-y-8">
+            <div className="space-y-3 text-center lg:text-right">
+              <p className="text-sm text-white/50">اطلاعات کاربری خود را وارد کنید</p>
+              <h2 className="text-2xl font-semibold text-white">{activeField.label}</h2>
             </div>
 
             <div className="space-y-6">
-              <div className="space-y-3">
-                <div className="relative">
-                  <Input
-                    key={activeField.key}
-                    name={activeField.key}
-                    type={activeField.key === "password" && !showPassword ? "password" : activeField.type}
-                    dir="ltr"
-                    placeholder={activeField.placeholder}
-                    autoComplete={activeField.autoComplete}
-                    value={formData[activeField.key as keyof typeof formData]}
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeyDown}
-                    disabled={isLoading}
-                    className="h-12 rounded-2xl border-white/10 bg-white/10 pr-4 text-left text-base text-white placeholder:text-white/40 focus-visible:border-white/40 focus-visible:ring-0"
-                  />
-                  {activeField.key === "password" && (
-                    <Button
-                      type="button"
-                      size="icon-sm"
-                      variant="ghost"
-                      onClick={() => setShowPassword((prev) => !prev)}
-                      className="absolute left-3 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full bg-white/10 text-white/70 hover:bg-white/20"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  )}
-                </div>
+              <div className="relative">
+                <Input
+                  key={activeField.key}
+                  name={activeField.key}
+                  type={activeField.key === "password" && !showPassword ? "password" : activeField.type}
+                  dir="ltr"
+                  placeholder={activeField.placeholder}
+                  autoComplete={activeField.autoComplete}
+                  value={formData[activeField.key as keyof typeof formData]}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  disabled={isLoading}
+                  className="h-14 rounded-full border border-white/10 bg-white/5 pr-5 text-left text-base text-white placeholder:text-white/40 focus-visible:border-white/40 focus-visible:ring-0"
+                />
+                {activeField.key === "password" && (
+                  <Button
+                    type="button"
+                    size="icon-sm"
+                    variant="ghost"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute left-4 top-1/2 h-9 w-9 -translate-y-1/2 rounded-full bg-white/10 text-white/70 hover:bg-white/15"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                )}
               </div>
 
-              <div className="flex items-center justify-between text-xs text-white/40">
+              <div className="flex justify-start text-sm text-white/60">
                 <button
                   type="button"
                   onClick={handleBack}
                   disabled={currentStep === 0 || isLoading}
-                  className="flex items-center gap-1 rounded-full px-3 py-2 transition hover:bg-white/10 disabled:opacity-40"
+                  className="flex items-center justify-center gap-2 rounded-full border border-white/10 px-5 py-3 transition hover:border-white/30 disabled:opacity-40"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   بازگشت
                 </button>
-                <div className="flex gap-1">
-                  {steps.map((_, index) => (
-                    <span
-                      key={index}
-                      className={`h-2 w-8 rounded-full transition ${
-                        index <= currentStep ? "bg-gradient-to-r from-purple-500 to-fuchsia-500" : "bg-white/20"
-                      }`}
-                    />
-                  ))}
-                </div>
               </div>
 
               <Button
                 type="button"
                 onClick={() => void handleContinue()}
                 disabled={isLoading}
-                className="w-full rounded-2xl bg-gradient-to-r from-purple-500 to-fuchsia-500 py-6 text-base font-semibold text-white shadow-lg transition hover:shadow-purple-500/30 disabled:opacity-60"
+                className="w-full rounded-full bg-gradient-to-r from-purple-500 via-fuchsia-500 to-blue-500 py-4 text-base font-semibold text-white shadow-lg transition hover:shadow-fuchsia-500/30 disabled:opacity-60"
               >
                 {isLoading ? <LoaderCircle className="h-5 w-5 animate-spin" /> : isLastStep ? "ورود" : "ادامه"}
               </Button>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center text-sm text-white/70">
+            <div className="text-center text-sm text-white/70">
               <span>حساب کاربری ندارید؟ </span>
               <button
                 type="button"
@@ -201,8 +204,8 @@ const Login = () => {
                 ساخت حساب جدید
               </button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
