@@ -27,6 +27,8 @@ import {
   Legend,
   RadarChart,
   Radar,
+  RadialBarChart,
+  RadialBar,
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
@@ -34,6 +36,7 @@ import {
   Area,
   ScatterChart,
   Scatter,
+  ComposedChart,
   Treemap,
   CartesianGrid,
   ReferenceLine,
@@ -332,6 +335,25 @@ const AdminReportDetail = () => {
     { dimension: "تعیین چشم‌انداز", category: "leadership", score: 93 },
     { dimension: "مدیریت تغییر", category: "leadership", score: 89 },
     { dimension: "مربی‌گری", category: "leadership", score: 81 },
+  ];
+
+  const gaugePreviewValue = 72;
+  const gaugePreviewData = [
+    { name: "شاخص آمادگی", value: gaugePreviewValue, fill: "#22c55e" },
+  ];
+  const gaugePreviewRanges = [
+    { label: "نیازمند تقویت", range: "۰ تا ۴۰", color: "#f97316" },
+    { label: "در حال توسعه", range: "۴۰ تا ۷۰", color: "#facc15" },
+    { label: "آماده", range: "۷۰ تا ۱۰۰", color: "#22c55e" },
+  ];
+
+  const scatterLinePreviewData = [
+    { iteration: 1, performance: 48, trend: 45 },
+    { iteration: 2, performance: 56, trend: 53 },
+    { iteration: 3, performance: 63, trend: 60 },
+    { iteration: 4, performance: 68, trend: 66 },
+    { iteration: 5, performance: 74, trend: 72 },
+    { iteration: 6, performance: 81, trend: 79 },
   ];
 
   const powerWheelData = powerWheelDimensions.map((dimension) => {
@@ -1056,6 +1078,121 @@ const AdminReportDetail = () => {
                 <li>گرادیان سبز تا زرد شدت حضور هر موضوع را برجسته می‌کند.</li>
                 <li>می‌توانید از اطلاعات آن برای برنامه‌ریزی محتوا یا تمرکز بر حوزه‌های مغفول استفاده کنید.</li>
               </ul>
+            </>
+          }
+        />
+        <ChartFlipCard
+          title="۱۴. شاخص آمادگی (نمایش آزمایشی)"
+          front={
+            <div className="h-64">
+              <div className="relative h-full">
+                <ResponsiveContainer>
+                  <RadialBarChart
+                    cx="50%"
+                    cy="60%"
+                    innerRadius="55%"
+                    outerRadius="100%"
+                    startAngle={220}
+                    endAngle={-40}
+                    data={gaugePreviewData}
+                  >
+                    <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+                    <RadialBar
+                      dataKey="value"
+                      minAngle={15}
+                      cornerRadius={16}
+                      clockWise
+                      background={{ fill: "#e2e8f0" }}
+                    />
+                  </RadialBarChart>
+                </ResponsiveContainer>
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1">
+                  <span className="text-3xl font-bold text-slate-700">{gaugePreviewValue}</span>
+                  <span className="text-xs text-muted-foreground">امتیاز نمونه</span>
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
+                {gaugePreviewRanges.map((item) => (
+                  <div key={item.label} className="rounded-md border border-slate-200 px-2 py-1">
+                    <p className="font-semibold" style={{ color: item.color }}>
+                      {item.label}
+                    </p>
+                    <p>{item.range}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          }
+          back={
+            <>
+              <p>
+                این گیج نمادین نشان می‌دهد در سناریوی آزمایشی شاخص آمادگی کلی کاربر روی چه عددی قرار گرفته و چه فاصله‌ای با
+                سقف دارد.
+              </p>
+              <ul className="list-disc space-y-1 pr-5">
+                <li>نوار سبز مقدار فعلی را نشان می‌دهد و پس‌زمینه خاکستری فاصله تا سقف را نمایش می‌دهد.</li>
+                <li>عدد ۷۲ در مرکز صرفاً داده‌ای ساختگی است تا چیدمان گیج تست شود.</li>
+                <li>در اتصال به داده واقعی می‌توانید این ساختار را برای هر شاخص دلخواه استفاده کنید.</li>
+              </ul>
+              <p className="text-xs text-muted-foreground">داده‌های این کارت صرفاً برای تست رابط کاربری وارد شده‌اند.</p>
+            </>
+          }
+        />
+        <ChartFlipCard
+          title="۱۵. پراکندگی پیشرفت با خط روند (نمایش آزمایشی)"
+          front={
+            <div className="h-64">
+              <ResponsiveContainer>
+                <ComposedChart data={scatterLinePreviewData}>
+                  <CartesianGrid stroke={chartGridColor} />
+                  <XAxis
+                    dataKey="iteration"
+                    {...axisProps}
+                    tickFormatter={(value: number) => `مرحله ${value}`}
+                  />
+                  <YAxis {...axisProps} domain={[0, 100]} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(value: number, name: string) => [
+                      `${value} امتیاز`,
+                      name === "performance" ? "نتیجه مشاهده‌شده" : "خط روند",
+                    ]}
+                    labelFormatter={(value: number) => `مرحله ${value}`}
+                  />
+                  <Legend
+                    iconType="circle"
+                    formatter={(value) => <span className="text-xs text-slate-600">{value}</span>}
+                  />
+                  <Scatter
+                    name="نتیجه مشاهده‌شده"
+                    dataKey="performance"
+                    fill="#6366f1"
+                    shape="circle"
+                  />
+                  <Line
+                    name="خط روند"
+                    type="monotone"
+                    dataKey="trend"
+                    stroke="#38bdf8"
+                    strokeWidth={3}
+                    dot={false}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          }
+          back={
+            <>
+              <p>
+                این نمودار پراکندگی نمونه‌ای نشان می‌دهد چطور امتیازهای چند مرحله آزمایشی در کنار یک خط روند قراردادی قابل
+                مشاهده هستند.
+              </p>
+              <ul className="list-disc space-y-1 pr-5">
+                <li>نقاط بنفش داده‌های ساختگی هر مرحله را نمایش می‌دهند.</li>
+                <li>خط آبی روشن روند تقریبی را از همان داده‌ها استخراج کرده تا جهت حرکت کلی مشخص شود.</li>
+                <li>در نسخه نهایی می‌توان به‌جای این داده‌ها خروجی واقعی سنجش عملکرد را قرار داد.</li>
+              </ul>
+                <p className="text-xs text-muted-foreground">این کارت برای ارزیابی تجربه کاربری اضافه شده و هنوز به داده واقعی متصل نیست.</p>
             </>
           }
         />
