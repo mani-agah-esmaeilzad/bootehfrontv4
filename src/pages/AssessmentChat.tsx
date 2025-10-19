@@ -167,10 +167,10 @@ const AssessmentChat = () => {
       typeof response?.data?.reply === "string"
         ? response.data.reply
         : typeof response?.data?.message === "string"
-        ? response.data.message
-        : typeof response?.data?.text === "string"
-        ? response.data.text
-        : null;
+          ? response.data.message
+          : typeof response?.data?.text === "string"
+            ? response.data.text
+            : null;
 
     const sanitized = normalizedResponses
       .filter((item) => typeof item?.text === "string" && item.text.trim().length > 0)
@@ -185,15 +185,15 @@ const AssessmentChat = () => {
       typeof response?.data?.personaName === "string" && response.data.personaName.trim().length > 0
         ? response.data.personaName.trim()
         : typeof rawResponses === "object" && rawResponses !== null && "senderName" in rawResponses
-        ? ((rawResponses as { senderName?: string }).senderName ?? assessmentState?.personaName ?? "مشاور")
-        : assessmentState?.personaName ?? "مشاور";
+          ? ((rawResponses as { senderName?: string }).senderName ?? assessmentState?.personaName ?? "مشاور")
+          : assessmentState?.personaName ?? "مشاور";
 
     const directText =
       typeof rawResponses === "string"
         ? rawResponses
         : typeof rawResponses === "object" && rawResponses !== null && "text" in rawResponses
-        ? ((rawResponses as { text?: string }).text ?? fallbackText)
-        : fallbackText;
+          ? ((rawResponses as { text?: string }).text ?? fallbackText)
+          : fallbackText;
 
     if (sanitized.length === 0 && typeof directText === "string" && directText.trim().length > 0) {
       sanitized.push({
@@ -348,6 +348,7 @@ const AssessmentChat = () => {
       }
 
       if (response.data?.isComplete) {
+        console.log("Response Data:", response.data);
         toast.info("ارزیابی به پایان رسید. در حال انتقال...");
         setTimeout(() => navigate(`/supplementary/${id}`), 2500);
       }
