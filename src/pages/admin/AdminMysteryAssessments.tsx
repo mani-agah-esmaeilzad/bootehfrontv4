@@ -25,9 +25,10 @@ import {
   adminGetMysteryAssessments,
   adminUpdateMysteryAssessment,
   adminUploadMysteryImage,
+  adminGenerateMysteryImageText,
   resolveApiAssetUrl,
 } from "@/services/apiService";
-import { LoaderCircle, Pencil, PlusCircle, Trash2, ImagePlus, Upload } from "lucide-react";
+import { LoaderCircle, Pencil, PlusCircle, Trash2, ImagePlus, Upload, Wand2 } from "lucide-react";
 
 type MysteryImage = {
   id?: number;
@@ -99,6 +100,7 @@ const AdminMysteryAssessments = () => {
   const [editingAssessment, setEditingAssessment] = useState<MysteryAssessment | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+  const [generatingIndex, setGeneratingIndex] = useState<number | null>(null);
   const fileInputsRef = useRef<Record<string, HTMLInputElement | null>>({});
 
   const form = useForm<MysteryFormValues>({
@@ -245,6 +247,38 @@ const AdminMysteryAssessments = () => {
     } finally {
       setUploadingIndex(null);
       event.target.value = "";
+    }
+  };
+
+  const handleGenerateBubbleText = async (index: number) => {
+    const image = form.getValues(`images.${index}` as const);
+    if (!image?.title?.trim()) {
+      toast.error("برای تولید پیام، ابتدا عنوان تصویر را وارد کنید.");
+      return;
+    }
+
+    setGeneratingIndex(index);
+    try {
+      const payload = {
+        title: image.title.trim(),
+        ai_notes: image.ai_notes?.trim() || undefined,
+        existing_text: image.description?.trim() || undefined,
+        assessment_name: form.getValues("name")?.trim() || undefined,
+        guide_name: form.getValues("guide_name")?.trim() || undefined,
+        short_description: form.getValues("short_description")?.trim() || undefined,
+      };
+
+      const response = await adminGenerateMysteryImageText(payload);
+      if (response.success && response.data?.text) {
+        form.setValue(`images.${index}.description`, response.data.text, { shouldDirty: true });
+        toast.success("متن حباب گفتگو با موفقیت تولید شد.");
+      } else {
+        throw new Error(response.message || "تولید متن حباب گفتگو ناموفق بود.");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "تولید متن با خطا مواجه شد.");
+    } finally {
+      setGeneratingIndex(null);
     }
   };
 
@@ -551,10 +585,34 @@ const AdminMysteryAssessments = () => {
                           name={`images.${index}.description` as const}
                           render={({ field }) => (
                             <FormItem className="md:col-span-2">
-                              <FormLabel>توضیح قابل نمایش برای کاربر</FormLabel>
+                              <div className="flex items-center justify-between gap-2">
+                                <FormLabel>متن حباب گفتگو</FormLabel>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="flex items-center gap-2 text-purple-600 hover:text-purple-700"
+                                  onClick={() => handleGenerateBubbleText(index)}
+                                  disabled={generatingIndex === index}
+                                >
+                                  {generatingIndex === index ? (
+                                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Wand2 className="h-4 w-4" />
+                                  )}
+                                  تولید خودکار پیام
+                                </Button>
+                              </div>
                               <FormControl>
-                                <Textarea rows={3} placeholder="شرحی کوتاه که کاربر می‌خواند" {...field} />
+                                <Textarea
+                                  rows={3}
+                                  placeholder="پیامی که روی تصویر نمایش داده می‌شود. می‌توانید آن را ویرایش کنید یا با دکمه بالا به‌صورت خودکار بسازید."
+                                  {...field}
+                                />
                               </FormControl>
+                              <p className="text-xs text-slate-500">
+                                این متن روی تصویر حبابی در صفحه کاربر قرار می‌گیرد؛ سعی کنید مختصر، جذاب و خوانا باشد.
+                              </p>
                               <FormMessage />
                             </FormItem>
                           )}

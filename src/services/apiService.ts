@@ -272,3 +272,18 @@ export const adminUploadMysteryImage = async (file: File) => {
     }
     return response.json();
 };
+
+type MysteryImageTextPayload = {
+    title: string;
+    ai_notes?: string;
+    assessment_name?: string;
+    guide_name?: string;
+    short_description?: string;
+    existing_text?: string;
+};
+
+export const adminGenerateMysteryImageText = async (data: MysteryImageTextPayload) =>
+    await apiFetch('admin/mystery/images/generate-text', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });

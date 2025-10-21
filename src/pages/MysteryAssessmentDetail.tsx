@@ -9,6 +9,24 @@ import type { MysteryTestDetail } from "@/types/mystery";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
 
+const MysteryNarrationBubble = ({ message }: { message: string }) => {
+  return (
+    <div className="relative w-full select-none">
+      <img
+        src="/bubble-message-template-blue-color-vector.jpg"
+        alt=""
+        className="h-auto w-full pointer-events-none drop-shadow-[0_28px_52px_rgba(15,23,42,0.35)]"
+        draggable={false}
+      />
+      <div className="absolute inset-x-[12%] top-[18%] bottom-[22%] flex items-center justify-center px-2 md:inset-x-[13%] md:top-[16%] md:bottom-[20%]">
+        <p className="text-right text-[0.9rem] leading-7 text-slate-800 whitespace-pre-wrap font-medium drop-shadow-[0_1px_3px_rgba(255,255,255,0.6)] md:text-[1rem] md:leading-8">
+          {message}
+        </p>
+      </div>
+    </div>
+  );
+};
+
 const MysteryAssessmentDetail = () => {
   const navigate = useNavigate();
   const { slug } = useParams<{ slug: string }>();
@@ -214,6 +232,10 @@ const MysteryAssessmentDetail = () => {
   const activeOffset = entryOffsets[activeIndex % entryOffsets.length];
 
   const progress = slides.map((_, index) => index <= activeIndex);
+  const activeSlide = slides[activeIndex] ?? slides[0];
+  const bubbleText = activeSlide?.description?.trim() ?? "";
+  const fallbackBubbleText = "به جزئیات نگاه کن؛ هر نشانه‌ای می‌تواند کلید حل راز باشد.";
+  const displayBubbleText = bubbleText || fallbackBubbleText;
 
   return (
     <div dir="rtl" className="min-h-screen bg-slate-950 text-white">
@@ -255,7 +277,7 @@ const MysteryAssessmentDetail = () => {
         <section ref={sliderRef} className="relative h-screen w-full overflow-hidden">
           <AnimatePresence mode="wait" custom={{ dir: direction, offset: activeOffset }}>
             <motion.div
-              key={slides[activeIndex].id ?? `slide-${activeIndex}`}
+              key={activeSlide?.id ?? `slide-${activeIndex}`}
               className="absolute inset-0"
               custom={{ dir: direction, offset: activeOffset }}
               variants={slideVariants}
@@ -266,10 +288,10 @@ const MysteryAssessmentDetail = () => {
               onAnimationComplete={() => setIsTransitioning(false)}
             >
               <div className="absolute inset-0">
-                {slides[activeIndex].image_url ? (
+                {activeSlide?.image_url ? (
                   <img
-                    src={slides[activeIndex].image_url}
-                    alt={slides[activeIndex].title}
+                    src={activeSlide.image_url}
+                    alt={activeSlide.title}
                     className="h-full w-full object-cover"
                   />
                 ) : (
@@ -277,6 +299,16 @@ const MysteryAssessmentDetail = () => {
                 )}
                 <div className="absolute inset-0 bg-gradient-to-br from-slate-950/70 via-slate-950/60 to-slate-950/85" />
               </div>
+              {displayBubbleText && (
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-x-0 bottom-24 flex justify-center px-4 sm:justify-end sm:px-8 md:bottom-32 md:px-16"
+                >
+                  <div className="w-full max-w-[420px]" style={{ width: "min(420px, 92vw)" }}>
+                    <MysteryNarrationBubble message={displayBubbleText} />
+                  </div>
+                </div>
+              )}
               <motion.div
                 className="relative z-10 flex h-full flex-col justify-end gap-6 px-6 pb-24 text-right md:px-16"
                 variants={textVariants}
@@ -288,10 +320,8 @@ const MysteryAssessmentDetail = () => {
                 <span className="self-start rounded-full border border-white/20 bg-white/10 px-4 py-1 text-xs text-white/70">
                   تصویر {activeIndex + 1} از {slides.length}
                 </span>
-                <h2 className="text-3xl font-bold text-white md:text-5xl">{slides[activeIndex].title}</h2>
-                <p className="max-w-2xl text-sm leading-8 text-white/80 md:text-base">
-                  {slides[activeIndex].description || "به جزئیات نگاه کن؛ هر نشانه‌ای می‌تواند کلید حل راز باشد."}
-                </p>
+                <h2 className="text-3xl font-bold text-white md:text-5xl">{activeSlide?.title}</h2>
+                <p className="sr-only">{displayBubbleText}</p>
               </motion.div>
             </motion.div>
           </AnimatePresence>
