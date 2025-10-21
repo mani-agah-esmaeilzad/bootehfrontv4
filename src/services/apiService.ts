@@ -225,6 +225,7 @@ export type MysteryAssessmentPayload = {
     guide_name?: string;
     system_prompt: string;
     analysis_prompt?: string;
+    bubble_prompt?: string;
     is_active?: boolean;
     images: MysteryImagePayload[];
 };
@@ -275,11 +276,13 @@ export const adminUploadMysteryImage = async (file: File) => {
 
 type MysteryImageTextPayload = {
     title: string;
+    image_url: string;
     ai_notes?: string;
     assessment_name?: string;
     guide_name?: string;
     short_description?: string;
     existing_text?: string;
+    bubble_prompt?: string;
 };
 
 export const adminGenerateMysteryImageText = async (data: MysteryImageTextPayload) =>

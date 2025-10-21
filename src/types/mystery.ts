@@ -19,6 +19,7 @@ export type MysteryTestSummary = {
 export type MysteryTestDetail = MysteryTestSummary & {
   intro_message: string;
   guide_name: string;
+  bubble_prompt?: string | null;
   images: Array<Pick<MysteryImage, 'id' | 'image_url' | 'title' | 'description' | 'display_order'>>;
 };
 

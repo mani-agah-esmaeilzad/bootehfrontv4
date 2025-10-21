@@ -320,7 +320,9 @@ const MysteryAssessmentDetail = () => {
                 <span className="self-start rounded-full border border-white/20 bg-white/10 px-4 py-1 text-xs text-white/70">
                   تصویر {activeIndex + 1} از {slides.length}
                 </span>
-                <h2 className="text-3xl font-bold text-white md:text-5xl">{activeSlide?.title}</h2>
+                <h2 className="text-3xl font-bold text-white md:text-5xl">
+                  {activeSlide?.title?.trim() || `تصویر ${activeIndex + 1}`}
+                </h2>
                 <p className="sr-only">{displayBubbleText}</p>
               </motion.div>
             </motion.div>

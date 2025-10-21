@@ -48,6 +48,7 @@ type MysteryAssessment = {
   guide_name: string;
   system_prompt: string;
   analysis_prompt?: string | null;
+  bubble_prompt?: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -79,6 +80,7 @@ const assessmentSchema = z.object({
   guide_name: z.string().min(2, { message: "نام راهنما حداقل باید ۲ کاراکتر باشد." }).optional(),
   system_prompt: z.string().min(30, { message: "پرامپت سیستم حداقل باید ۳۰ کاراکتر باشد." }),
   analysis_prompt: z.string().optional(),
+  bubble_prompt: z.string().optional(),
   is_active: z.boolean().default(true),
   images: z.array(imageSchema).min(1, { message: "حداقل یک تصویر باید تعریف شود." }),
 });
@@ -113,6 +115,7 @@ const AdminMysteryAssessments = () => {
       guide_name: "رازمَستر",
       system_prompt: "",
       analysis_prompt: "",
+      bubble_prompt: "",
       is_active: true,
       images: [emptyImage],
     },
@@ -133,6 +136,7 @@ const AdminMysteryAssessments = () => {
       guide_name: "رازمَستر",
       system_prompt: "",
       analysis_prompt: "",
+      bubble_prompt: "",
       is_active: true,
       images: [emptyImage],
     });
@@ -149,6 +153,7 @@ const AdminMysteryAssessments = () => {
       guide_name: assessment.guide_name || "رازمَستر",
       system_prompt: assessment.system_prompt,
       analysis_prompt: assessment.analysis_prompt || "",
+      bubble_prompt: assessment.bubble_prompt || "",
       is_active: assessment.is_active,
       images: assessment.images.length > 0 ? assessment.images.map((image, index) => ({
         image_url: image.image_url,
@@ -183,9 +188,11 @@ const AdminMysteryAssessments = () => {
 
   const handleSubmit = async (values: MysteryFormValues) => {
     setIsSubmitting(true);
+    const cleanedBubblePrompt = values.bubble_prompt?.trim() || "";
     const payload = {
       ...values,
       guide_name: values.guide_name?.trim() || "رازمَستر",
+      bubble_prompt: cleanedBubblePrompt || undefined,
       images: values.images.map((image, index) => ({
         ...image,
         display_order: image.display_order ?? index,
@@ -252,20 +259,23 @@ const AdminMysteryAssessments = () => {
 
   const handleGenerateBubbleText = async (index: number) => {
     const image = form.getValues(`images.${index}` as const);
-    if (!image?.title?.trim()) {
-      toast.error("برای تولید پیام، ابتدا عنوان تصویر را وارد کنید.");
+    if (!image?.image_url?.trim()) {
+      toast.error("برای تولید پیام، ابتدا تصویر را بارگذاری کنید.");
       return;
     }
 
     setGeneratingIndex(index);
     try {
+      const normalizedImageUrl = image.image_url.trim();
       const payload = {
-        title: image.title.trim(),
+        title: image.title?.trim() || `تصویر ${index + 1}`,
+        image_url: normalizedImageUrl,
         ai_notes: image.ai_notes?.trim() || undefined,
         existing_text: image.description?.trim() || undefined,
         assessment_name: form.getValues("name")?.trim() || undefined,
         guide_name: form.getValues("guide_name")?.trim() || undefined,
         short_description: form.getValues("short_description")?.trim() || undefined,
+        bubble_prompt: form.getValues("bubble_prompt")?.trim() || undefined,
       };
 
       const response = await adminGenerateMysteryImageText(payload);
@@ -464,6 +474,27 @@ const AdminMysteryAssessments = () => {
 
               <FormField
                 control={form.control}
+                name="bubble_prompt"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>پرامپت تولید پیام حباب (اختیاری)</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        rows={4}
+                        placeholder="مثال: پیام باید حس تعلیق ایجاد کند و مخاطب را به جستجو در تصویر دعوت کند."
+                        {...field}
+                      />
+                    </FormControl>
+                    <p className="text-xs text-slate-500">
+                      این پرامپت به‌صورت خودکار به هوش مصنوعی ارسال می‌شود تا متن مناسب برای هر تصویر ساخته شود.
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="analysis_prompt"
                 render={({ field }) => (
                   <FormItem>
@@ -611,7 +642,7 @@ const AdminMysteryAssessments = () => {
                                 />
                               </FormControl>
                               <p className="text-xs text-slate-500">
-                                این متن روی تصویر حبابی در صفحه کاربر قرار می‌گیرد؛ سعی کنید مختصر، جذاب و خوانا باشد.
+                                این متن روی تصویر حبابی در صفحه کاربر قرار می‌گیرد؛ می‌توانید آن را دستی بنویسید یا با دکمه بالا آن را بر اساس خود تصویر و پرامپت کلی تولید کنید.
                               </p>
                               <FormMessage />
                             </FormItem>
