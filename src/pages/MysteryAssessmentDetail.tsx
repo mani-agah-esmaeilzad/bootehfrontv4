@@ -13,7 +13,7 @@ const MysteryNarrationBubble = ({ message }: { message: string }) => {
   return (
     <div className="relative w-full select-none">
       <img
-        src="/bubble-message-template-blue-color-vector.jpg"
+        src="/linkedin.jpeg"
         alt=""
         className="h-auto w-full pointer-events-none drop-shadow-[0_28px_52px_rgba(15,23,42,0.35)]"
         draggable={false}
@@ -334,9 +334,8 @@ const MysteryAssessmentDetail = () => {
                 {progress.map((isActive, index) => (
                   <span
                     key={index}
-                    className={`h-1 w-10 rounded-full transition-colors ${
-                      index === activeIndex ? 'bg-white' : isActive ? 'bg-white/50' : 'bg-white/20'
-                    }`}
+                    className={`h-1 w-10 rounded-full transition-colors ${index === activeIndex ? 'bg-white' : isActive ? 'bg-white/50' : 'bg-white/20'
+                      }`}
                   />
                 ))}
               </div>
