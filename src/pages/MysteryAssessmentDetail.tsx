@@ -367,19 +367,18 @@ const MysteryAssessmentDetail = () => {
   const bubbleText = activeSlide?.description?.trim() ?? "";
   const fallbackBubbleText = "به جزئیات نگاه کن؛ هر نشانه‌ای می‌تواند کلید حل راز باشد.";
   const displayBubbleText = bubbleText || fallbackBubbleText;
-  const answeredCount = useMemo(() => {
-    return actionableSlides.reduce((count, slide) => {
-      const answer = answers[slide.id];
-      if (!answer) return count;
-      if (answer.text.trim() || answer.file) {
-        return count + 1;
-      }
-      return count;
-    }, 0);
-  }, [actionableSlides, answers]);
-  const completionAnsweredCount = useMemo(() => {
-    return Object.values(completionAnswers).reduce((count, value) => (value.trim() ? count + 1 : count), 0);
-  }, [completionAnswers]);
+  const answeredCount = actionableSlides.reduce((count, slide) => {
+    const answer = answers[slide.id];
+    if (!answer) return count;
+    if (answer.text.trim() || answer.file) {
+      return count + 1;
+    }
+    return count;
+  }, 0);
+  const completionAnsweredCount = Object.values(completionAnswers).reduce(
+    (count, value) => (value.trim() ? count + 1 : count),
+    0
+  );
   const totalInteractionCount = actionableSlides.length + Object.keys(completionAnswers).length;
   const totalAnswersProvided = answeredCount + completionAnsweredCount;
   const overallProgressPercent =
@@ -393,19 +392,15 @@ const MysteryAssessmentDetail = () => {
   const helperNote = activeSlide?.ai_notes?.trim();
   const answerFieldId = `answer-${activeSlideId}`;
   const uploadFieldId = `upload-${activeSlideId}`;
-  const slideProgress = useMemo(
-    () =>
-      slides.map((slide, index) => {
-        const answer = answers[slide.id];
-        const isAnswered = !!(answer && (answer.text.trim() || answer.file));
-        return {
-          index,
-          isActive: index === activeIndex,
-          isAnswered,
-        };
-      }),
-    [slides, answers, activeIndex]
-  );
+  const slideProgress = slides.map((slide, index) => {
+    const answer = answers[slide.id];
+    const isAnswered = !!(answer && (answer.text.trim() || answer.file));
+    return {
+      index,
+      isActive: index === activeIndex,
+      isAnswered,
+    };
+  });
   const hasLocalAttachments = actionableSlides.some((slide) => !!answers[slide.id]?.file);
 
   return (
