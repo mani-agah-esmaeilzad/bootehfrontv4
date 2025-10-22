@@ -22,6 +22,8 @@ import Blog from './pages/Blog';
 import BlogDetail from './pages/BlogDetail';
 import MysteryAssessments from './pages/MysteryAssessments';
 import MysteryAssessmentDetail from './pages/MysteryAssessmentDetail';
+import MysterySupplementary from './pages/MysterySupplementary';
+import MysteryResult from './pages/MysteryResult';
 import MysteryChat from './pages/MysteryChat';
 
 // Admin Pages
@@ -71,6 +73,8 @@ function App() {
           <Route path="/mystery" element={<MysteryAssessments />} />
           <Route path="/mystery/:slug" element={<MysteryAssessmentDetail />} />
           <Route path="/mystery/:slug/chat" element={<MysteryChat />} />
+          <Route path="/mystery/:slug/supplementary" element={<MysterySupplementary />} />
+          <Route path="/mystery/:slug/result" element={<MysteryResult />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogDetail />} />
 
