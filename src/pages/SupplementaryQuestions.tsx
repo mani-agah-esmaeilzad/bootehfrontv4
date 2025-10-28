@@ -25,6 +25,7 @@ const SupplementaryQuestions = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [sessionId, setSessionId] = useState<string | null>(null);
+    const [nextStage, setNextStage] = useState<{ type?: string; slug?: string | null } | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     // *** FIX: State to hold the correct assessment ID for the modal ***
     const [finalAssessmentId, setFinalAssessmentId] = useState<number | null>(null);
@@ -45,6 +46,7 @@ const SupplementaryQuestions = () => {
         
         const storedState = JSON.parse(storedStateRaw);
         setSessionId(storedState.sessionId);
+        setNextStage(storedState.nextStage ?? null);
 
         const fetchQuestions = async () => {
             try {
@@ -102,7 +104,11 @@ const SupplementaryQuestions = () => {
     const handleModalClose = () => {
         setIsModalOpen(false);
         sessionStorage.removeItem(`assessmentState_${questionnaireId}`);
-        navigate('/dashboard');
+        if (nextStage?.type === 'mystery' && nextStage.slug) {
+            navigate(`/mystery/${nextStage.slug}`);
+        } else {
+            navigate('/dashboard');
+        }
     };
 
     if (isLoading) {

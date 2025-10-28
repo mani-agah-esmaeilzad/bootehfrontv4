@@ -4,12 +4,16 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useCa
 import apiFetch from "@/services/apiService";
 
 export interface Assessment {
-  id: number;
+  id: number | null;
   stringId: string;
   title: string;
   description: string;
-  path: string;
   status: 'completed' | 'current' | 'locked';
+  category?: string;
+  type: 'questionnaire' | 'mystery';
+  questionnaireId?: number | null;
+  mysterySlug?: string | null;
+  display_order?: number;
 }
 
 interface AssessmentContextType {

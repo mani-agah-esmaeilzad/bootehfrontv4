@@ -17,6 +17,12 @@ import { LoaderCircle, ArrowRight } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { QUESTIONNAIRE_CATEGORIES } from "@/constants/questionnaireCategories";
 
+type MysteryOption = {
+  id: number;
+  name: string;
+  slug: string;
+};
+
 const questionnaireSchema = z.object({
   name: z.string().min(3, { message: "نام پرسشنامه حداقل باید ۳ کاراکتر باشد." }),
   category: z.enum(QUESTIONNAIRE_CATEGORIES, { errorMap: () => ({ message: "یک دسته‌بندی معتبر انتخاب کنید." }) }),
@@ -28,6 +34,16 @@ const questionnaireSchema = z.object({
   timer_duration: z.coerce.number().optional().nullable(),
   secondary_persona_name: z.string().optional().nullable(),
   secondary_persona_prompt: z.string().optional().nullable(),
+  next_mystery_slug: z
+    .union([
+      z
+        .string()
+        .trim()
+        .regex(/^[a-z0-9-]+$/i, { message: "اسلاگ باید فقط شامل حروف انگلیسی، اعداد و خط تیره باشد." }),
+      z.literal('')
+    ])
+    .optional()
+    .nullable(),
 });
 
 const EditQuestionnaire = () => {
@@ -48,8 +64,11 @@ const EditQuestionnaire = () => {
       timer_duration: null,
       secondary_persona_name: "",
       secondary_persona_prompt: "",
+      next_mystery_slug: "",
     },
   });
+  const [mysteryOptions, setMysteryOptions] = useState<MysteryOption[]>([]);
+  const [isLoadingMysteries, setIsLoadingMysteries] = useState(false);
 
   useEffect(() => {
     const fetchQuestionnaire = async () => {
@@ -73,6 +92,7 @@ const EditQuestionnaire = () => {
             timer_duration: data.timer_duration ?? null,
             secondary_persona_name: data.secondary_persona_name ?? "",
             secondary_persona_prompt: data.secondary_persona_prompt ?? "",
+            next_mystery_slug: data.next_mystery_slug ?? "",
           });
         } else {
           throw new Error("پرسشنامه یافت نشد.");
@@ -87,11 +107,41 @@ const EditQuestionnaire = () => {
     fetchQuestionnaire();
   }, [id, navigate, form]);
 
+  useEffect(() => {
+    const fetchMysteries = async () => {
+      setIsLoadingMysteries(true);
+      try {
+        const response = await apiFetch('admin/mystery');
+        if (response.success && Array.isArray(response.data)) {
+          const options = response.data.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            slug: item.slug,
+          }));
+          setMysteryOptions(options);
+        }
+      } catch (error: any) {
+        console.error('Failed to load mystery assessments for mapping', error);
+      } finally {
+        setIsLoadingMysteries(false);
+      }
+    };
+
+    fetchMysteries();
+  }, []);
+
   const onSubmit = async (values: z.infer<typeof questionnaireSchema>) => {
     try {
+      const payload = {
+        ...values,
+        next_mystery_slug: values.next_mystery_slug && values.next_mystery_slug.trim().length > 0
+          ? values.next_mystery_slug.trim()
+          : null,
+      };
+
       await apiFetch(`admin/questionnaires/${id}`, {
         method: 'PUT',
-        body: JSON.stringify(values),
+        body: JSON.stringify(payload),
       });
       toast.success("پرسشنامه با موفقیت به‌روزرسانی شد.");
       navigate('/admin/questionnaires');
@@ -173,6 +223,38 @@ const EditQuestionnaire = () => {
                 <CardTitle>تنظیمات نهایی</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="next_mystery_slug"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>مرحله رازآموزی پس از این پرسشنامه (اختیاری)</FormLabel>
+                      <Select
+                        value={field.value ?? ''}
+                        onValueChange={(value) => field.onChange(value || '')}
+                        disabled={isLoadingMysteries}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={isLoadingMysteries ? "در حال بارگذاری..." : "انتخاب رازآموزی"} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="">بدون مرحله رازآموزی</SelectItem>
+                          {mysteryOptions.map((option) => (
+                            <SelectItem key={option.slug} value={option.slug}>
+                              {option.name} ({option.slug})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        در صورت انتخاب، کاربر پس از اتمام گفتگو به این رازآموزی هدایت می‌شود.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField control={form.control} name="analysis_prompt" render={({ field }) => ( <FormItem> <FormLabel>پرامپت تحلیل نهایی</FormLabel> <FormControl><Textarea rows={8} {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
                 <FormField control={form.control} name="has_timer" render={({ field }) => ( <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4"> <div className="space-y-0.5"> <FormLabel>تایمر فعال باشد؟</FormLabel> </div> <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl> </FormItem> )}/>
                 {form.watch('has_timer') && (

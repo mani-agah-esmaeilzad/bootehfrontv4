@@ -25,6 +25,10 @@ interface AssessmentState {
   initialMessage: string;
   settings: any;
   personaName: string;
+  nextStage?: {
+    type: string;
+    slug?: string | null;
+  } | null;
 }
 
 const avatars = [
@@ -47,6 +51,17 @@ const AssessmentChat = () => {
   const [isHistoryView, setIsHistoryView] = useState(false);
   const [hasConversationStarted, setHasConversationStarted] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+
+  const persistAssessmentState = (updates: Partial<AssessmentState>) => {
+    setAssessmentState((prev) => {
+      if (!prev) return prev;
+      const nextState = { ...prev, ...updates };
+      if (id) {
+        sessionStorage.setItem(`assessmentState_${id}`, JSON.stringify(nextState));
+      }
+      return nextState;
+    });
+  };
 
   const messageScrollRef = useRef<HTMLDivElement | null>(null);
   const recognitionRef = useRef<any>(null);
@@ -237,6 +252,10 @@ const AssessmentChat = () => {
         throw new Error(response?.message || "پاسخ نامعتبر از سرور دریافت شد");
       }
 
+      persistAssessmentState({
+        nextStage: response.data?.nextStage ?? assessmentState.nextStage ?? null,
+      });
+
       const aiMessages = extractAiMessages(response);
       if (aiMessages.length > 0) {
         setMessages((prev) => [...prev, ...aiMessages]);
@@ -331,6 +350,10 @@ const AssessmentChat = () => {
       if (!response?.success) {
         throw new Error(response?.message || "خطا در دریافت پیام آغازین");
       }
+
+      persistAssessmentState({
+        nextStage: response.data?.nextStage ?? assessmentState.nextStage ?? null,
+      });
 
       const aiMessages = extractAiMessages(response);
       if (aiMessages.length > 0) {

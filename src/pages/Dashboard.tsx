@@ -23,13 +23,16 @@ import { toast } from "sonner";
 
 // این اینترفیس برای هماهنگی بیشتر با کانتکست به‌روز شد
 interface Assessment {
-  id: number;
+  id: number | null;
   stringId: string;
   title: string;
   description: string;
   status: "completed" | "current" | "locked";
   category?: string;
   display_order?: number;
+  type: "questionnaire" | "mystery";
+  questionnaireId?: number | null;
+  mysterySlug?: string | null;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -38,6 +41,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   "شایستگی های فردی": "#EC4899",
   "شایستگی های رهبری و مدیریت": "#F97316",
   "نیمرخ روانشناختی": "#10B981",
+  "رازآموزی": "#F59E0B",
 };
 
 const DEFAULT_CATEGORY_COLOR = "#6366F1";
@@ -103,7 +107,7 @@ const Dashboard = () => {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [startingAssessmentId, setStartingAssessmentId] = useState<number | null>(null);
+  const [startingAssessmentKey, setStartingAssessmentKey] = useState<string | null>(null);
   const [categoryAnchorPositions, setCategoryAnchorPositions] = useState<Record<string, { top: string; left: string }>>({});
 
   const navigate = useNavigate();
@@ -131,27 +135,47 @@ const Dashboard = () => {
   }, []);
 
   // شروع ارزیابی
-  const handleStartAssessment = async (assessmentId: number) => {
-    if (startingAssessmentId) return;
-    setStartingAssessmentId(assessmentId);
+  const handleStartAssessment = async (assessment: Assessment) => {
+    if (startingAssessmentKey) return;
+    if (!assessment) return;
+
+    setStartingAssessmentKey(assessment.stringId);
+
+    if (assessment.type === "mystery") {
+      if (!assessment.mysterySlug) {
+        toast.error("مرحله رازآموزی مرتبط تعریف نشده است.");
+        setStartingAssessmentKey(null);
+        return;
+      }
+      navigate(`/mystery/${assessment.mysterySlug}`);
+      setStartingAssessmentKey(null);
+      return;
+    }
+
+    const questionnaireId = assessment.questionnaireId ?? assessment.id;
+    if (!questionnaireId) {
+      toast.error("شناسه پرسشنامه معتبر نیست.");
+      setStartingAssessmentKey(null);
+      return;
+    }
 
     try {
-      const response = await apiFetch(`assessment/start/${assessmentId}`, { method: "POST" });
+      const response = await apiFetch(`assessment/start/${questionnaireId}`, { method: "POST" });
       if (!response.success || !response.data) throw new Error("خطا در شروع ارزیابی");
 
-      const { sessionId, initialMessage, settings, personaName } = response.data;
+      const { sessionId, initialMessage, settings, personaName, nextStage } = response.data;
 
       sessionStorage.setItem(
-        `assessmentState_${assessmentId}`,
-        JSON.stringify({ sessionId, initialMessage, settings, personaName })
+        `assessmentState_${questionnaireId}`,
+        JSON.stringify({ sessionId, initialMessage, settings, personaName, nextStage })
       );
 
       toast.success("ارزیابی با موفقیت شروع شد!");
-      navigate(`/assessment/chat/${assessmentId}`);
+      navigate(`/assessment/chat/${questionnaireId}`);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
-      setStartingAssessmentId(null);
+      setStartingAssessmentKey(null);
     }
   };
 
@@ -441,10 +465,10 @@ const Dashboard = () => {
               </div>
               <Button
                 className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-l from-purple-600 to-purple-500 px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(124,58,237,0.28)] hover:from-purple-700 hover:to-purple-600 disabled:cursor-not-allowed disabled:from-purple-300 disabled:to-purple-300"
-                onClick={() => currentAssessment && handleStartAssessment(currentAssessment.id)}
-                disabled={!currentAssessment || !!startingAssessmentId}
+                onClick={() => currentAssessment && handleStartAssessment(currentAssessment)}
+                disabled={!currentAssessment || !!startingAssessmentKey}
               >
-                {startingAssessmentId === currentAssessment?.id ? (
+                {startingAssessmentKey === currentAssessment?.stringId ? (
                   <LoaderCircle className="h-4 w-4 animate-spin" />
                 ) : (
                   <ArrowLeft className="h-4 w-4" />
@@ -503,7 +527,7 @@ const Dashboard = () => {
                   if (!selectedAssessment) return;
 
                   if (selectedAssessment.status === "current") {
-                    handleStartAssessment(selectedAssessment.id);
+                    handleStartAssessment(selectedAssessment);
                   } else if (selectedAssessment.status === "completed") {
                     toast.info("این مرحله پیش‌تر تکمیل شده است. نتایج در بخش گزارش‌ها در دسترس است.");
                   } else {
@@ -549,7 +573,7 @@ const Dashboard = () => {
                   if (!selectedAssessment) return;
 
                   if (selectedAssessment.status === "current") {
-                    handleStartAssessment(selectedAssessment.id);
+                    handleStartAssessment(selectedAssessment);
                   } else if (selectedAssessment.status === "completed") {
                     toast.info("این مرحله پیش‌تر تکمیل شده است. نتایج در بخش گزارش‌ها در دسترس است.");
                   } else {
