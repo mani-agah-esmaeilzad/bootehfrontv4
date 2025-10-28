@@ -14,6 +14,7 @@ export interface Assessment {
   questionnaireId?: number | null;
   mysterySlug?: string | null;
   display_order?: number;
+  accentColor?: string | null;
 }
 
 interface AssessmentContextType {

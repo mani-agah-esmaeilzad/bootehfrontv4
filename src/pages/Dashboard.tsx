@@ -33,6 +33,7 @@ interface Assessment {
   type: "questionnaire" | "mystery";
   questionnaireId?: number | null;
   mysterySlug?: string | null;
+  accentColor?: string | null;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -234,7 +235,7 @@ const Dashboard = () => {
   const mapSteps: AssessmentMapStep[] = useMemo(
     () =>
       dedupedAssessments.map((assessment, index) => {
-        const accentColor = CATEGORY_COLORS[assessment.category ?? ""] ?? DEFAULT_CATEGORY_COLOR;
+        const accentColor = assessment.accentColor ?? CATEGORY_COLORS[assessment.category ?? ""] ?? DEFAULT_CATEGORY_COLOR;
         const key = assessment.stringId || String(assessment.id);
         return {
           id: key,
@@ -286,14 +287,12 @@ const Dashboard = () => {
       const anchorPosition = categoryAnchorPositions[category];
       const position = anchorPosition ?? fallbackPosition;
       const isAnchor = Boolean(anchorPosition);
-      const orderedSteps = steps.slice(0, 6);
-
       return {
         name: category,
         color,
         position,
         isAnchor,
-        stages: orderedSteps.map((step, stepIndex) => ({
+        stages: steps.map((step, stepIndex) => ({
           label: resolveStageLabel(step, stepIndex),
           status: step.status,
         })),
