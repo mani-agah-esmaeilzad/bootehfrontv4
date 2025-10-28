@@ -186,8 +186,8 @@ const NewQuestionnaire = () => {
                     <FormItem>
                       <FormLabel>مرحله رازآموزی پس از این پرسشنامه (اختیاری)</FormLabel>
                       <Select
-                        value={field.value ?? ''}
-                        onValueChange={(value) => field.onChange(value || '')}
+                        value={field.value && field.value.length > 0 ? field.value : '__none'}
+                        onValueChange={(value) => field.onChange(value === '__none' ? '' : value)}
                         disabled={isLoadingMysteries}
                       >
                         <FormControl>
@@ -196,7 +196,7 @@ const NewQuestionnaire = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">بدون مرحله رازآموزی</SelectItem>
+                          <SelectItem value="__none">بدون مرحله رازآموزی</SelectItem>
                           {mysteryOptions.map((option) => (
                             <SelectItem key={option.slug} value={option.slug}>
                               {option.name} ({option.slug})
