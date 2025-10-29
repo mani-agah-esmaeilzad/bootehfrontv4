@@ -7,6 +7,64 @@ import { Calendar, ArrowRight, LoaderCircle } from "lucide-react";
 import { getBlogPost, resolveApiAssetUrl } from "@/services/apiService";
 import type { BlogPostDetail } from "@/types/blog";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import type { Components } from "react-markdown";
+
+const markdownComponents: Components = {
+  p: ({ children }) => (
+    <p className="text-sm leading-8 text-slate-700 md:text-base">{children}</p>
+  ),
+  ul: ({ children }) => (
+    <ul className="list-disc space-y-2 pr-6 text-sm leading-8 text-slate-700 md:text-base">
+      {children}
+    </ul>
+  ),
+  ol: ({ children }) => (
+    <ol className="list-decimal space-y-2 pr-6 text-sm leading-8 text-slate-700 md:text-base">
+      {children}
+    </ol>
+  ),
+  h2: ({ children }) => (
+    <h2 className="text-xl font-semibold text-slate-900 md:text-2xl">{children}</h2>
+  ),
+  h3: ({ children }) => (
+    <h3 className="text-lg font-semibold text-slate-900 md:text-xl">{children}</h3>
+  ),
+  blockquote: ({ children }) => (
+    <blockquote className="border-r-4 border-purple-200 pr-4 text-sm italic leading-8 text-slate-600 md:text-base">
+      {children}
+    </blockquote>
+  ),
+  img: ({ node, ...props }) => {
+    const src = typeof props.src === "string" ? resolveApiAssetUrl(props.src) : undefined;
+    if (!src) return null;
+    return (
+      <figure className="my-10 space-y-3">
+        <div className="overflow-hidden rounded-[32px] border border-purple-100 bg-slate-50">
+          <img
+            {...props}
+            src={src}
+            alt={props.alt ?? ""}
+            className="h-full w-full object-cover"
+          />
+        </div>
+        {props.alt && (
+          <figcaption className="text-xs text-slate-500">{props.alt}</figcaption>
+        )}
+      </figure>
+    );
+  },
+  a: ({ children, ...props }) => (
+    <a
+      {...props}
+      className="text-purple-600 underline-offset-4 hover:underline"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {children}
+    </a>
+  ),
+};
 
 const formatPersianDate = (value: string | null | undefined) => {
   if (!value) return "در انتظار انتشار";
@@ -48,19 +106,11 @@ const BlogDetail = () => {
     fetchPost();
   }, [slug]);
 
-  const paragraphs = useMemo(() => {
-    if (!post?.content) return [];
-    return post.content
-      .replace(/\r\n/g, "\n")
-      .split(/\n+/)
-      .map((paragraph) => paragraph.trim())
-      .filter((paragraph) => paragraph.length > 0);
-  }, [post?.content]);
-
   const coverImageSrc = useMemo(
     () => resolveApiAssetUrl(post?.cover_image_url),
     [post?.cover_image_url]
   );
+
 
   if (isLoading) {
     return (
@@ -122,15 +172,7 @@ const BlogDetail = () => {
         )}
 
         <article className="space-y-6 text-right leading-8 text-slate-700">
-          {paragraphs.length > 0 ? (
-            paragraphs.map((paragraph, index) => (
-              <p key={index} className="text-sm md:text-base">
-                {paragraph}
-              </p>
-            ))
-          ) : (
-            <p className="text-sm md:text-base">{post.content}</p>
-          )}
+          <ReactMarkdown components={markdownComponents}>{post.content}</ReactMarkdown>
         </article>
 
         <div className="mt-12 flex flex-col items-end justify-between gap-4 border-t border-purple-100/60 pt-6 text-right text-xs text-slate-500 md:flex-row md:text-sm">

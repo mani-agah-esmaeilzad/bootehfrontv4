@@ -105,11 +105,14 @@ const AdminBlogs = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isUploadingInlineImage, setIsUploadingInlineImage] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [editingPost, setEditingPost] = useState<AdminBlogPost | null>(null);
   const [postToDelete, setPostToDelete] = useState<AdminBlogPost | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const inlineImageInputRef = useRef<HTMLInputElement | null>(null);
+  const contentTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const form = useForm<z.infer<typeof blogPostSchema>>({
     resolver: zodResolver(blogPostSchema),
@@ -149,6 +152,40 @@ const AdminBlogs = () => {
     () => resolveApiAssetUrl(coverImageValue),
     [coverImageValue]
   );
+
+  const insertImageAtCursor = (rawUrl: string) => {
+    if (!rawUrl) return;
+    const textarea = contentTextareaRef.current;
+    const currentContent = form.getValues("content") ?? "";
+    const markdownSnippet = `\n\n![تصویر مقاله](${rawUrl})\n\n`;
+
+    if (!textarea) {
+      form.setValue("content", `${currentContent}${markdownSnippet}`, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      return;
+    }
+
+    const selectionStart = textarea.selectionStart ?? currentContent.length;
+    const selectionEnd = textarea.selectionEnd ?? currentContent.length;
+    const nextContent =
+      currentContent.slice(0, selectionStart) +
+      markdownSnippet +
+      currentContent.slice(selectionEnd);
+
+    form.setValue("content", nextContent, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const cursor = selectionStart + markdownSnippet.length;
+      textarea.selectionStart = cursor;
+      textarea.selectionEnd = cursor;
+    });
+  };
 
   const onSubmit = async (values: z.infer<typeof blogPostSchema>) => {
     setIsSubmitting(true);
@@ -282,6 +319,31 @@ const AdminBlogs = () => {
     }
   };
 
+  const handleInlineImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setIsUploadingInlineImage(true);
+    try {
+      const response = await adminUploadBlogImage(file);
+      if (!response.success) {
+        throw new Error(response.message || "خطا در آپلود تصویر");
+      }
+      const uploadedUrl = response.data?.url;
+      if (!uploadedUrl) {
+        throw new Error("آدرس تصویر دریافتی نامعتبر است.");
+      }
+      insertImageAtCursor(uploadedUrl);
+      toast.success("تصویر در متن مقاله درج شد.");
+    } catch (error: any) {
+      toast.error(error.message || "خطا در آپلود تصویر");
+    } finally {
+      setIsUploadingInlineImage(false);
+      if (inlineImageInputRef.current) {
+        inlineImageInputRef.current.value = "";
+      }
+    }
+  };
+
   return (
     <div className="space-y-8" dir="rtl">
       <input
@@ -290,6 +352,13 @@ const AdminBlogs = () => {
         accept="image/*"
         className="hidden"
         onChange={handleImageUpload}
+      />
+      <input
+        ref={inlineImageInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleInlineImageUpload}
       />
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent dir="rtl">
@@ -417,7 +486,43 @@ const AdminBlogs = () => {
                     <FormItem>
                       <FormLabel>متن کامل مقاله</FormLabel>
                       <FormControl>
-                        <Textarea rows={10} placeholder="متن اصلی مقاله را اینجا بنویسید..." {...field} />
+                        <div className="space-y-3">
+                          <Textarea
+                            rows={12}
+                            placeholder="متن اصلی مقاله را اینجا بنویسید..."
+                            {...field}
+                            ref={(element) => {
+                              field.ref(element);
+                              contentTextareaRef.current = element;
+                            }}
+                          />
+                          <div className="flex flex-col items-start gap-2 text-xs text-slate-500 md:flex-row md:items-center md:justify-between">
+                            <p>
+                              از نگارش مارک‌داون پشتیبانی می‌کنیم. برای افزودن تصویر میان متن از
+                              دکمه زیر استفاده کنید.
+                            </p>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-2"
+                              onClick={() => inlineImageInputRef.current?.click()}
+                              disabled={isUploadingInlineImage}
+                            >
+                              {isUploadingInlineImage ? (
+                                <>
+                                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                                  در حال آپلود تصویر
+                                </>
+                              ) : (
+                                <>
+                                  <ImagePlus className="h-4 w-4" />
+                                  افزودن تصویر به متن
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
