@@ -7,23 +7,24 @@ interface LogoProps {
 
 export const Logo = ({ className, variant = "default" }: LogoProps) => {
   const sizes = {
-    small: "text-xl",
-    default: "text-2xl",
-    large: "text-3xl md:text-4xl"
+    small: "h-8",
+    default: "h-10",
+    large: "h-12 md:h-14"
   };
 
   return (
-    <div className={cn(
-      "font-bold select-none -mb-1.5",
-      sizes[variant],
-      className
-    )}>
-      <span className="bg-hrbooteh-gradient-primary bg-clip-text text-transparent">
-        HR
-      </span>
-      <span className="text-yellow-400">
-        booteh
-      </span>
+    <div
+      className={cn(
+        "select-none",
+        className
+      )}
+    >
+      <img
+        src="/LOGO-720-7.png"
+        alt="لوگوی بوته"
+        className={cn("block w-auto object-contain", sizes[variant])}
+        draggable={false}
+      />
     </div>
   );
 };
