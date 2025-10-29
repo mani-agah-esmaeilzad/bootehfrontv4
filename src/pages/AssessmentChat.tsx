@@ -262,8 +262,8 @@ const AssessmentChat = () => {
       }
 
       if (response.data?.isComplete) {
-        toast.info("ارزیابی به پایان رسید. در حال انتقال...");
-        setTimeout(() => navigate(`/supplementary/${id}`), 2500);
+        toast.info("ارزیابی به پایان رسید. در حال انتقال به رازمایی...");
+        setTimeout(() => navigate("/mystery"), 2500);
       }
     } catch (error: any) {
       toast.error(error?.message || "خطا در ارتباط با سرور");
@@ -372,8 +372,8 @@ const AssessmentChat = () => {
 
       if (response.data?.isComplete) {
         console.log("Response Data:", response.data);
-        toast.info("ارزیابی به پایان رسید. در حال انتقال...");
-        setTimeout(() => navigate(`/supplementary/${id}`), 2500);
+        toast.info("ارزیابی به پایان رسید. در حال انتقال به رازمایی...");
+        setTimeout(() => navigate("/mystery"), 2500);
       }
     } catch (error: any) {
       setHasConversationStarted(false);
