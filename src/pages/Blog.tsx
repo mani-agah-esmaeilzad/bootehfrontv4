@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Calendar, ArrowLeft, ArrowUpRight, LoaderCircle } from "lucide-react";
-import { getBlogPosts } from "@/services/apiService";
+import { getBlogPosts, resolveApiAssetUrl } from "@/services/apiService";
 import type { BlogPostSummary } from "@/types/blog";
 import { toast } from "sonner";
 
@@ -119,39 +119,42 @@ const Blog = () => {
             </div>
           ) : posts.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {posts.map((post) => (
-                <article
-                  key={post.id}
-                  className="flex h-full flex-col overflow-hidden rounded-3xl border border-purple-100 bg-white/95 shadow-sm transition hover:-translate-y-1 hover:border-purple-200"
-                >
-                  {post.cover_image_url && (
-                    <div className="h-48 w-full overflow-hidden bg-slate-100">
-                      <img src={post.cover_image_url} alt={post.title} className="h-full w-full object-cover" />
-                    </div>
-                  )}
-                  <div className="flex h-full flex-col justify-between gap-4 p-6 text-right">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-end gap-2 text-xs text-slate-500">
-                        <Calendar className="h-4 w-4" />
-                        <span>{formatPersianDate(post.published_at || post.created_at)}</span>
+              {posts.map((post) => {
+                const coverImage = resolveApiAssetUrl(post.cover_image_url);
+                return (
+                  <article
+                    key={post.id}
+                    className="flex h-full flex-col overflow-hidden rounded-3xl border border-purple-100 bg-white/95 shadow-sm transition hover:-translate-y-1 hover:border-purple-200"
+                  >
+                    {coverImage && (
+                      <div className="h-48 w-full overflow-hidden bg-slate-100">
+                        <img src={coverImage} alt={post.title} className="h-full w-full object-cover" />
                       </div>
-                      <h3 className="text-lg font-semibold text-slate-900">{post.title}</h3>
-                      <p className="text-sm leading-7 text-slate-700">{post.excerpt}</p>
+                    )}
+                    <div className="flex h-full flex-col justify-between gap-4 p-6 text-right">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-end gap-2 text-xs text-slate-500">
+                          <Calendar className="h-4 w-4" />
+                          <span>{formatPersianDate(post.published_at || post.created_at)}</span>
+                        </div>
+                        <h3 className="text-lg font-semibold text-slate-900">{post.title}</h3>
+                        <p className="text-sm leading-7 text-slate-700">{post.excerpt}</p>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-purple-600">{post.author || "تیم بوته"}</span>
+                        <Button
+                          variant="ghost"
+                          className="flex items-center gap-2 text-purple-600 hover:bg-purple-50 hover:text-purple-700"
+                          onClick={() => navigate(`/blog/${post.slug}`)}
+                        >
+                          ادامه مطلب
+                          <ArrowUpRight className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-purple-600">{post.author || "تیم بوته"}</span>
-                      <Button
-                        variant="ghost"
-                        className="flex items-center gap-2 text-purple-600 hover:bg-purple-50 hover:text-purple-700"
-                        onClick={() => navigate(`/blog/${post.slug}`)}
-                      >
-                        ادامه مطلب
-                        <ArrowUpRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
           ) : (
             <div className="rounded-3xl border border-dashed border-purple-200 bg-white/70 p-10 text-center text-sm text-slate-600">

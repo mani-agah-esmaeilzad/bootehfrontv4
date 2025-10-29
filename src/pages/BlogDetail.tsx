@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Calendar, ArrowRight, LoaderCircle } from "lucide-react";
-import { getBlogPost } from "@/services/apiService";
+import { getBlogPost, resolveApiAssetUrl } from "@/services/apiService";
 import type { BlogPostDetail } from "@/types/blog";
 import { toast } from "sonner";
 
@@ -51,10 +51,16 @@ const BlogDetail = () => {
   const paragraphs = useMemo(() => {
     if (!post?.content) return [];
     return post.content
-      .split(/\n{2,}/)
+      .replace(/\r\n/g, "\n")
+      .split(/\n+/)
       .map((paragraph) => paragraph.trim())
       .filter((paragraph) => paragraph.length > 0);
-  }, [post]);
+  }, [post?.content]);
+
+  const coverImageSrc = useMemo(
+    () => resolveApiAssetUrl(post?.cover_image_url),
+    [post?.cover_image_url]
+  );
 
   if (isLoading) {
     return (
@@ -109,9 +115,9 @@ const BlogDetail = () => {
       </header>
 
       <main className="mx-auto w-full max-w-4xl space-y-10 px-4 py-12 md:px-6 md:py-16">
-        {post.cover_image_url && (
+        {coverImageSrc && (
           <div className="overflow-hidden rounded-[32px] border border-purple-100 bg-slate-50">
-            <img src={post.cover_image_url} alt={post.title} className="h-full w-full object-cover" />
+            <img src={coverImageSrc} alt={post.title} className="h-full w-full object-cover" />
           </div>
         )}
 

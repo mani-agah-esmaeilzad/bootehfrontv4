@@ -207,6 +207,31 @@ export const adminGetBlogPosts = async () =>
 export const adminCreateBlogPost = async (data: BlogPostPayload) =>
     await apiFetch('admin/blog', { method: 'POST', body: JSON.stringify(data) });
 
+export const adminUpdateBlogPost = async (id: number, data: BlogPostPayload) =>
+    await apiFetch(`admin/blog/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+
+export const adminDeleteBlogPost = async (id: number) =>
+    await apiFetch(`admin/blog/${id}`, { method: 'DELETE' });
+
+export const adminUploadBlogImage = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = localStorage.getItem('adminAuthToken');
+
+    const response = await fetch(`${API_BASE_URL}/admin/blog/images/upload`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'آپلود تصویر با خطا مواجه شد' }));
+        throw new Error(errorData.message || 'آپلود تصویر با خطا مواجه شد');
+    }
+
+    return response.json();
+};
+
 // --- رازمایی ---
 
 export type MysteryImagePayload = {

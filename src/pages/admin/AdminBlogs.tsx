@@ -1,14 +1,18 @@
 // src/pages/admin/AdminBlogs.tsx
 
-import { useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import {
   adminCreateBlogPost,
+  adminDeleteBlogPost,
   adminGetBlogPosts,
+  adminUpdateBlogPost,
+  adminUploadBlogImage,
   BlogPostPayload,
+  resolveApiAssetUrl,
 } from "@/services/apiService";
 import type { AdminBlogPost } from "@/types/blog";
 import { Button } from "@/components/ui/button";
@@ -33,7 +37,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { LoaderCircle, RefreshCcw } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Edit, ImagePlus, LoaderCircle, MoreHorizontal, RefreshCcw, Trash2, X } from "lucide-react";
 
 const blogPostSchema = z.object({
   title: z.string().min(3, { message: "عنوان باید حداقل ۳ کاراکتر باشد." }),
@@ -84,6 +104,12 @@ const AdminBlogs = () => {
   const [posts, setPosts] = useState<AdminBlogPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [editingPost, setEditingPost] = useState<AdminBlogPost | null>(null);
+  const [postToDelete, setPostToDelete] = useState<AdminBlogPost | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const form = useForm<z.infer<typeof blogPostSchema>>({
     resolver: zodResolver(blogPostSchema),
@@ -118,6 +144,12 @@ const AdminBlogs = () => {
     fetchPosts();
   }, []);
 
+  const coverImageValue = form.watch("cover_image_url");
+  const coverPreviewUrl = useMemo(
+    () => resolveApiAssetUrl(coverImageValue),
+    [coverImageValue]
+  );
+
   const onSubmit = async (values: z.infer<typeof blogPostSchema>) => {
     setIsSubmitting(true);
     try {
@@ -131,12 +163,21 @@ const AdminBlogs = () => {
         is_published: values.is_published,
       };
 
-      const response = await adminCreateBlogPost(payload);
-      if (!response.success) {
-        throw new Error(response.message || "خطا در ثبت مقاله");
+      if (editingPost) {
+        const response = await adminUpdateBlogPost(editingPost.id, payload);
+        if (!response.success) {
+          throw new Error(response.message || "خطا در بروزرسانی مقاله");
+        }
+        toast.success("تغییرات مقاله با موفقیت ذخیره شد.");
+      } else {
+        const response = await adminCreateBlogPost(payload);
+        if (!response.success) {
+          throw new Error(response.message || "خطا در ثبت مقاله");
+        }
+        toast.success("مقاله جدید با موفقیت منتشر شد.");
       }
 
-      toast.success("مقاله جدید با موفقیت منتشر شد.");
+      setEditingPost(null);
       form.reset({
         title: "",
         slug: "",
@@ -148,7 +189,7 @@ const AdminBlogs = () => {
       });
       await fetchPosts();
     } catch (error: any) {
-      toast.error(error.message || "خطا در ثبت مقاله");
+      toast.error(error.message || "خطا در ذخیره مقاله");
     } finally {
       setIsSubmitting(false);
     }
@@ -159,8 +200,126 @@ const AdminBlogs = () => {
     [posts]
   );
 
+  const handleStartEdit = (post: AdminBlogPost) => {
+    setEditingPost(post);
+    form.reset({
+      title: post.title,
+      slug: post.slug,
+      excerpt: post.excerpt || "",
+      content: post.content,
+      cover_image_url: post.cover_image_url || "",
+      author: post.author || "تیم بوته",
+      is_published: post.is_published,
+    });
+    toast.info("در حال ویرایش مقاله انتخاب‌شده هستید.");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPost(null);
+    form.reset({
+      title: "",
+      slug: "",
+      excerpt: "",
+      content: "",
+      cover_image_url: "",
+      author: "تیم بوته",
+      is_published: true,
+    });
+  };
+
+  const handleDeleteRequest = (post: AdminBlogPost) => {
+    setPostToDelete(post);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!postToDelete) return;
+    setIsDeleting(true);
+    try {
+      const response = await adminDeleteBlogPost(postToDelete.id);
+      if (!response.success) {
+        throw new Error(response.message || "خطا در حذف مقاله");
+      }
+      toast.success("مقاله مورد نظر حذف شد.");
+      if (editingPost?.id === postToDelete.id) {
+        handleCancelEdit();
+      }
+      await fetchPosts();
+    } catch (error: any) {
+      toast.error(error.message || "خطا در حذف مقاله");
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setPostToDelete(null);
+    }
+  };
+
+  const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setIsUploadingImage(true);
+    try {
+      const response = await adminUploadBlogImage(file);
+      if (!response.success) {
+        throw new Error(response.message || "خطا در آپلود تصویر");
+      }
+      const uploadedUrl = response.data?.url;
+      if (!uploadedUrl) {
+        throw new Error("آدرس تصویر دریافتی نامعتبر است.");
+      }
+      form.setValue("cover_image_url", uploadedUrl, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      toast.success("تصویر با موفقیت بارگذاری شد.");
+    } catch (error: any) {
+      toast.error(error.message || "خطا در آپلود تصویر");
+    } finally {
+      setIsUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
   return (
     <div className="space-y-8" dir="rtl">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleImageUpload}
+      />
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف مقاله</AlertDialogTitle>
+            <AlertDialogDescription>
+              آیا از حذف مقاله&nbsp;
+              <span className="font-semibold text-slate-900">
+                {postToDelete?.title}
+              </span>
+              &nbsp;اطمینان دارید؟ این عملیات قابل بازگشت نیست.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>انصراف</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : (
+                "حذف مقاله"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="space-y-2 text-right">
           <h1 className="text-2xl font-bold text-slate-900 md:text-3xl">مدیریت بلاگ</h1>
@@ -193,6 +352,25 @@ const AdminBlogs = () => {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                {editingPost && (
+                  <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-right text-sm text-amber-700 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      در حال ویرایش مقاله{" "}
+                      <span className="font-semibold text-slate-900">{editingPost.title}</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-amber-700 hover:bg-amber-100 hover:text-amber-800"
+                      onClick={handleCancelEdit}
+                      disabled={isSubmitting}
+                    >
+                      <X className="ml-2 h-4 w-4" />
+                      لغو ویرایش
+                    </Button>
+                  </div>
+                )}
                 <FormField
                   control={form.control}
                   name="title"
@@ -252,7 +430,63 @@ const AdminBlogs = () => {
                     <FormItem>
                       <FormLabel>آدرس تصویر شاخص (اختیاری)</FormLabel>
                       <FormControl>
-                        <Input placeholder="https://example.com/cover.jpg" {...field} />
+                        <div className="flex flex-col gap-3">
+                          <div className="flex flex-col gap-3 md:flex-row">
+                            <Input
+                              placeholder="https://example.com/cover.jpg"
+                              className="md:flex-1"
+                              {...field}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => fileInputRef.current?.click()}
+                              disabled={isUploadingImage}
+                              className="whitespace-nowrap"
+                            >
+                              {isUploadingImage ? (
+                                <>
+                                  <LoaderCircle className="ml-2 h-4 w-4 animate-spin" />
+                                  در حال آپلود...
+                                </>
+                              ) : (
+                                <>
+                                  <ImagePlus className="ml-2 h-4 w-4" />
+                                  بارگذاری تصویر
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                          {coverPreviewUrl && (
+                            <div className="overflow-hidden rounded-xl border border-dashed border-purple-200 bg-purple-50/60 p-3">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="text-xs text-slate-500">پیش‌نمایش تصویر</span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                                  onClick={() =>
+                                    form.setValue("cover_image_url", "", {
+                                      shouldDirty: true,
+                                      shouldValidate: true,
+                                    })
+                                  }
+                                >
+                                  <X className="ml-2 h-4 w-4" />
+                                  حذف تصویر
+                                </Button>
+                              </div>
+                              <div className="mt-3 overflow-hidden rounded-lg border border-purple-100 bg-white">
+                                <img
+                                  src={coverPreviewUrl}
+                                  alt="پیش‌نمایش تصویر مقاله"
+                                  className="h-56 w-full object-cover"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -289,7 +523,13 @@ const AdminBlogs = () => {
                   )}
                 />
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : "ثبت مقاله"}
+                  {isSubmitting ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : editingPost ? (
+                    "ذخیره تغییرات"
+                  ) : (
+                    "ثبت مقاله"
+                  )}
                 </Button>
               </form>
             </Form>
@@ -320,6 +560,7 @@ const AdminBlogs = () => {
                       <TableHead className="text-right">تاریخ انتشار</TableHead>
                       <TableHead className="text-right">آخرین بروزرسانی</TableHead>
                       <TableHead className="text-right">اسلاگ</TableHead>
+                      <TableHead className="text-right">عملیات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -342,8 +583,30 @@ const AdminBlogs = () => {
                         <TableCell className="text-xs text-slate-600">
                           {formatPersianDate(post.updated_at)}
                         </TableCell>
-                        <TableCell className="text-xs text-slate-500">
+                        <TableCell className="text-xs text-slate-500" dir="ltr">
                           {post.slug}
+                        </TableCell>
+                        <TableCell className="w-0">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-40">
+                              <DropdownMenuItem onClick={() => handleStartEdit(post)}>
+                                <Edit className="ml-2 h-4 w-4" />
+                                ویرایش
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-red-600 focus:text-red-600"
+                                onClick={() => handleDeleteRequest(post)}
+                              >
+                                <Trash2 className="ml-2 h-4 w-4" />
+                                حذف
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))}
