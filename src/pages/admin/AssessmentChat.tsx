@@ -184,8 +184,8 @@ const AssessmentChat = () => {
       navigate("/dashboard");
       return;
     }
-    toast.info(`${reason} در حال انتقال به رازمایی...`);
-    navigate("/mystery");
+    toast.info(`${reason} در حال ورود به رازآموزی تکمیلی...`);
+    navigate(assessmentIdFromUrl ? `/supplementary/${assessmentIdFromUrl}` : "/dashboard");
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

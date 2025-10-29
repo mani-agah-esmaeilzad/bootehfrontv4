@@ -222,6 +222,11 @@ const AssessmentChat = () => {
     return sanitized;
   };
 
+  const scheduleSupplementaryRedirect = () => {
+    const target = id ? `/supplementary/${id}` : "/dashboard";
+    setTimeout(() => navigate(target), 2200);
+  };
+
   const handleSendMessage = async () => {
     if (!hasConversationStarted || !inputValue.trim() || !assessmentState) return;
 
@@ -262,8 +267,8 @@ const AssessmentChat = () => {
       }
 
       if (response.data?.isComplete) {
-        toast.info("ارزیابی به پایان رسید. در حال انتقال به رازمایی...");
-        setTimeout(() => navigate("/mystery"), 2500);
+        toast.info("ارزیابی به پایان رسید. در حال ورود به رازآموزی تکمیلی...");
+        scheduleSupplementaryRedirect();
       }
     } catch (error: any) {
       toast.error(error?.message || "خطا در ارتباط با سرور");
@@ -372,8 +377,8 @@ const AssessmentChat = () => {
 
       if (response.data?.isComplete) {
         console.log("Response Data:", response.data);
-        toast.info("ارزیابی به پایان رسید. در حال انتقال به رازمایی...");
-        setTimeout(() => navigate("/mystery"), 2500);
+        toast.info("ارزیابی به پایان رسید. در حال ورود به رازآموزی تکمیلی...");
+        scheduleSupplementaryRedirect();
       }
     } catch (error: any) {
       setHasConversationStarted(false);
