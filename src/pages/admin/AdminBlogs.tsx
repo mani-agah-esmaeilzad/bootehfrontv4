@@ -55,6 +55,24 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Edit, ImagePlus, LoaderCircle, MoreHorizontal, RefreshCcw, Trash2, X } from "lucide-react";
 
+const isValidImageUrl = (value: string) => {
+  if (!value) return true;
+  const trimmed = value.trim();
+  if (!trimmed) return true;
+  return (
+    /^https?:\/\//i.test(trimmed) ||
+    trimmed.startsWith("/") ||
+    trimmed.startsWith("uploads/") ||
+    trimmed.startsWith("data:") ||
+    trimmed.startsWith("blob:")
+  );
+};
+
+const imageUrlSchema = z
+  .string()
+  .trim()
+  .refine(isValidImageUrl, { message: "آدرس تصویر معتبر نیست." });
+
 const blogPostSchema = z.object({
   title: z.string().min(3, { message: "عنوان باید حداقل ۳ کاراکتر باشد." }),
   slug: z
@@ -66,15 +84,7 @@ const blogPostSchema = z.object({
     .min(10, { message: "خلاصه باید حداقل ۱۰ کاراکتر باشد." })
     .max(400, { message: "خلاصه حداکثر می‌تواند ۴۰۰ کاراکتر باشد." }),
   content: z.string().min(100, { message: "متن مقاله باید حداقل ۱۰۰ کاراکتر باشد." }),
-  cover_image_url: z
-    .union([
-      z
-        .string()
-        .trim()
-        .url({ message: "آدرس تصویر معتبر نیست." }),
-      z.literal(""),
-    ])
-    .optional(),
+  cover_image_url: imageUrlSchema.optional(),
   author: z
     .union([
       z
