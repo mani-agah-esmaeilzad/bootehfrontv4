@@ -101,7 +101,7 @@ const fields: RegisterField[] = [
   {
     key: "educationLevel",
     label: "سطح تحصیلات",
-    placeholder: "مثلاً کارشناسی ارشد",
+    placeholder: "سطح تحصیلات خود را انتخاب کنید",
     dir: "rtl",
     component: "select",
     options: [
