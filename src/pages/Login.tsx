@@ -131,7 +131,9 @@ const Login = () => {
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 disabled={isLoading}
-                className="h-12 rounded-none border-0 border-b border-gray-300 bg-transparent px-0 text-left text-base text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-900 focus-visible:ring-0"
+                className={`h-12 rounded-none border-0 border-b border-gray-300 bg-transparent px-0 text-left text-base text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-900 focus-visible:ring-0 ${
+                  activeField.key === "password" ? "pr-10" : ""
+                }`}
               />
               {activeField.key === "password" && (
                 <Button
@@ -139,7 +141,7 @@ const Login = () => {
                   size="icon-sm"
                   variant="ghost"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute left-0 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full text-gray-500 hover:text-gray-900"
+                  className="absolute right-0 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full text-gray-500 hover:text-gray-900"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>

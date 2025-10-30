@@ -1,10 +1,11 @@
 // src/pages/Register.tsx
 import { useMemo, useState } from "react";
+import { ArrowLeft, Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/ui/logo";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import apiFetch from "@/services/apiService";
 
@@ -17,6 +18,7 @@ const defaultFormState = {
   phoneNumber: "",
   age: "",
   educationLevel: "",
+  gender: "",
   workExperience: "",
 };
 
@@ -28,7 +30,14 @@ type RegisterField = {
   required?: boolean;
   autoComplete?: string;
   dir?: "rtl" | "ltr";
+  component?: "input" | "select";
+  options?: Array<{ value: string; label: string }>;
 };
+
+const ageOptions = Array.from({ length: 53 }, (_, index) => {
+  const age = 18 + index;
+  return { value: age.toString(), label: `${age} سال` };
+});
 
 const fields: RegisterField[] = [
   {
@@ -84,15 +93,37 @@ const fields: RegisterField[] = [
   {
     key: "age",
     label: "سن",
-    placeholder: "مثلاً 28",
-    type: "number",
-    dir: "ltr",
+    placeholder: "سن خود را انتخاب کنید",
+    dir: "rtl",
+    component: "select",
+    options: ageOptions,
   },
   {
     key: "educationLevel",
     label: "سطح تحصیلات",
     placeholder: "مثلاً کارشناسی ارشد",
     dir: "rtl",
+    component: "select",
+    options: [
+      { value: "diploma", label: "دیپلم" },
+      { value: "associate", label: "فوق‌دیپلم" },
+      { value: "bachelor", label: "کارشناسی" },
+      { value: "master", label: "کارشناسی ارشد" },
+      { value: "phd", label: "دکتری" },
+      { value: "other", label: "سایر" },
+    ],
+  },
+  {
+    key: "gender",
+    label: "جنسیت",
+    placeholder: "جنسیت خود را انتخاب کنید",
+    dir: "rtl",
+    component: "select",
+    options: [
+      { value: "female", label: "زن" },
+      { value: "male", label: "مرد" },
+      { value: "non_binary", label: "غیره / ترجیح می‌دهم نگویم" },
+    ],
   },
   {
     key: "workExperience",
@@ -113,11 +144,20 @@ const Register = () => {
   const activeField = fields[currentStep];
   const totalSteps = fields.length;
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const updateField = (key: keyof typeof defaultFormState, value: string) => {
     setFormData((prev) => ({
       ...prev,
-      [event.target.name]: event.target.value,
+      [key]: value,
     }));
+  };
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const name = event.target.name as keyof typeof defaultFormState;
+    updateField(name, event.target.value);
+  };
+
+  const handleSelectChange = (key: keyof typeof defaultFormState) => (value: string) => {
+    updateField(key, value);
   };
 
   const handleRegister = async () => {
@@ -138,6 +178,7 @@ const Register = () => {
         phoneNumber: formData.phoneNumber || null,
         age: formData.age ? parseInt(formData.age, 10) : null,
         educationLevel: formData.educationLevel || null,
+        gender: formData.gender || null,
         workExperience: formData.workExperience || null,
       };
 
@@ -209,48 +250,86 @@ const Register = () => {
           <label className="flex flex-col gap-2 text-sm font-medium text-gray-900">
             {activeField.label}
             <div className="relative">
-              <Input
-                key={activeField.key}
-                name={activeField.key}
-                type={(() => {
-                  if (activeField.key === "password" && !showPassword) return "password";
-                  if (activeField.key === "passwordConfirmation" && !showPasswordConfirmation) return "password";
-                  return activeField.type || "text";
-                })()}
-                dir={activeField.dir ?? "rtl"}
-                placeholder={activeField.placeholder}
-                autoComplete={activeField.autoComplete}
-                value={formData[activeField.key]}
-                onChange={handleChange}
-                onKeyDown={handleKeyDown}
-                disabled={isLoading}
-                className={`h-12 rounded-none border-0 border-b border-gray-300 bg-transparent px-0 text-base text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-900 focus-visible:ring-0 ${
-                  activeField.dir === "ltr" ? "text-left" : "text-right"
-                }`}
-              />
-
-              {activeField.key === "password" && (
-                <Button
-                  type="button"
-                  size="icon-sm"
-                  variant="ghost"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute left-0 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full text-gray-500 hover:text-gray-900"
+              {activeField.component === "select" ? (
+                <Select
+                  key={activeField.key}
+                  value={formData[activeField.key] || undefined}
+                  onValueChange={handleSelectChange(activeField.key)}
+                  disabled={isLoading}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              )}
+                  <SelectTrigger
+                    dir={activeField.dir ?? "rtl"}
+                    className={`h-12 rounded-none border-0 border-b border-gray-300 bg-transparent px-0 text-base text-gray-900 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 ${
+                      activeField.dir === "ltr"
+                        ? "justify-between text-left [&>span]:text-left"
+                        : "flex-row-reverse gap-2 text-right [&>span]:w-full [&>span]:text-right"
+                    }`}
+                  >
+                    <SelectValue placeholder={activeField.placeholder} />
+                  </SelectTrigger>
+                  <SelectContent
+                    dir={activeField.dir === "rtl" ? "rtl" : "ltr"}
+                    className={activeField.dir === "rtl" ? "text-right" : ""}
+                  >
+                    {activeField.options?.map((option) => (
+                      <SelectItem
+                        key={option.value}
+                        value={option.value}
+                        className={activeField.dir === "rtl" ? "text-right" : ""}
+                      >
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <>
+                  <Input
+                    key={activeField.key}
+                    name={activeField.key}
+                    type={(() => {
+                      if (activeField.key === "password" && !showPassword) return "password";
+                      if (activeField.key === "passwordConfirmation" && !showPasswordConfirmation) return "password";
+                      return activeField.type || "text";
+                    })()}
+                    dir={activeField.dir ?? "rtl"}
+                    placeholder={activeField.placeholder}
+                    autoComplete={activeField.autoComplete}
+                    value={formData[activeField.key]}
+                    onChange={handleChange}
+                    onKeyDown={handleKeyDown}
+                    disabled={isLoading}
+                    className={`h-12 rounded-none border-0 border-b border-gray-300 bg-transparent px-0 text-base text-gray-900 placeholder:text-gray-400 focus-visible:border-gray-900 focus-visible:ring-0 ${
+                      activeField.dir === "ltr" ? "text-left" : "text-right"
+                    } ${
+                      activeField.key === "password" || activeField.key === "passwordConfirmation" ? "pr-10" : ""
+                    }`}
+                  />
 
-              {activeField.key === "passwordConfirmation" && (
-                <Button
-                  type="button"
-                  size="icon-sm"
-                  variant="ghost"
-                  onClick={() => setShowPasswordConfirmation((prev) => !prev)}
-                  className="absolute left-0 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full text-gray-500 hover:text-gray-900"
-                >
-                  {showPasswordConfirmation ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
+                  {activeField.key === "password" && (
+                    <Button
+                      type="button"
+                      size="icon-sm"
+                      variant="ghost"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="absolute right-0 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full text-gray-500 hover:text-gray-900"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  )}
+
+                  {activeField.key === "passwordConfirmation" && (
+                    <Button
+                      type="button"
+                      size="icon-sm"
+                      variant="ghost"
+                      onClick={() => setShowPasswordConfirmation((prev) => !prev)}
+                      className="absolute right-0 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full text-gray-500 hover:text-gray-900"
+                    >
+                      {showPasswordConfirmation ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  )}
+                </>
               )}
             </div>
           </label>
