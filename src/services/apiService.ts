@@ -7,12 +7,18 @@ const API_BASE_ORIGIN =
         ? window.location.origin
         : API_BASE_URL.replace(/\/api\/?$/, "");
 
+const API_BASE_URL_NORMALIZED = API_BASE_URL.replace(/\/$/, "");
+
 export const resolveApiAssetUrl = (path?: string | null): string => {
     if (!path) return '';
     const trimmed = path.trim();
     if (!trimmed) return '';
     if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
         return trimmed;
+    }
+    if (trimmed.startsWith('/uploads/') || trimmed.startsWith('uploads/')) {
+        const normalized = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+        return `${API_BASE_URL_NORMALIZED}${normalized}`;
     }
     try {
         const target = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;

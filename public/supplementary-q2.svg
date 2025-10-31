@@ -1,0 +1,23 @@
+<svg width="960" height="300" viewBox="0 0 960 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="supplementaryQ2Gradient" x1="0" y1="300" x2="960" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0EA5E9" />
+      <stop offset="1" stop-color="#7C3AED" />
+    </linearGradient>
+    <radialGradient id="supplementaryQ2Glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(720 120) rotate(135) scale(320 280)">
+      <stop stop-color="#FDE68A" stop-opacity="0.35" />
+      <stop offset="1" stop-color="#FDE68A" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect x="12" y="12" width="936" height="276" rx="48" fill="url(#supplementaryQ2Gradient)" />
+  <rect x="36" y="36" width="888" height="228" rx="40" fill="url(#supplementaryQ2Glow)" opacity="0.8" />
+  <circle cx="200" cy="220" r="68" fill="#C4B5FD" opacity="0.25" />
+  <circle cx="760" cy="80" r="52" fill="#22D3EE" opacity="0.18" />
+  <path d="M724 180C760 140 828 132 844 160C860 188 792 240 764 240C736 240 688 220 724 180Z" fill="#F47CFF" fill-opacity="0.16" />
+  <text x="480" y="146" text-anchor="middle" fill="#F8FAFC" font-size="32" font-family="sans-serif" font-weight="600">
+    چه سوال یا ابهامی هنوز برایت باقی مانده که می‌خواهی بررسی شود؟
+  </text>
+  <text x="480" y="198" text-anchor="middle" fill="#E2E8F0" font-size="20" font-family="sans-serif">
+    اگر نکته یا فرضیه‌ای مانده، همین‌جا مطرح کن تا پیگیری شود.
+  </text>
+</svg>

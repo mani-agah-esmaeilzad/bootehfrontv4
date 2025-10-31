@@ -135,27 +135,53 @@ const MysterySupplementary = () => {
           </p>
           <div className="mt-8 space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="q1" className="text-sm font-semibold text-white/90">
+              <Label
+                htmlFor="q1"
+                id="supplementary-q1-label"
+                className="sr-only"
+              >
                 مهم‌ترین نکته‌ای که از همه تصاویر به ذهن تو رسید چیست؟
               </Label>
+              <div className="overflow-hidden rounded-3xl border border-white/20 bg-white/10">
+                <img
+                  src="/supplementary-q1.svg"
+                  alt="مهم‌ترین نکته‌ای که از همه تصاویر به ذهن تو رسید چیست؟"
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
+              </div>
               <Textarea
                 id="q1"
                 rows={4}
                 value={answers.q1}
                 onChange={(event) => handleChange("q1", event.target.value)}
+                aria-labelledby="supplementary-q1-label"
                 className="min-h-[140px] rounded-3xl border border-white/20 bg-white/10 text-sm text-white placeholder:text-white/50 focus-visible:ring-purple-400/70"
                 placeholder="جمع‌بندی اولیه‌ات را با جزئیات بنویس..."
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="q2" className="text-sm font-semibold text-white/90">
+              <Label
+                htmlFor="q2"
+                id="supplementary-q2-label"
+                className="sr-only"
+              >
                 چه سوال یا ابهامی هنوز برایت باقی مانده که می‌خواهی بررسی شود؟
               </Label>
+              <div className="overflow-hidden rounded-3xl border border-white/20 bg-white/10">
+                <img
+                  src="/supplementary-q2.svg"
+                  alt="چه سوال یا ابهامی هنوز برایت باقی مانده که می‌خواهی بررسی شود؟"
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
+              </div>
               <Textarea
                 id="q2"
                 rows={4}
                 value={answers.q2}
                 onChange={(event) => handleChange("q2", event.target.value)}
+                aria-labelledby="supplementary-q2-label"
                 className="min-h-[140px] rounded-3xl border border-white/20 bg-white/10 text-sm text-white placeholder:text-white/50 focus-visible:ring-purple-400/70"
                 placeholder="اگر نکته یا فرضیه‌ای مانده، همین‌جا اضافه کن..."
               />

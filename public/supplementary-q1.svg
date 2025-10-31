@@ -1,0 +1,23 @@
+<svg width="960" height="300" viewBox="0 0 960 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="supplementaryQ1Gradient" x1="0" y1="0" x2="960" y2="300" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7C3AED" />
+      <stop offset="1" stop-color="#9333EA" />
+    </linearGradient>
+    <linearGradient id="supplementaryQ1Accent" x1="120" y1="40" x2="840" y2="260" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C084FC" stop-opacity="0.45" />
+      <stop offset="1" stop-color="#22D3EE" stop-opacity="0.25" />
+    </linearGradient>
+  </defs>
+  <rect x="12" y="12" width="936" height="276" rx="48" fill="url(#supplementaryQ1Gradient)" />
+  <rect x="36" y="36" width="888" height="228" rx="40" fill="url(#supplementaryQ1Accent)" opacity="0.35" />
+  <circle cx="160" cy="80" r="52" fill="#F472B6" opacity="0.2" />
+  <circle cx="800" cy="220" r="72" fill="#FDE68A" opacity="0.16" />
+  <path d="M180 152C214 116 280 112 296 140C312 168 240 220 212 220C184 220 146 188 180 152Z" fill="#22D3EE" fill-opacity="0.18" />
+  <text x="480" y="146" text-anchor="middle" fill="#F8FAFC" font-size="34" font-family="sans-serif" font-weight="600">
+    مهم‌ترین نکته‌ای که از همه تصاویر به ذهن تو رسید چیست؟
+  </text>
+  <text x="480" y="198" text-anchor="middle" fill="#E2E8F0" font-size="20" font-family="sans-serif">
+    جمع‌بندی‌ات را با جزئیات کوتاه و دقیق در پاسخ بنویس.
+  </text>
+</svg>
