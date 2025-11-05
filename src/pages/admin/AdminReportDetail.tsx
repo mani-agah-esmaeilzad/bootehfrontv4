@@ -5,7 +5,9 @@ import { useEffect, useState, useRef, ReactNode } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import apiFetch from "@/services/apiService";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, LoaderCircle, AlertTriangle, Download, HelpCircle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -585,6 +587,104 @@ const AdminReportDetail = () => {
     );
   };
 
+  const normalizeToArray = (value: unknown): string[] => {
+    if (!value) return [];
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => {
+          if (typeof item === "string") return item.trim();
+          if (typeof item === "number") return item.toString();
+          if (item && typeof item === "object") {
+            const text = (item as Record<string, unknown>).text ?? (item as Record<string, unknown>).value;
+            return typeof text === "string" ? text.trim() : "";
+          }
+          return "";
+        })
+        .filter(Boolean);
+    }
+    if (typeof value === "string") {
+      return value.trim() ? [value.trim()] : [];
+    }
+    if (value && typeof value === "object") {
+      return Object.values(value as Record<string, unknown>)
+        .map((item) => (typeof item === "string" ? item.trim() : ""))
+        .filter(Boolean);
+    }
+    return [];
+  };
+
+  const summaryText = (() => {
+    if (typeof analysis.summary === "string") {
+      return analysis.summary.trim();
+    }
+    if (Array.isArray(analysis.summary)) {
+      return analysis.summary
+        .map((item) => (typeof item === "string" ? item.trim() : ""))
+        .filter(Boolean)
+        .join(" \u2022 ");
+    }
+    return null;
+  })();
+
+  const strengthsList = normalizeToArray(analysis.strengths);
+  const recommendationsList = normalizeToArray(analysis.recommendations);
+  const developmentPlanList = normalizeToArray((analysis as Record<string, unknown>).development_plan);
+  const riskFlagsList = normalizeToArray((analysis as Record<string, unknown>).risk_flags);
+
+  const factorScoresRaw = Array.isArray(analysis.factor_scores) ? analysis.factor_scores : [];
+  const factorScores = factorScoresRaw.map((item: any) => {
+    const max = toNum(item?.maxScore ?? item?.max_score ?? 5) || 5;
+    return {
+      factor: item?.factor ?? item?.name ?? "شاخص",
+      score: toNum(item?.score),
+      maxScore: max,
+    };
+  });
+  const averageFactorScore =
+    factorScores.length > 0
+      ? Math.round(
+          (factorScores.reduce((sum, item) => sum + (item.score / (item.maxScore || 1)) * 100, 0) / factorScores.length) *
+            10,
+        ) / 10
+      : null;
+
+  const dominantSentiment =
+    sentimentData.length > 0
+      ? sentimentData.reduce(
+          (best, current) => (current.value > best.value ? current : best),
+          sentimentData[0],
+        )
+      : null;
+
+  const overallScoreRaw =
+    analysis.score ??
+    (analysis as Record<string, unknown>).total_score ??
+    (analysis as Record<string, unknown>).overall_score;
+  const overallScore = toNum(overallScoreRaw);
+  const confidenceScoreDisplay =
+    analysis.confidence_level && typeof analysis.confidence_level.score !== "undefined"
+      ? toNum(analysis.confidence_level.score)
+      : null;
+
+  const hiddenAnalysisKeys = new Set([
+    "summary",
+    "strengths",
+    "recommendations",
+    "development_plan",
+    "risk_flags",
+    "factor_scores",
+    "sentiment_analysis",
+    "power_wheel",
+    "progress_timeline",
+    "report",
+    "score",
+    "total_score",
+    "overall_score",
+    "confidence_level",
+  ]);
+
+  const analysisEntries = Object.entries(analysis).filter(([key, value]) => value !== undefined && !hiddenAnalysisKeys.has(key));
+
   return (
     <div dir="rtl" className="space-y-6">
       <div style={{ position: "absolute", left: -9999, top: 0, pointerEvents: "none" }}>
@@ -641,11 +741,195 @@ const AdminReportDetail = () => {
           <CardHeader className="text-right">
             <CardTitle className="text-right">امتیاز کل</CardTitle>
           </CardHeader>
-          <CardContent className="text-right text-3xl font-bold" style={{ fontFamily: rtlFontStack }}>
-            {toNum(analysis.score)} / {report.max_score || 100}
+          <CardContent className="text-right" style={{ fontFamily: rtlFontStack }}>
+            <div className="text-3xl font-bold">
+              {Number.isFinite(overallScore) && overallScore !== 0 ? overallScore : "—"}
+              <span className="text-base font-semibold opacity-80"> / {report.max_score || 100}</span>
+            </div>
+            <p className="mt-2 text-xs opacity-80">
+              {report.completed_at ? `تکمیل در ${new Date(report.completed_at).toLocaleDateString("fa-IR")}` : "تاریخ نامشخص"}
+            </p>
           </CardContent>
         </Card>
       </div>
+
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <Card dir="rtl" className="border-dashed">
+          <CardHeader className="pb-2 text-right">
+            <CardTitle className="text-sm text-muted-foreground">شاخص اطمینان</CardTitle>
+          </CardHeader>
+          <CardContent className="text-right">
+            <div className="text-2xl font-bold text-slate-900" style={{ fontFamily: rtlFontStack }}>
+              {confidenceScoreDisplay !== null ? confidenceScoreDisplay.toFixed(1) : "—"}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">از ۱۰</p>
+          </CardContent>
+        </Card>
+        <Card dir="rtl" className="border-dashed">
+          <CardHeader className="pb-2 text-right">
+            <CardTitle className="text-sm text-muted-foreground">غالب‌ترین احساس</CardTitle>
+          </CardHeader>
+          <CardContent className="text-right">
+            <div className="text-2xl font-bold text-slate-900" style={{ fontFamily: rtlFontStack }}>
+              {dominantSentiment ? dominantSentiment.name : "—"}
+            </div>
+            {dominantSentiment && (
+              <p className="mt-1 text-xs text-muted-foreground">{`${dominantSentiment.value} واحد ثبت شده`}</p>
+            )}
+          </CardContent>
+        </Card>
+        <Card dir="rtl" className="border-dashed">
+          <CardHeader className="pb-2 text-right">
+            <CardTitle className="text-sm text-muted-foreground">میانگین عملکرد ابعاد</CardTitle>
+          </CardHeader>
+          <CardContent className="text-right">
+            <div className="text-2xl font-bold text-slate-900" style={{ fontFamily: rtlFontStack }}>
+              {averageFactorScore !== null ? `${averageFactorScore}%` : "—"}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">میانگین امتیاز نسبت به سقف هر بعد</p>
+          </CardContent>
+        </Card>
+        <Card dir="rtl" className="border-dashed">
+          <CardHeader className="pb-2 text-right">
+            <CardTitle className="text-sm text-muted-foreground">میانگین حجم پاسخ‌ها</CardTitle>
+          </CardHeader>
+          <CardContent className="text-right">
+            <div className="text-2xl font-bold text-slate-900" style={{ fontFamily: rtlFontStack }}>
+              {averageWordCount !== null ? `${averageWordCount} کلمه` : "—"}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">بر اساس تحلیل روند حجم گفتگو</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {summaryText && (
+        <Card dir="rtl" className="border-slate-200 bg-slate-50/70">
+          <CardHeader className="text-right">
+            <CardTitle className="text-right">چکیده تحلیلی</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm leading-7 text-slate-700" style={{ fontFamily: rtlFontStack }}>
+            <p className="whitespace-pre-wrap">{summaryText}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {(strengthsList.length > 0 || recommendationsList.length > 0 || riskFlagsList.length > 0 || developmentPlanList.length > 0) && (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {strengthsList.length > 0 && (
+            <Card dir="rtl">
+              <CardHeader className="text-right">
+                <CardTitle className="text-right">نقاط قوت برجسته</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="list-disc space-y-2 pr-5 text-sm text-slate-700">
+                  {strengthsList.map((item, index) => (
+                    <li key={`strength-${index}`}>{item}</li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+          {recommendationsList.length > 0 && (
+            <Card dir="rtl">
+              <CardHeader className="text-right">
+                <CardTitle className="text-right">پیشنهادهای توسعه</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="list-disc space-y-2 pr-5 text-sm text-slate-700">
+                  {recommendationsList.map((item, index) => (
+                    <li key={`recommendation-${index}`}>{item}</li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+          {riskFlagsList.length > 0 && (
+            <Card dir="rtl">
+              <CardHeader className="text-right">
+                <CardTitle className="text-right">پرچم‌های ریسک</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="list-disc space-y-2 pr-5 text-sm text-slate-700">
+                  {riskFlagsList.map((item, index) => (
+                    <li key={`risk-${index}`}>{item}</li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+          {developmentPlanList.length > 0 && (
+            <Card dir="rtl">
+              <CardHeader className="text-right">
+                <CardTitle className="text-right">برنامه پیشنهادی رشد</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="list-disc space-y-2 pr-5 text-sm text-slate-700">
+                  {developmentPlanList.map((item, index) => (
+                    <li key={`development-${index}`}>{item}</li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {factorScores.length > 0 && (
+        <Card dir="rtl">
+          <CardHeader className="text-right">
+            <CardTitle className="text-right">جدول امتیاز ابعاد</CardTitle>
+            <CardDescription className="text-right">نمایش جزئی امتیاز هر بعد نسبت به حداکثر امتیاز تعریف‌شده.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>بعد ارزیابی</TableHead>
+                    <TableHead className="text-center">امتیاز کسب‌شده</TableHead>
+                    <TableHead className="text-center">حداکثر امتیاز</TableHead>
+                    <TableHead className="text-center">درصد تحقق</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {factorScores.map((item, index) => {
+                    const percent = item.maxScore ? Math.round((item.score / item.maxScore) * 1000) / 10 : 0;
+                    return (
+                      <TableRow key={`factor-row-${index}`}>
+                        <TableCell className="font-medium text-slate-800">{item.factor}</TableCell>
+                        <TableCell className="text-center">{item.score}</TableCell>
+                        <TableCell className="text-center">{item.maxScore}</TableCell>
+                        <TableCell className="text-center">{percent}%</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {sentimentData.length > 0 && (
+        <Card dir="rtl">
+          <CardHeader className="text-right">
+            <CardTitle className="text-right">خلاصه تحلیل احساسی</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-3">
+            {sentimentData.map((item) => (
+              <div
+                key={`sentiment-chip-${item.name}`}
+                className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1"
+              >
+                <Badge variant="secondary" className="bg-slate-100 text-slate-700">
+                  {item.name}
+                </Badge>
+                <span className="text-sm text-slate-600">{item.value}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <ChartFlipCard
@@ -1476,6 +1760,25 @@ const AdminReportDetail = () => {
           }
         />
       </div>
+
+      {analysisEntries.length > 0 && (
+        <Card dir="rtl">
+          <CardHeader className="text-right">
+            <CardTitle className="text-right">سایر جزئیات تحلیلی</CardTitle>
+            <CardDescription className="text-right">مقادیر زیر به صورت ساختاری از خروجی مدل دریافتی شده‌اند.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm text-slate-700" style={{ fontFamily: rtlFontStack }}>
+            {analysisEntries.map(([key, value]) => (
+              <div key={`analysis-entry-${key}`} className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                <p className="text-xs font-semibold text-slate-500">{key}</p>
+                <pre className="mt-2 whitespace-pre-wrap text-[13px] leading-6 text-slate-700">
+                  {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
+                </pre>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
