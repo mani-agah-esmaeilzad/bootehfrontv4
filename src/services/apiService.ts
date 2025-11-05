@@ -189,6 +189,9 @@ export const getPersonalityResult = async (sessionId: string) =>
 export const adminGetPersonalityResults = async () =>
     await apiFetch('admin/personality-tests/results');
 
+export const adminGetReportsOverview = async () =>
+    await apiFetch('admin/reports/overview');
+
 // --- بلاگ ---
 
 export type BlogPostPayload = {

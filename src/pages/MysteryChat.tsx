@@ -18,7 +18,7 @@ interface ChatMessage extends MysteryChatHistoryItem {
   id: string;
   speaker: string;
 }
-
+    
 const MysteryChat = () => {
   const navigate = useNavigate();
   const { slug } = useParams<{ slug: string }>();
