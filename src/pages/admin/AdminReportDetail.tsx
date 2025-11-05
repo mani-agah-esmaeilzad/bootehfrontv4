@@ -357,6 +357,10 @@ const AdminReportDetail = () => {
       },
     ]
     : [];
+  const actionLegendLabels: Record<string, string> = {
+    action_words: "واژگان کنشی",
+    passive_words: "واژگان غیرکنشی",
+  };
   const confidenceScore = toNum(analysis.confidence_level?.score);
   const confidenceAngle = Math.min(Math.max(confidenceScore, 0), 10) * 36;
   const problemSolvingData = analysis.problem_solving_approach
@@ -744,7 +748,7 @@ const AdminReportDetail = () => {
           }
         />
         <ChartFlipCard
-          title="۳. روند پرحرفی"
+          title="۳. روند حجم پاسخ‌ها"
           front={
             <div className="h-64">
               {verbosityData.length === 0 ? (
@@ -815,7 +819,11 @@ const AdminReportDetail = () => {
                     <Legend
                       wrapperStyle={{ paddingTop: 10 }}
                       iconType="circle"
-                      formatter={(value) => <span className="text-xs text-slate-600">{value}</span>}
+                      formatter={(value) => (
+                        <span className="text-xs text-slate-600">
+                          {actionLegendLabels[value as keyof typeof actionLegendLabels] ?? value}
+                        </span>
+                      )}
                     />
                     <Bar dataKey="action_words" radius={[8, 8, 0, 0]} fill="#6366f1" />
                     <Bar dataKey="passive_words" radius={[8, 8, 0, 0]} fill="#22c55e" />
