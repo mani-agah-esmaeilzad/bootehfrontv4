@@ -63,6 +63,8 @@ interface ReportDetail {
 const COLORS = ["#0ea5e9", "#22c55e", "#f97316", "#6366f1", "#facc15", "#ec4899"];
 const toNum = (val: any): number => Number(val) || 0;
 
+const rtlFontStack = "'Vazirmatn', 'IRANSans', 'Tahoma', sans-serif";
+
 const tooltipStyle = {
   backgroundColor: "rgba(15,23,42,0.92)",
   borderRadius: "12px",
@@ -70,17 +72,18 @@ const tooltipStyle = {
   color: "#f8fafc",
   boxShadow: "0 12px 30px -12px rgba(15,23,42,0.65)",
   direction: "rtl" as const,
+  fontFamily: rtlFontStack,
 };
 
 const axisProps = {
   tickLine: false,
   axisLine: { stroke: "#cbd5f5" },
-  tick: { fill: "#475569", fontSize: 12 },
+  tick: { fill: "#475569", fontSize: 12, fontFamily: rtlFontStack },
 };
 
 const verticalAxisProps = {
   ...axisProps,
-  tick: { fill: "#475569", fontSize: 11 },
+  tick: { fill: "#475569", fontSize: 11, fontFamily: rtlFontStack, textAnchor: "end" as const },
 };
 
 const chartGridColor = "rgba(148, 163, 184, 0.25)";
@@ -187,25 +190,32 @@ const KeywordWordCloud = ({ data }: { data: { keyword: string; mentions: number 
   };
 
   return (
-    <div className="flex h-full w-full flex-wrap items-center justify-center gap-x-4 gap-y-3 overflow-hidden px-4 py-6">
+    <div
+      dir="rtl"
+      className="flex h-full w-full flex-wrap items-center justify-center gap-x-3 gap-y-2 overflow-hidden px-4 py-6"
+      style={{ fontFamily: rtlFontStack, lineHeight: 1.2 }}
+    >
       {data
         .slice()
         .sort((a, b) => b.mentions - a.mentions)
         .map(({ keyword, mentions }, index) => {
           const intensity = (mentions - minMentions) / spread;
-          const fontSize = 1.1 + intensity * 1.8;
+          const fontSize = 0.85 + intensity * 1.1;
+          const clampedFontSize = Math.min(2.1, Math.max(0.85, fontSize));
           const color = palette[getHash(keyword) % palette.length];
-          const rotation = ((getHash(`${keyword}-rotation`) % 7) - 3) * 2;
+          const rotationSeed = (getHash(`${keyword}-rotation`) % 5) - 2;
+          const rotation = Math.abs(rotationSeed) <= 1 ? rotationSeed * 2 : 0;
 
           return (
             <span
               key={`${keyword}-${index}`}
               className="select-none whitespace-nowrap font-bold tracking-tight text-slate-700 transition-transform"
               style={{
-                fontSize: `${fontSize}rem`,
+                fontSize: `${clampedFontSize}rem`,
                 color,
                 opacity: 0.65 + intensity * 0.35,
                 transform: `rotate(${rotation}deg)`,
+                lineHeight: 1.1,
               }}
             >
               {keyword}
@@ -737,9 +747,9 @@ const AdminReportDetail = () => {
                     </Pie>
                     <Tooltip contentStyle={tooltipStyle} />
                     <Legend
-                      wrapperStyle={{ paddingTop: 12 }}
+                      wrapperStyle={{ paddingTop: 12, direction: "rtl" as const }}
                       iconType="circle"
-                      formatter={(value) => <span className="text-xs text-slate-600">{value}</span>}
+                      formatter={(value) => <span className="text-xs text-slate-600" style={{ fontFamily: rtlFontStack }}>{value}</span>}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -848,10 +858,10 @@ const AdminReportDetail = () => {
                       ]}
                     />
                     <Legend
-                      wrapperStyle={{ paddingTop: 10 }}
+                      wrapperStyle={{ paddingTop: 10, direction: "rtl" as const }}
                       iconType="circle"
                       formatter={(value) => (
-                        <span className="text-xs text-slate-600">
+                        <span className="text-xs text-slate-600" style={{ fontFamily: rtlFontStack }}>
                           {actionLegendLabels[value as keyof typeof actionLegendLabels] ?? value}
                         </span>
                       )}
@@ -901,9 +911,9 @@ const AdminReportDetail = () => {
                     </Pie>
                     <Tooltip contentStyle={tooltipStyle} />
                     <Legend
-                      wrapperStyle={{ paddingTop: 12 }}
+                      wrapperStyle={{ paddingTop: 12, direction: "rtl" as const }}
                       iconType="circle"
-                      formatter={(value) => <span className="text-xs text-slate-600">{value}</span>}
+                      formatter={(value) => <span className="text-xs text-slate-600" style={{ fontFamily: rtlFontStack }}>{value}</span>}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -1161,9 +1171,9 @@ const AdminReportDetail = () => {
                     </Pie>
                     <Tooltip contentStyle={tooltipStyle} />
                     <Legend
-                      wrapperStyle={{ paddingTop: 12 }}
+                      wrapperStyle={{ paddingTop: 12, direction: "rtl" as const }}
                       iconType="circle"
-                      formatter={(value) => <span className="text-xs text-slate-600">{value}</span>}
+                      formatter={(value) => <span className="text-xs text-slate-600" style={{ fontFamily: rtlFontStack }}>{value}</span>}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -1337,8 +1347,9 @@ const AdminReportDetail = () => {
                     labelFormatter={(value: number) => `مرحله ${value}`}
                   />
                   <Legend
+                    wrapperStyle={{ direction: "rtl" as const }}
                     iconType="circle"
-                    formatter={(value) => <span className="text-xs text-slate-600">{value}</span>}
+                    formatter={(value) => <span className="text-xs text-slate-600" style={{ fontFamily: rtlFontStack }}>{value}</span>}
                   />
                   <ReferenceLine
                     y={scatterAverage}
