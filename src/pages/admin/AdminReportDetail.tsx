@@ -748,7 +748,7 @@ const AdminReportDetail = () => {
           }
         />
         <ChartFlipCard
-          title="۳. روند حجم پاسخ‌ها"
+          title="۳. سطح تعامل"
           front={
             <div className="h-64">
               {verbosityData.length === 0 ? (
