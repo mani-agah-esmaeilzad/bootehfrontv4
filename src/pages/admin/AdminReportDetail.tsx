@@ -167,6 +167,55 @@ const buildGaugeSegments = (value: number) => {
   return segments;
 };
 
+const KeywordWordCloud = ({ data }: { data: { keyword: string; mentions: number }[] }) => {
+  if (data.length === 0) {
+    return noData("کلمه کلیدی ثبت نشده است.");
+  }
+
+  const minMentions = Math.min(...data.map((item) => item.mentions));
+  const maxMentions = Math.max(...data.map((item) => item.mentions));
+  const spread = Math.max(maxMentions - minMentions, 1);
+  const palette = ["#0ea5e9", "#22c55e", "#6366f1", "#f97316", "#14b8a6", "#facc15", "#ec4899", "#8b5cf6"];
+
+  const getHash = (value: string) => {
+    let hash = 0;
+    for (let index = 0; index < value.length; index += 1) {
+      hash = (hash << 5) - hash + value.charCodeAt(index);
+      hash |= 0;
+    }
+    return Math.abs(hash);
+  };
+
+  return (
+    <div className="flex h-full w-full flex-wrap items-center justify-center gap-x-4 gap-y-3 overflow-hidden px-4 py-6">
+      {data
+        .slice()
+        .sort((a, b) => b.mentions - a.mentions)
+        .map(({ keyword, mentions }, index) => {
+          const intensity = (mentions - minMentions) / spread;
+          const fontSize = 1.1 + intensity * 1.8;
+          const color = palette[getHash(keyword) % palette.length];
+          const rotation = ((getHash(`${keyword}-rotation`) % 7) - 3) * 2;
+
+          return (
+            <span
+              key={`${keyword}-${index}`}
+              className="select-none whitespace-nowrap font-bold tracking-tight text-slate-700 transition-transform"
+              style={{
+                fontSize: `${fontSize}rem`,
+                color,
+                opacity: 0.65 + intensity * 0.35,
+                transform: `rotate(${rotation}deg)`,
+              }}
+            >
+              {keyword}
+            </span>
+          );
+        })}
+    </div>
+  );
+};
+
 interface ChartFlipCardProps {
   title: string;
   front: ReactNode;
@@ -336,8 +385,8 @@ const AdminReportDetail = () => {
     : [];
   const keywordData =
     analysis.keyword_analysis?.map((i: any) => ({
-      ...i,
-      mentions: toNum(i.mentions),
+      keyword: i.keyword || i.term || i.word || i.label || "عبارت",
+      mentions: toNum(i.mentions ?? i.count ?? i.value),
     })) || [];
   const verbosityData =
     analysis.verbosity_trend?.map((i: any) => ({
@@ -715,40 +764,22 @@ const AdminReportDetail = () => {
           title="۲. کلمات کلیدی"
           front={
             <div className="h-64">
-              {keywordData.length === 0 ? (
-                noData("کلمه کلیدی ثبت نشده است.")
-              ) : (
-                <ResponsiveContainer>
-                  <BarChart data={keywordData} layout="vertical" barCategoryGap={18}>
-                    <CartesianGrid stroke={chartGridColor} horizontal={false} />
-                    <XAxis type="number" {...axisProps} />
-                    <YAxis type="category" dataKey="keyword" width={100} {...verticalAxisProps} />
-                    <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [`${value} تکرار`, "ذکر شده"]} />
-                    <defs>
-                      <linearGradient id="keywordGradient" x1="0" x2="1" y1="0" y2="0">
-                        <stop offset="0%" stopColor="#22c55e" />
-                        <stop offset="100%" stopColor="#0ea5e9" />
-                      </linearGradient>
-                    </defs>
-                    <Bar dataKey="mentions" radius={[10, 10, 10, 10]} fill="url(#keywordGradient)" />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
+              <KeywordWordCloud data={keywordData} />
             </div>
           }
           back={
             <>
-              <p>ستون‌های عمودی نشان می‌دهند کدام عبارت‌ها بیشترین تکرار را داشته‌اند و برای استخراج موضوعات غالب مفیدند.</p>
+              <p>ابر واژگان نشان می‌دهد کدام عبارت‌ها پرکاربردتر بوده‌اند و در یک نگاه موضوعات غالب گفتگو را مشخص می‌کند.</p>
               <ul className="list-disc space-y-1 pr-5">
-                <li>بلندتر بودن ستون یعنی آن واژه بیشتر از بقیه به کار رفته است.</li>
-                <li>محور افقی تعداد تکرار و محور عمودی خود واژه‌ها را نمایش می‌دهد.</li>
-                <li>می‌توانید از این لیست برای طراحی پیام‌های شخصی‌سازی‌شده استفاده کنید.</li>
+                <li>هرچه اندازه و شدت رنگ یک واژه بیشتر باشد، بسامد استفاده از آن بالاتر است.</li>
+                <li>چیدمان نامنظم به تشخیص سریع‌تر واژه‌های غالب کمک می‌کند.</li>
+                <li>از واژه‌های برجسته برای طراحی پیام‌های شخصی‌سازی‌شده استفاده کنید.</li>
               </ul>
             </>
           }
         />
         <ChartFlipCard
-          title="۳. سطح تعامل"
+          title="۳. روند حجم پاسخ‌ها"
           front={
             <div className="h-64">
               {verbosityData.length === 0 ? (
