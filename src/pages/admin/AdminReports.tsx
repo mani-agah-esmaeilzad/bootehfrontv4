@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { LoaderCircle, ArrowLeft, BarChart, Download } from "lucide-react";
+import { LoaderCircle, ArrowLeft, BarChart, Trash2 } from "lucide-react";
 import {
     ResponsiveContainer,
     RadarChart,
@@ -32,6 +32,7 @@ const AdminReports = () => {
     const [reports, setReports] = useState<AssessmentReport[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isDownloading, setIsDownloading] = useState<number | null>(null);
+    const [deletingReportId, setDeletingReportId] = useState<number | null>(null);
     const navigate = useNavigate();
 
     const powerWheelCategories = [
@@ -97,6 +98,31 @@ const AdminReports = () => {
         toast.info(`در حال آماده‌سازی خروجی اکسل برای کاربر ${username}...`);
         // Placeholder for export logic
         setTimeout(() => setIsDownloading(null), 2000);
+    };
+
+    const handleDeleteReport = async (reportId: number, fullName: string) => {
+        if (!window.confirm(`آیا از حذف گزارش مربوط به «${fullName}» اطمینان دارید؟ این کار قابل بازگشت نیست.`)) {
+            return;
+        }
+
+        setDeletingReportId(reportId);
+        const previousReports = [...reports];
+        setReports((prev) => prev.filter((report) => report.assessment_id !== reportId));
+
+        try {
+            const response = await apiFetch(`admin/reports/${reportId}`, {
+                method: 'DELETE',
+            });
+            if (!response.success) {
+                throw new Error(response.message || 'حذف گزارش موفق نبود.');
+            }
+            toast.success('گزارش با موفقیت حذف شد.');
+        } catch (error: any) {
+            toast.error(error.message || 'خطا در حذف گزارش');
+            setReports(previousReports);
+        } finally {
+            setDeletingReportId(null);
+        }
     };
 
     return (
@@ -212,10 +238,31 @@ const AdminReports = () => {
                                                 }
                                             </TableCell>
                                             <TableCell className="text-center">
-                                                <Button variant="outline" size="sm" onClick={() => navigate(`/admin/reports/${report.assessment_id}`)}>
-                                                    <BarChart className="ml-2 h-4 w-4" />
-                                                    مشاهده جزئیات
-                                                </Button>
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        disabled={deletingReportId === report.assessment_id}
+                                                        onClick={() => navigate(`/admin/reports/${report.assessment_id}`)}
+                                                    >
+                                                        <BarChart className="ml-2 h-4 w-4" />
+                                                        مشاهده جزئیات
+                                                    </Button>
+                                                    <Button
+                                                        variant="destructive"
+                                                        size="sm"
+                                                        className="gap-2"
+                                                        disabled={deletingReportId === report.assessment_id}
+                                                        onClick={() => handleDeleteReport(report.assessment_id, `${report.first_name} ${report.last_name}`.trim() || report.username)}
+                                                    >
+                                                        {deletingReportId === report.assessment_id ? (
+                                                            <LoaderCircle className="h-4 w-4 animate-spin" />
+                                                        ) : (
+                                                            <Trash2 className="h-4 w-4" />
+                                                        )}
+                                                        حذف
+                                                    </Button>
+                                                </div>
                                                 {/* <Button
                                                     variant="secondary"
                                                     size="sm"

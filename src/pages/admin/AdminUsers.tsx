@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { LoaderCircle, ArrowLeft, Upload } from "lucide-react";
+import { LoaderCircle, ArrowLeft, Upload, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import apiFetch from "@/services/apiService";
 import { bulkUploadUsers } from "@/services/apiService";
@@ -26,6 +26,7 @@ const AdminUsers = () => {
     const [users, setUsers] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
+    const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const navigate = useNavigate();
 
@@ -46,6 +47,31 @@ const AdminUsers = () => {
             toast.error("خطا در دریافت لیست کاربران: " + error.message);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleDeleteUser = async (userId: number, fullName: string) => {
+        if (!window.confirm(`آیا از حذف کاربر «${fullName}» اطمینان دارید؟ این عملیات قابل بازگشت نیست.`)) {
+            return;
+        }
+
+        setDeletingUserId(userId);
+        const previousUsers = [...users];
+        setUsers((prev) => prev.filter((user) => user.id !== userId));
+
+        try {
+            const response = await apiFetch(`admin/users/${userId}`, {
+                method: 'DELETE',
+            });
+            if (!response.success) {
+                throw new Error(response.message || 'حذف کاربر موفق نبود.');
+            }
+            toast.success("کاربر با موفقیت حذف شد.");
+        } catch (error: any) {
+            toast.error(error.message || "خطا در حذف کاربر");
+            setUsers(previousUsers);
+        } finally {
+            setDeletingUserId(null);
         }
     };
     
@@ -123,35 +149,52 @@ const AdminUsers = () => {
                                             <TableHead>ایمیل</TableHead>
                                             <TableHead className="text-center">وضعیت</TableHead>
                                             <TableHead className="text-center">فعال/غیرفعال</TableHead>
+                                            <TableHead className="text-center">عملیات</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {users.map((user) => (
-                                            <TableRow 
-                                                key={user.id} 
-                                                className="cursor-pointer hover:bg-gray-50" 
-                                                onClick={() => navigate(`/admin/users/${user.id}`)}
-                                            >
+                                        <TableRow
+                                            key={user.id}
+                                            className="cursor-pointer hover:bg-gray-50"
+                                            onClick={() => navigate(`/admin/users/${user.id}`)}
+                                        >
                                                 <TableCell>
                                                     <div className="font-medium">{user.first_name} {user.last_name}</div>
                                                     <div className="text-sm text-muted-foreground">{user.username}</div>
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                                                <TableCell className="text-center">
-                                                    <Badge variant={user.is_active ? "default" : "destructive"}>
-                                                        {user.is_active ? "فعال" : "غیرفعال"}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                                                    <Switch 
-                                                        checked={user.is_active} 
-                                                        onCheckedChange={() => handleToggleUserStatus(user.id, user.is_active)} 
-                                                    />
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                                            <TableCell className="text-center">
+                                                <Badge variant={user.is_active ? "default" : "destructive"}>
+                                                    {user.is_active ? "فعال" : "غیرفعال"}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                                                <Switch 
+                                                    checked={user.is_active} 
+                                                    onCheckedChange={() => handleToggleUserStatus(user.id, user.is_active)} 
+                                                />
+                                            </TableCell>
+                                            <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                                                <Button
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    className="gap-2"
+                                                    disabled={deletingUserId === user.id}
+                                                    onClick={() => handleDeleteUser(user.id, `${user.first_name} ${user.last_name}`.trim() || user.username)}
+                                                >
+                                                    {deletingUserId === user.id ? (
+                                                        <LoaderCircle className="h-4 w-4 animate-spin" />
+                                                    ) : (
+                                                        <Trash2 className="h-4 w-4" />
+                                                    )}
+                                                    حذف
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
                             </div>
                         )}
                     </CardContent>
