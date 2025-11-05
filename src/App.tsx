@@ -22,7 +22,6 @@ import Blog from './pages/Blog';
 import BlogDetail from './pages/BlogDetail';
 import MysteryAssessments from './pages/MysteryAssessments';
 import MysteryAssessmentDetail from './pages/MysteryAssessmentDetail';
-import MysterySupplementary from './pages/MysterySupplementary';
 import MysteryResult from './pages/MysteryResult';
 import MysteryChat from './pages/MysteryChat';
 
@@ -41,7 +40,6 @@ import AdminOrganizations from './pages/admin/AdminOrganizations';
 import AdminPersonalityAssessments from './pages/admin/AdminPersonalityAssessments';
 import AdminPersonalityResults from './pages/admin/AdminPersonalityResults';
 import AdminBlogs from './pages/admin/AdminBlogs';
-import AdminMysteryAssessments from './pages/admin/AdminMysteryAssessments';
 
 // --- Route Protection Components ---
 
@@ -73,7 +71,6 @@ function App() {
           <Route path="/mystery" element={<MysteryAssessments />} />
           <Route path="/mystery/:slug" element={<MysteryAssessmentDetail />} />
           <Route path="/mystery/:slug/chat" element={<MysteryChat />} />
-          <Route path="/mystery/:slug/supplementary" element={<MysterySupplementary />} />
           <Route path="/mystery/:slug/result" element={<MysteryResult />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogDetail />} />
@@ -100,7 +97,6 @@ function App() {
               <Route path="/admin/reports/:id" element={<AdminReportDetail />} />
               <Route path="/admin/organizations" element={<AdminOrganizations />} />
               <Route path="/admin/blog" element={<AdminBlogs />} />
-              <Route path="/admin/mystery" element={<AdminMysteryAssessments />} />
               <Route path="/admin/personality-tests" element={<AdminPersonalityAssessments />} />
               <Route path="/admin/personality-results" element={<AdminPersonalityResults />} />
             </Route>

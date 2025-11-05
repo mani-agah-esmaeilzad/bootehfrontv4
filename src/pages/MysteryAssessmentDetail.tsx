@@ -4,15 +4,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { LoaderCircle, ArrowLeft, Loader2, Send, Sparkles } from "lucide-react";
 import {
   getMysteryTest,
   resolveApiAssetUrl,
   startMysteryTest,
   sendMysteryMessage,
+  finishMysteryTest,
 } from "@/services/apiService";
 import type {
   MysteryChatHistoryItem,
+  MysteryAnalysis,
   MysteryStartResponse,
   MysteryTestDetail,
 } from "@/types/mystery";
@@ -41,6 +44,31 @@ type SlideMessage = MysteryChatHistoryItem & {
   id: string;
 };
 
+type SupplementaryKey = "q1" | "q2";
+
+const SUPPLEMENTARY_CARD_PRESETS: Array<{
+  key: SupplementaryKey;
+  badge: string;
+  prompt: string;
+  hint: string;
+  placeholder: string;
+}> = [
+  {
+    key: "q1",
+    badge: "کارت تکمیلی اول",
+    prompt: "مهم‌ترین نکته‌ای که از همه تصاویر به ذهن تو رسید چیست؟",
+    hint: "نکات مشترک، داستان کلی یا پیام اصلی را با مثال توضیح بده تا رازمَستر عمق نگاهت را بسنجد.",
+    placeholder: "جمع‌بندی دیدگاهت را درباره همه تصاویر بنویس...",
+  },
+  {
+    key: "q2",
+    badge: "کارت تکمیلی دوم",
+    prompt: "چه سوال یا ابهامی هنوز برایت باقی مانده که می‌خواهی بررسی شود؟",
+    hint: "اگر نشانه‌ای مبهم مانده یا مسیر دیگری برای بررسی لازم است، دقیق بگو تا در جمع‌بندی لحاظ شود.",
+    placeholder: "اگر پرسشی یا فرضیه‌ای مانده، همین‌جا مطرح کن...",
+  },
+];
+
 const MysteryAssessmentDetail = () => {
   const navigate = useNavigate();
   const { slug } = useParams<{ slug: string }>();
@@ -54,6 +82,7 @@ const MysteryAssessmentDetail = () => {
   const sliderRef = useRef<HTMLDivElement | null>(null);
   const chatScrollRef = useRef<HTMLDivElement | null>(null);
   const touchStartRef = useRef<number | null>(null);
+  const supplementarySectionRef = useRef<HTMLDivElement | null>(null);
 
   const [sessionInfo, setSessionInfo] = useState<MysteryStartResponse | null>(null);
   const [isStartingSession, setIsStartingSession] = useState(false);
@@ -62,6 +91,11 @@ const MysteryAssessmentDetail = () => {
   const [inputValue, setInputValue] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [pendingAssistant, setPendingAssistant] = useState(false);
+  const [supplementaryAnswers, setSupplementaryAnswers] = useState<Record<SupplementaryKey, string>>({
+    q1: "",
+    q2: "",
+  });
+  const [isSubmittingSupplementary, setIsSubmittingSupplementary] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -197,6 +231,25 @@ const MysteryAssessmentDetail = () => {
     );
   }, [sessionInfo, conversations]);
 
+  useEffect(() => {
+    if (!sessionInfo) return;
+    const stored = sessionStorage.getItem(`mystery_result_${sessionInfo.sessionId}`);
+    if (!stored) return;
+    try {
+      const parsed = JSON.parse(stored) as {
+        supplementary?: { q1?: string; q2?: string };
+      };
+      if (parsed?.supplementary) {
+        setSupplementaryAnswers((prev) => ({
+          q1: parsed.supplementary?.q1 ?? prev.q1,
+          q2: parsed.supplementary?.q2 ?? prev.q2,
+        }));
+      }
+    } catch {
+      // ignore malformed cache data
+    }
+  }, [sessionInfo]);
+
   const handleSend = async () => {
     const activeSlide = slides[activeIndex];
     if (!activeSlide || activeSlide.id === -1) {
@@ -256,12 +309,79 @@ const MysteryAssessmentDetail = () => {
     }
   };
 
-  const handleProceedToSupplementary = async () => {
-    if (!test || !slug) return;
+  const handleSupplementaryChange = (field: SupplementaryKey, value: string) => {
+    setSupplementaryAnswers((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleOpenSupplementary = async () => {
+    if (!test) return;
     const session = sessionInfo ?? (await startSession());
     if (!session) return;
-    toast.info("ادامه مسیر تحلیل در سوالات تکمیلی");
-    navigate(`/mystery/${test.slug}/supplementary`);
+    requestAnimationFrame(() => {
+      supplementarySectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  };
+
+  const handleSubmitSupplementary = async () => {
+    if (!slug || !test) return;
+    const trimmedQ1 = supplementaryAnswers.q1.trim();
+    const trimmedQ2 = supplementaryAnswers.q2.trim();
+    if (!trimmedQ1 || !trimmedQ2) {
+      toast.info("هر دو پاسخ تکمیلی را کامل کن سپس ادامه بده.");
+      return;
+    }
+    const session = sessionInfo ?? (await startSession());
+    if (!session) return;
+    setIsSubmittingSupplementary(true);
+    try {
+      await sendMysteryMessage(
+        session.sessionId,
+        `پاسخ سوال تکمیلی ۱: ${trimmedQ1}`
+      );
+      await sendMysteryMessage(
+        session.sessionId,
+        `پاسخ سوال تکمیلی ۲: ${trimmedQ2}`
+      );
+      const response = await finishMysteryTest(session.sessionId);
+      if (!response.success) {
+        throw new Error(response.message || "تحلیل نهایی تولید نشد.");
+      }
+      const analysis = response.data as MysteryAnalysis;
+      sessionStorage.setItem(
+        `mystery_session_${slug}`,
+        JSON.stringify({
+          sessionId: session.sessionId,
+          guideName: test.guide_name,
+          testName: test.name,
+          testId: test.id ?? null,
+        })
+      );
+      sessionStorage.setItem(
+        `mystery_result_${session.sessionId}`,
+        JSON.stringify({
+          analysis,
+          supplementary: { q1: trimmedQ1, q2: trimmedQ2 },
+          testName: test.name,
+          guideName: test.guide_name,
+        })
+      );
+      toast.success("نتیجه آماده نمایش است.");
+      navigate(`/mystery/${slug}/result`);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error(error.message || "خطا در ثبت پاسخ‌ها");
+      } else {
+        toast.error("خطا در ثبت پاسخ‌ها");
+      }
+    } finally {
+      setIsSubmittingSupplementary(false);
+    }
   };
 
   const activeSlide = slides[activeIndex] ?? slides[0];
@@ -389,6 +509,9 @@ const MysteryAssessmentDetail = () => {
   const answerable = activeSlideId !== -1;
   const canSend = !!inputValue.trim() && !isSending && answerable;
   const totalSlides = slides.length;
+  const hasSupplementaryAnswers =
+    supplementaryAnswers.q1.trim().length > 0 && supplementaryAnswers.q2.trim().length > 0;
+  const canSubmitSupplementary = hasSupplementaryAnswers && !isSubmittingSupplementary;
 
   const slideVariants = {
     enter: ({ dir, offset }: { dir: "next" | "prev"; offset: { x: number; y: number } }) => ({
@@ -444,8 +567,8 @@ const MysteryAssessmentDetail = () => {
           <div className="flex flex-wrap items-center gap-3">
             <Button
               className="bg-purple-500 text-white hover:bg-purple-600"
-              onClick={handleProceedToSupplementary}
-              disabled={!answerable || actionableSlides.length === 0}
+              onClick={handleOpenSupplementary}
+              disabled={actionableSlides.length === 0 || isSubmittingSupplementary}
             >
               ادامه به سوالات تکمیلی
             </Button>
@@ -667,14 +790,82 @@ const MysteryAssessmentDetail = () => {
                   <Button
                     variant="ghost"
                     className="text-xs text-white/70 hover:text-white"
-                    onClick={handleProceedToSupplementary}
-                    disabled={!sessionInfo}
+                    onClick={handleOpenSupplementary}
+                    disabled={isSubmittingSupplementary}
                   >
                     سوالات تکمیلی
                   </Button>
                 </div>
               </div>
             </aside>
+          </div>
+        </section>
+
+        <section
+          ref={supplementarySectionRef}
+          className="mx-auto w-full max-w-6xl px-4 pb-24 md:px-8"
+        >
+          <div className="rounded-[32px] border border-white/10 bg-white/5 p-8 backdrop-blur">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-purple-300" />
+                <h2 className="text-xl font-semibold text-white md:text-2xl">
+                  سوالات تکمیلی رازمَستر
+                </h2>
+              </div>
+              <p className="text-xs font-medium text-white/60">
+                پاسخ‌ها مستقیم برای رازمَستر ارسال و در جلسه ذخیره می‌شود.
+              </p>
+            </div>
+            <p className="mt-4 text-sm leading-7 text-white/75 md:text-base md:leading-8">
+              پس از تحلیل هر تصویر، این دو سوال کمک می‌کند برداشت کلی و ابهاماتت برای رازمَستر
+              واضح‌تر شود. پاسخ‌ها را با جزئیات بنویس تا جمع‌بندی دقیقی دریافت کنی.
+            </p>
+
+            <div className="mt-8 grid gap-6 lg:grid-cols-2">
+              {SUPPLEMENTARY_CARD_PRESETS.map((card) => (
+                <div key={card.key} className="space-y-4">
+                  <div className="space-y-3">
+                    <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-[0.7rem] font-semibold tracking-wide text-white/80">
+                      {card.badge}
+                    </span>
+                    <div className="overflow-hidden rounded-[32px] border border-white/10 bg-white/5 p-3">
+                      <MysteryNarrationBubble message={`${card.prompt}\n\n${card.hint}`} />
+                    </div>
+                  </div>
+                  <Label
+                    htmlFor={`supplementary-${card.key}`}
+                    id={`supplementary-${card.key}-label`}
+                    className="sr-only"
+                  >
+                    {card.prompt}
+                  </Label>
+                  <Textarea
+                    dir="rtl"
+                    id={`supplementary-${card.key}`}
+                    rows={4}
+                    value={supplementaryAnswers[card.key]}
+                    onChange={(event) =>
+                      handleSupplementaryChange(card.key, event.target.value)
+                    }
+                    aria-labelledby={`supplementary-${card.key}-label`}
+                    className="min-h-[140px] rounded-3xl border border-white/15 bg-white/10 text-sm text-white placeholder:text-white/50 focus-visible:ring-purple-400/70"
+                    placeholder={card.placeholder}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <Button
+              onClick={handleSubmitSupplementary}
+              disabled={!canSubmitSupplementary}
+              className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-purple-500 py-3 text-base font-semibold text-white hover:bg-purple-600 disabled:opacity-60"
+            >
+              {isSubmittingSupplementary && (
+                <Loader2 className="h-5 w-5 animate-spin text-white" />
+              )}
+              {isSubmittingSupplementary ? "در حال آماده‌سازی نتیجه..." : "مشاهده تحلیل نهایی"}
+            </Button>
           </div>
         </section>
       </main>
