@@ -468,43 +468,79 @@ const AdminReportDetail = () => {
   ];
   const semanticFields = withRtlFields(analysis.linguistic_semantic_analysis?.semantic_fields);
 
-  const powerWheelCategories = [
-    { key: "teamwork", label: "کار تیمی", color: "#f97316" },
-    { key: "communication", label: "ارتباطات", color: "#22c55e" },
-    { key: "cognitive", label: "توانایی‌های شناختی", color: "#0ea5e9" },
-    { key: "workEthic", label: "اخلاق کاری", color: "#facc15" },
-    { key: "problemSolving", label: "حل مسئله", color: "#ec4899" },
-    { key: "leadership", label: "رهبری", color: "#6366f1" },
-  ];
+  type WheelEntry = {
+    dimension: string;
+    categoryKey: string;
+    categoryLabel: string;
+    score: number;
+  };
 
-  const powerWheelDimensions = [
-    { dimension: "همکاری تیمی", category: "teamwork", score: 82 },
-    { dimension: "مدیریت تعارض", category: "teamwork", score: 76 },
-    { dimension: "ساخت روابط", category: "teamwork", score: 88 },
-    { dimension: "گوش دادن فعال", category: "communication", score: 91 },
-    { dimension: "مهارت ارائه", category: "communication", score: 84 },
-    { dimension: "ارائه بازخورد", category: "communication", score: 79 },
-    { dimension: "تفکر تحلیلی", category: "cognitive", score: 86 },
-    { dimension: "برنامه‌ریزی راهبردی", category: "cognitive", score: 90 },
-    { dimension: "چابکی یادگیری", category: "cognitive", score: 83 },
-    { dimension: "مدیریت زمان", category: "workEthic", score: 88 },
-    { dimension: "قابل اتکا بودن", category: "workEthic", score: 81 },
-    { dimension: "پاسخگویی", category: "workEthic", score: 85 },
-    { dimension: "خلاقیت", category: "problemSolving", score: 87 },
-    { dimension: "تفکر انتقادی", category: "problemSolving", score: 92 },
-    { dimension: "تصمیم‌گیری", category: "problemSolving", score: 78 },
-    { dimension: "تعیین چشم‌انداز", category: "leadership", score: 93 },
-    { dimension: "مدیریت تغییر", category: "leadership", score: 89 },
-    { dimension: "مربی‌گری", category: "leadership", score: 81 },
-  ];
+  const rawWheelEntries: WheelEntry[] = Array.isArray(analysis.power_wheel?.dimensions)
+    ? (analysis.power_wheel.dimensions as any[]).map((entry: any, index: number) => {
+        const dimensionLabel = (entry?.dimension ?? `بعد ${index + 1}`).toString();
+        const categoryLabel = (entry?.category ?? dimensionLabel ?? `دسته ${index + 1}`).toString();
+        const categoryKey =
+          categoryLabel.trim().length > 0
+            ? categoryLabel.trim().toLowerCase().replace(/\s+/g, "-")
+            : `category-${index + 1}`;
+        return {
+          dimension: dimensionLabel,
+          categoryKey,
+          categoryLabel,
+          score: clamp(toNum(entry?.score), 0, 100),
+        };
+      })
+    : (analysis.factor_scores?.map((entry: any, index: number) => {
+        const dimensionLabel = (entry?.factor ?? `شاخص ${index + 1}`).toString();
+        const categoryLabel = (entry?.category ?? dimensionLabel ?? `شاخص ${index + 1}`).toString();
+        const categoryKey =
+          categoryLabel.trim().length > 0
+            ? categoryLabel.trim().toLowerCase().replace(/\s+/g, "-")
+            : `category-${index + 1}`;
+        const max = Math.max(toNum(entry?.maxScore) || 5, 1);
+        const normalizedScore = (toNum(entry?.score) / max) * 100;
+        return {
+          dimension: dimensionLabel,
+          categoryKey,
+          categoryLabel,
+          score: clamp(normalizedScore, 0, 100),
+        };
+      })) || [];
 
-  const gaugePreviewValue = 72;
+  const wheelColorPalette = ["#f97316", "#22c55e", "#0ea5e9", "#facc15", "#ec4899", "#6366f1", "#14b8a6", "#8b5cf6"];
+  const wheelCategoryMap = new Map<string, { key: string; label: string; color: string }>();
+  rawWheelEntries.forEach((entry, index) => {
+    if (!wheelCategoryMap.has(entry.categoryKey)) {
+      wheelCategoryMap.set(entry.categoryKey, {
+        key: entry.categoryKey,
+        label: entry.categoryLabel,
+        color: wheelColorPalette[index % wheelColorPalette.length],
+      });
+    }
+  });
+
+  const powerWheelCategories = Array.from(wheelCategoryMap.values());
+  const powerWheelData = rawWheelEntries.map((entry) => {
+    const base = { dimension: entry.dimension } as Record<string, string | number>;
+    powerWheelCategories.forEach((category) => {
+      base[category.key] = category.key === entry.categoryKey ? entry.score : 0;
+    });
+    return base;
+  });
+  const hasPowerWheelData = powerWheelData.length > 0 && powerWheelCategories.length > 0;
+
   const gaugeStartAngle = 220;
   const gaugeEndAngle = -40;
   const gaugeAngleSpan = Math.abs(gaugeStartAngle - gaugeEndAngle);
-  const sanitizedGaugeValue = clamp(gaugePreviewValue, 0, 100);
-  const gaugeValueAngle = gaugeStartAngle - (sanitizedGaugeValue / 100) * gaugeAngleSpan;
-  const gaugeSegments = buildGaugeSegments(gaugePreviewValue);
+  const rawGaugeValue =
+    analysis.readiness_index ??
+    analysis.score ??
+    (Number.isFinite(confidenceScore) && confidenceScore > 0 ? (confidenceScore / 10) * 100 : null);
+  const gaugeValue =
+    rawGaugeValue === null || rawGaugeValue === undefined ? null : clamp(toNum(rawGaugeValue), 0, 100);
+  const gaugeValueAngle =
+    gaugeValue !== null ? gaugeStartAngle - (gaugeValue / 100) * gaugeAngleSpan : gaugeStartAngle;
+  const gaugeSegments = gaugeValue !== null ? buildGaugeSegments(gaugeValue) : [];
   const gaugePreviewRanges = [
     { label: "آمادگی پایدار", range: "۰ تا ۲۵", color: "#22c55e" },
     { label: "رشد مطلوب", range: "۲۵ تا ۵۰", color: "#84cc16" },
@@ -512,19 +548,31 @@ const AdminReportDetail = () => {
     { label: "هشدار فوری", range: "۷۵ تا ۱۰۰", color: "#ef4444" },
   ];
 
-  const scatterLinePreviewData = [
-    { iteration: 1, performance: 48, trend: 45 },
-    { iteration: 2, performance: 56, trend: 53 },
-    { iteration: 3, performance: 63, trend: 60 },
-    { iteration: 4, performance: 68, trend: 66 },
-    { iteration: 5, performance: 74, trend: 72 },
-    { iteration: 6, performance: 81, trend: 79 },
-  ];
+  const progressTimelineRaw = Array.isArray((analysis as any).progress_timeline)
+    ? ((analysis as any).progress_timeline as any[]).map((entry: any, index: number) => ({
+        iteration: toNum(entry?.iteration ?? entry?.turn ?? index + 1),
+        performance: toNum(entry?.score ?? entry?.value ?? entry?.performance ?? 0),
+      }))
+    : verbosityData.map((entry, index) => ({
+        iteration: toNum(entry.turn ?? index + 1),
+        performance: toNum(entry.word_count),
+      }));
+
+  const scatterLineData = progressTimelineRaw
+    .filter((item) => Number.isFinite(item.performance))
+    .map((item, index, array) => {
+      const cumulative = array.slice(0, index + 1).reduce((sum, entry) => sum + entry.performance, 0);
+      const trend = cumulative / (index + 1 || 1);
+      return {
+        iteration: item.iteration || index + 1,
+        performance: Math.round(item.performance * 100) / 100,
+        trend: Math.round(trend * 100) / 100,
+      };
+    });
+
   const scatterAverage =
-    scatterLinePreviewData.length > 0
-      ?
-          scatterLinePreviewData.reduce((total, item) => total + toNum(item.performance), 0) /
-        scatterLinePreviewData.length
+    scatterLineData.length > 0
+      ? scatterLineData.reduce((total, item) => total + toNum(item.performance), 0) / scatterLineData.length
       : 0;
   const renderScatterPoint = (props: any) => {
     const { cx, cy } = props;
@@ -536,14 +584,6 @@ const AdminReportDetail = () => {
       </g>
     );
   };
-
-  const powerWheelData = powerWheelDimensions.map((dimension) => {
-    const baseEntry = { dimension: dimension.dimension } as Record<string, number | string>;
-    powerWheelCategories.forEach((category) => {
-      baseEntry[category.key] = category.key === dimension.category ? dimension.score : 0;
-    });
-    return baseEntry;
-  });
 
   return (
     <div dir="rtl" className="space-y-6">
@@ -653,81 +693,89 @@ const AdminReportDetail = () => {
         title="چرخ توانمندی پاور ویل (نسخه آزمایشی)"
         front={
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
-            <div className="h-[420px]" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={powerWheelData} outerRadius="75%">
-                  <PolarGrid strokeDasharray="3 6" />
-                  <PolarAngleAxis
-                    dataKey="dimension"
-                    tick={{ fill: "#475569", fontSize: 11, fontFamily: rtlFontStack }}
-                  />
-                  <PolarRadiusAxis
-                    angle={90}
-                    domain={[0, 100]}
-                    stroke="#cbd5f5"
-                    tick={{ fill: "#94a3b8", fontSize: 10, fontFamily: rtlFontStack }}
-                  />
-                  {powerWheelCategories.map((category) => (
-                    <Radar
-                      key={category.key}
-                      name={category.label}
-                      dataKey={category.key}
-                      stroke={category.color}
-                      fill={category.color}
-                      fillOpacity={0.2}
-                      strokeWidth={2}
-                    />
-                  ))}
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    formatter={(value: number, _name: string, item: any) => {
-                      if (typeof value !== "number" || value === 0 || !item) return null;
-                      const categoryLabel = powerWheelCategories.find((cat) => cat.key === item.dataKey)?.label;
-                      return [`${value} از ۱۰۰`, categoryLabel];
-                    }}
-                    labelFormatter={(label: string) => `مهارت: ${label}`}
-                  />
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="space-y-4">
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                این نمودار نمونه‌ای آزمایشی است تا نحوه نمایش ۱۸ مهارت کلیدی را در قالب چرخ توانمندی نشان دهد. هر ناحیه
-                رنگی نماینده یک حوزه شایستگی است و امتیازهای نمایش داده شده صرفاً برای تست رابط کاربری می‌باشند.
-              </p>
-              <div className="grid grid-cols-1 gap-3">
-                {powerWheelCategories.map((category) => (
-                  <div key={category.key} className="flex items-center gap-3 rounded-md border px-3 py-2">
-                    <span
-                      className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: category.color }}
-                      aria-hidden
-                    />
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">{category.label}</p>
-                      <p className="text-xs text-muted-foreground">
-                        مجموعه‌ای از مهارت‌های مرتبط که در این گروه توانمندی ارزیابی می‌شوند.
-                      </p>
-                    </div>
+            {hasPowerWheelData ? (
+              <>
+                <div className="h-[420px]" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart data={powerWheelData} outerRadius="75%">
+                      <PolarGrid strokeDasharray="3 6" />
+                      <PolarAngleAxis
+                        dataKey="dimension"
+                        tick={{ fill: "#475569", fontSize: 11, fontFamily: rtlFontStack }}
+                      />
+                      <PolarRadiusAxis
+                        angle={90}
+                        domain={[0, 100]}
+                        stroke="#cbd5f5"
+                        tick={{ fill: "#94a3b8", fontSize: 10, fontFamily: rtlFontStack }}
+                      />
+                      {powerWheelCategories.map((category) => (
+                        <Radar
+                          key={category.key}
+                          name={category.label}
+                          dataKey={category.key}
+                          stroke={category.color}
+                          fill={category.color}
+                          fillOpacity={0.2}
+                          strokeWidth={2}
+                        />
+                      ))}
+                      <Tooltip
+                        contentStyle={tooltipStyle}
+                        formatter={(value: number, _name: string, item: any) => {
+                          if (typeof value !== "number" || value === 0 || !item) return null;
+                          const categoryLabel = powerWheelCategories.find((cat) => cat.key === item.dataKey)?.label;
+                          return [`${value} از ۱۰۰`, categoryLabel];
+                        }}
+                        labelFormatter={(label: string) => `حوزه: ${label}`}
+                      />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="space-y-4">
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    این چرخ توزیع امتیاز شاخص‌ها را در خوشه‌های موضوعی نشان می‌دهد و کمک می‌کند فوراً متوجه شوید کدام
+                    حوزه‌ها پررنگ‌تر هستند.
+                  </p>
+                  <div className="grid grid-cols-1 gap-3">
+                    {powerWheelCategories.map((category) => (
+                      <div key={category.key} className="flex items-center gap-3 rounded-md border px-3 py-2">
+                        <span
+                          className="h-3 w-3 rounded-full"
+                          style={{ backgroundColor: category.color }}
+                          aria-hidden
+                        />
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">{category.label}</p>
+                          <p className="text-xs text-muted-foreground">
+                            امتیاز میانگین این دسته از ۰ تا ۱۰۰ محاسبه شده و نشان می‌دهد سطح تسلط فعلی در چه وضعیتی است.
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+              </>
+            ) : (
+              <div className="col-span-full flex items-center justify-center">
+                {noData("داده‌ای برای چرخ توانمندی ثبت نشده است.")}
               </div>
-            </div>
+            )}
           </div>
         }
         back={
           <>
             <p>
-              پاور ویل برای نمایش هم‌زمان چندین مهارت نرم طراحی شده است تا توزیع توانمندی فرد را بین حوزه‌های مهم نشان دهد
-              و امکان مقایسه سریع فراهم شود.
+              پاور ویل برای نمایش هم‌زمان چندین مهارت طراحی شده است تا تعادل نقاط قوت و ضعف را در یک نگاه نشان دهد و امکان
+              مقایسه بین حوزه‌ها را فراهم کند.
             </p>
             <ul className="list-disc space-y-1 pr-5">
-              <li>هر رنگ یک دسته مهارتی مثل ارتباطات یا رهبری را برجسته می‌کند.</li>
-              <li>امتیاز ۰ تا ۱۰۰ هر بعد بیانگر شدت تسلط فرد بر همان مهارت است.</li>
-              <li>این نسخه با داده‌های نمونه بارگذاری شده تا تجربه تعامل چرخ بررسی شود.</li>
+              <li>هر رنگ یک خوشه مهارتی مستقل (مثلاً ارتباطات یا رهبری) را نمایش می‌دهد.</li>
+              <li>امتیازها بر مبنای درصد ۰ تا ۱۰۰ محاسبه شده‌اند تا بتوان آن‌ها را راحت مقایسه کرد.</li>
+              <li>می‌توانید از این نما برای اولویت‌بندی برنامه‌های توسعه فردی یا تیمی استفاده کنید.</li>
             </ul>
             <p className="text-xs text-muted-foreground">
-              پس از اتصال به داده‌های واقعی می‌توانید از همین منطق برای گزارش‌گیری نهایی بهره ببرید.
+              اگر برای برخی دسته‌ها داده‌ای ارسال نشود، نمودار صرفاً حوزه‌های موجود را نمایش می‌دهد.
             </p>
           </>
         }
@@ -1257,81 +1305,87 @@ const AdminReportDetail = () => {
           title="۱۴. شاخص آمادگی"
           front={
             <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
-              <div className="relative h-full">
-                <ResponsiveContainer>
-                  <PieChart>
-                    <defs>
-                      <filter id="gaugeShadow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feDropShadow dx="0" dy="6" stdDeviation="6" floodColor="rgba(15,23,42,0.25)" />
-                      </filter>
-                    </defs>
-                    <Pie
-                      data={[{ name: "track", value: 100 }]}
-                      dataKey="value"
-                      startAngle={gaugeStartAngle}
-                      endAngle={gaugeEndAngle}
-                      innerRadius={70}
-                      outerRadius={100}
-                      fill="#e2e8f0"
-                      stroke="none"
-                    />
-                    <Pie
-                      data={gaugeSegments}
-                      dataKey="value"
-                      startAngle={gaugeStartAngle}
-                      endAngle={gaugeValueAngle}
-                      innerRadius={70}
-                      outerRadius={100}
-                      stroke="none"
-                      paddingAngle={1.2}
-                      cornerRadius={12}
-                      filter="url(#gaugeShadow)"
-                    >
-                      {gaugeSegments.map((segment, index) => (
-                        <Cell key={`${segment.name}-${index}`} fill={segment.fill} />
-                      ))}
-                    </Pie>
-                    <Customized
-                      component={({ cx, cy, innerRadius, outerRadius }) => {
-                        if (typeof cx !== "number" || typeof cy !== "number") return null;
-                        const inner = typeof innerRadius === "number" ? innerRadius : 0;
-                        const outer = typeof outerRadius === "number" ? outerRadius : 0;
-                        const needleRadius = (inner + outer) / 2;
-                        const radians = (gaugeValueAngle * Math.PI) / 180;
-                        const x = cx + needleRadius * Math.cos(radians);
-                        const y = cy + needleRadius * Math.sin(radians);
-                        return (
-                          <g>
-                            <line x1={cx} y1={cy} x2={x} y2={y} stroke="#0f172a" strokeWidth={4} strokeLinecap="round" />
-                            <circle cx={cx} cy={cy} r={8} fill="#0f172a" stroke="#ffffff" strokeWidth={2} />
-                          </g>
-                        );
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1">
-                  <span className="text-3xl font-bold text-slate-700">{gaugePreviewValue}</span>
-                  <span className="text-xs text-muted-foreground">امتیاز لحظه‌ای</span>
-                </div>
-              </div>
-              <div className="mt-4 grid grid-cols-2 gap-2 text-center text-xs text-muted-foreground sm:grid-cols-4">
-                {gaugePreviewRanges.map((item) => (
-                  <div key={item.label} className="rounded-md border border-slate-200 px-2 py-1">
-                    <p className="font-semibold" style={{ color: item.color }}>
-                      {item.label}
-                    </p>
-                    <p>{item.range}</p>
+              {gaugeValue === null ? (
+                noData("شاخص آمادگی محاسبه نشده است.")
+              ) : (
+                <>
+                  <div className="relative h-full">
+                    <ResponsiveContainer>
+                      <PieChart>
+                        <defs>
+                          <filter id="gaugeShadow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="0" dy="6" stdDeviation="6" floodColor="rgba(15,23,42,0.25)" />
+                          </filter>
+                        </defs>
+                        <Pie
+                          data={[{ name: "track", value: 100 }]}
+                          dataKey="value"
+                          startAngle={gaugeStartAngle}
+                          endAngle={gaugeEndAngle}
+                          innerRadius={70}
+                          outerRadius={100}
+                          fill="#e2e8f0"
+                          stroke="none"
+                        />
+                        <Pie
+                          data={gaugeSegments}
+                          dataKey="value"
+                          startAngle={gaugeStartAngle}
+                          endAngle={gaugeValueAngle}
+                          innerRadius={70}
+                          outerRadius={100}
+                          stroke="none"
+                          paddingAngle={1.2}
+                          cornerRadius={12}
+                          filter="url(#gaugeShadow)"
+                        >
+                          {gaugeSegments.map((segment, index) => (
+                            <Cell key={`${segment.name}-${index}`} fill={segment.fill} />
+                          ))}
+                        </Pie>
+                        <Customized
+                          component={({ cx, cy, innerRadius, outerRadius }) => {
+                            if (typeof cx !== "number" || typeof cy !== "number") return null;
+                            const inner = typeof innerRadius === "number" ? innerRadius : 0;
+                            const outer = typeof outerRadius === "number" ? outerRadius : 0;
+                            const needleRadius = (inner + outer) / 2;
+                            const radians = (gaugeValueAngle * Math.PI) / 180;
+                            const x = cx + needleRadius * Math.cos(radians);
+                            const y = cy + needleRadius * Math.sin(radians);
+                            return (
+                              <g>
+                                <line x1={cx} y1={cy} x2={x} y2={y} stroke="#0f172a" strokeWidth={4} strokeLinecap="round" />
+                                <circle cx={cx} cy={cy} r={8} fill="#0f172a" stroke="#ffffff" strokeWidth={2} />
+                              </g>
+                            );
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1">
+                      <span className="text-3xl font-bold text-slate-700">{Math.round(gaugeValue)}</span>
+                      <span className="text-xs text-muted-foreground">امتیاز نهایی</span>
+                    </div>
                   </div>
-                ))}
-              </div>
+                  <div className="mt-4 grid grid-cols-2 gap-2 text-center text-xs text-muted-foreground sm:grid-cols-4">
+                    {gaugePreviewRanges.map((item) => (
+                      <div key={item.label} className="rounded-md border border-slate-200 px-2 py-1">
+                        <p className="font-semibold" style={{ color: item.color }}>
+                          {item.label}
+                        </p>
+                        <p>{item.range}</p>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           }
           back={
             <>
               <p>
-                این گیج طیفی با طیف سبز تا قرمز نشان می‌دهد شاخص آمادگی کنونی در چه نقطه‌ای از مسیر مطلوب تا وضعیت هشدار قرار
-                گرفته است.
+                این گیج نشان می‌دهد شاخص آمادگی محاسبه‌شده (بر پایه امتیاز کل یا شاخص اطمینان) در چه نقطه‌ای از بازه ۰ تا ۱۰۰
+                قرار گرفته است و چقدر تا وضعیت مطلوب فاصله دارد.
               </p>
               <ul className="list-disc space-y-1 pr-5">
                 <li>رنگ‌های تدریجی تصویرگر گذر آرام از وضعیت پایدار به ناحیه‌های حساس‌تر هستند.</li>
@@ -1345,62 +1399,66 @@ const AdminReportDetail = () => {
           title="۱۵. پراکندگی پیشرفت با خط روند"
           front={
             <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
-              <ResponsiveContainer>
-                <ComposedChart data={scatterLinePreviewData} margin={{ top: 10, right: 16, left: 0, bottom: 10 }}>
-                  <defs>
-                    <linearGradient id="trendArea" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.4} />
-                      <stop offset="100%" stopColor="#6366f1" stopOpacity={0.05} />
-                    </linearGradient>
-                    <radialGradient id="scatterGlow" cx="50%" cy="50%" r="50%">
-                      <stop offset="0%" stopColor="#6366f1" stopOpacity={0.75} />
-                      <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
-                    </radialGradient>
-                  </defs>
-                  <CartesianGrid stroke={chartGridColor} strokeDasharray="6 6" />
-                  <XAxis
-                    dataKey="iteration"
-                    {...axisProps}
-                    tickFormatter={(value: number) => `مرحله ${value}`}
-                  />
-                  <YAxis {...axisProps} domain={[0, 100]} orientation="right" />
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    formatter={(value: number, name: string) => [
-                      `${value} امتیاز`,
-                      name === "performance" ? "نتیجه مشاهده‌شده" : "خط روند",
-                    ]}
-                    labelFormatter={(value: number) => `مرحله ${value}`}
-                  />
-                  <Legend
-                    wrapperStyle={{ direction: "rtl" as const }}
-                    iconType="circle"
-                    formatter={(value) => <span className="text-xs text-slate-600" style={{ fontFamily: rtlFontStack }}>{value}</span>}
-                  />
-                  <ReferenceLine
-                    y={scatterAverage}
-                    stroke="#c084fc"
-                    strokeDasharray="4 4"
-                    ifOverflow="extendDomain"
-                    label={{ value: "میانگین عملکرد", position: "right", fill: "#7c3aed", fontSize: 11, fontFamily: rtlFontStack }}
-                  />
-                  <Area type="monotone" dataKey="trend" fill="url(#trendArea)" stroke="none" name="" legendType="none" />
-                  <Scatter
-                    name="نتیجه مشاهده‌شده"
-                    dataKey="performance"
-                    shape={renderScatterPoint}
-                  />
-                  <Line
-                    name="خط روند"
-                    type="monotone"
-                    dataKey="trend"
-                    stroke="#2563eb"
-                    strokeWidth={3}
-                    dot={false}
-                    activeDot={{ r: 6, fill: "#2563eb", stroke: "#ffffff", strokeWidth: 2 }}
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
+              {scatterLineData.length === 0 ? (
+                noData("داده‌ای برای روند پیشرفت در دسترس نیست.")
+              ) : (
+                <ResponsiveContainer>
+                  <ComposedChart data={scatterLineData} margin={{ top: 10, right: 16, left: 0, bottom: 10 }}>
+                    <defs>
+                      <linearGradient id="trendArea" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="#6366f1" stopOpacity={0.05} />
+                      </linearGradient>
+                      <radialGradient id="scatterGlow" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor="#6366f1" stopOpacity={0.75} />
+                        <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                      </radialGradient>
+                    </defs>
+                    <CartesianGrid stroke={chartGridColor} strokeDasharray="6 6" />
+                    <XAxis
+                      dataKey="iteration"
+                      {...axisProps}
+                      tickFormatter={(value: number) => `مرحله ${value}`}
+                    />
+                    <YAxis {...axisProps} orientation="right" />
+                    <Tooltip
+                      contentStyle={tooltipStyle}
+                      formatter={(value: number, name: string) => [
+                        `${value} امتیاز`,
+                        name === "performance" ? "نتیجه مشاهده‌شده" : "خط روند",
+                      ]}
+                      labelFormatter={(value: number) => `مرحله ${value}`}
+                    />
+                    <Legend
+                      wrapperStyle={{ direction: "rtl" as const }}
+                      iconType="circle"
+                      formatter={(value) => <span className="text-xs text-slate-600" style={{ fontFamily: rtlFontStack }}>{value}</span>}
+                    />
+                    <ReferenceLine
+                      y={scatterAverage}
+                      stroke="#c084fc"
+                      strokeDasharray="4 4"
+                      ifOverflow="extendDomain"
+                      label={{ value: "میانگین عملکرد", position: "right", fill: "#7c3aed", fontSize: 11, fontFamily: rtlFontStack }}
+                    />
+                    <Area type="monotone" dataKey="trend" fill="url(#trendArea)" stroke="none" name="میانگین متحرک" legendType="none" />
+                    <Scatter
+                      name="نتیجه مشاهده‌شده"
+                      dataKey="performance"
+                      shape={renderScatterPoint}
+                    />
+                    <Line
+                      name="خط روند"
+                      type="monotone"
+                      dataKey="trend"
+                      stroke="#2563eb"
+                      strokeWidth={3}
+                      dot={false}
+                      activeDot={{ r: 6, fill: "#2563eb", stroke: "#ffffff", strokeWidth: 2 }}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              )}
             </div>
           }
           back={

@@ -33,6 +33,23 @@ const MysteryChat = () => {
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
+  const persistAnalysis = (analysisData: MysteryAnalysis) => {
+    if (!sessionInfo) return;
+    try {
+      const payload = {
+        analysis: analysisData,
+        testName: sessionInfo.testName,
+        guideName: sessionInfo.guideName,
+      };
+      sessionStorage.setItem(
+        `mystery_result_${sessionInfo.sessionId}`,
+        JSON.stringify(payload)
+      );
+    } catch (error) {
+      console.error("Failed to persist mystery analysis:", error);
+    }
+  };
+
   useEffect(() => {
     const init = async () => {
       if (!slug) return;
@@ -116,7 +133,9 @@ const MysteryChat = () => {
       if (!response.success) {
         throw new Error(response.message || "تحلیل گفتگو با خطا مواجه شد");
       }
-      setAnalysis(response.data);
+      const analysisData: MysteryAnalysis = response.data;
+      setAnalysis(analysisData);
+      persistAnalysis(analysisData);
       toast.success("تحلیل رازمایی آماده شد.");
     } catch (error: any) {
       toast.error(error.message || "خطا در پایان رازمایی");
@@ -127,6 +146,17 @@ const MysteryChat = () => {
 
   const goBack = () => {
     navigate(`/mystery/${slug}`);
+  };
+
+  const handleCopyAnalysis = async () => {
+    if (!analysis) return;
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(analysis, null, 2));
+      toast.success("خلاصه تحلیل در کلیپ‌بورد قرار گرفت.");
+    } catch (error) {
+      console.error("Clipboard copy failed:", error);
+      toast.error("امکان کپی JSON تحلیل وجود ندارد.");
+    }
   };
 
   const renderAnalysis = () => {
@@ -147,7 +177,11 @@ const MysteryChat = () => {
             ))}
           </div>
           <div className="flex flex-wrap justify-end gap-3">
+            <Button variant="outline" onClick={handleCopyAnalysis}>کپی JSON تحلیل</Button>
             <Button variant="outline" onClick={() => navigate("/mystery")}>سایر رازمایی‌ها</Button>
+            <Button variant="secondary" onClick={() => navigate(`/mystery/${slug}/result`)}>
+              مشاهده صفحه نتیجه
+            </Button>
             <Button onClick={goBack}>بازگشت</Button>
           </div>
         </CardContent>
