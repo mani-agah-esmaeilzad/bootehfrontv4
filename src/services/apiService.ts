@@ -190,7 +190,7 @@ export const adminGetPersonalityResults = async () =>
     await apiFetch('admin/personality-tests/results');
 
 export const adminGetReportsOverview = async () =>
-    await apiFetch('admin/reports/overview');
+    await apiFetch('admin/reports-overview');
 
 // --- بلاگ ---
 
