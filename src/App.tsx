@@ -20,10 +20,6 @@ import PersonalityChat from './pages/PersonalityChat';
 import PersonalityResultsPage from './pages/PersonalityResults';
 import Blog from './pages/Blog';
 import BlogDetail from './pages/BlogDetail';
-import MysteryAssessments from './pages/MysteryAssessments';
-import MysteryAssessmentDetail from './pages/MysteryAssessmentDetail';
-import MysteryResult from './pages/MysteryResult';
-import MysteryChat from './pages/MysteryChat';
 
 // Admin Pages
 import AdminLogin from './pages/admin/AdminLogin';
@@ -68,10 +64,6 @@ function App() {
           <Route path="/personality/:slug" element={<PersonalityAssessmentDetail />} />
           <Route path="/personality/:slug/chat" element={<PersonalityChat />} />
           <Route path="/personality/results" element={<PersonalityResultsPage />} />
-          <Route path="/mystery" element={<MysteryAssessments />} />
-          <Route path="/mystery/:slug" element={<MysteryAssessmentDetail />} />
-          <Route path="/mystery/:slug/chat" element={<MysteryChat />} />
-          <Route path="/mystery/:slug/result" element={<MysteryResult />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogDetail />} />
 

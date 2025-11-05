@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { LoaderCircle, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import apiFetch from "@/services/apiService";
@@ -17,23 +16,33 @@ interface SupplementaryQuestionsData {
   supplementary_question_2: string;
 }
 
+const SupplementaryPromptImage = ({ text }: { text: string }) => (
+  <div className="relative w-full select-none">
+    <img
+      src="/linkedin.jpeg"
+      alt=""
+      className="pointer-events-none h-auto w-full drop-shadow-[0_28px_52px_rgba(15,23,42,0.35)]"
+      draggable={false}
+    />
+    <div className="absolute inset-x-[12%] top-[18%] bottom-[20%] flex items-center justify-center px-3 text-right md:inset-x-[13%] md:top-[16%] md:bottom-[18%]">
+      <p className="whitespace-pre-wrap text-[0.95rem] font-semibold leading-8 text-slate-800 drop-shadow-[0_1px_3px_rgba(255,255,255,0.7)] md:text-[1.05rem] md:leading-9">
+        {text}
+      </p>
+    </div>
+  </div>
+);
+
 const CARD_PRESETS: Array<{
   key: "q1" | "q2";
   label: string;
-  gradient: string;
-  glow: string;
 }> = [
   {
     key: "q1",
-    label: "رازآموزی اول",
-    gradient: "from-[#5236ff]/85 via-[#8b5cf6]/75 to-[#22d3ee]/65",
-    glow: "shadow-[0_40px_130px_-50px_rgba(139,92,246,0.6)]",
+    label: "سوال تکمیلی اول",
   },
   {
     key: "q2",
-    label: "رازآموزی دوم",
-    gradient: "from-[#f97316]/75 via-[#ec4899]/70 to-[#6366f1]/65",
-    glow: "shadow-[0_40px_130px_-50px_rgba(236,72,153,0.55)]",
+    label: "سوال تکمیلی دوم",
   },
 ];
 
@@ -46,7 +55,6 @@ const SupplementaryQuestions = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [nextStage, setNextStage] = useState<{ type?: string; slug?: string | null } | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [finalAssessmentId, setFinalAssessmentId] = useState<number | null>(null);
 
@@ -66,7 +74,6 @@ const SupplementaryQuestions = () => {
 
     const storedState = JSON.parse(storedStateRaw);
     setSessionId(storedState.sessionId);
-    setNextStage(storedState.nextStage ?? null);
 
     const fetchQuestions = async () => {
       try {
@@ -94,7 +101,7 @@ const SupplementaryQuestions = () => {
   const handleSubmit = async () => {
     if (!questionnaireId || !sessionId || isSubmitting) return;
     if (!answers.q1.trim() || !answers.q2.trim()) {
-      toast.info("پاسخ هر دو رازآموزی را بنویس سپس ادامه بده.");
+      toast.info("پاسخ هر دو سوال تکمیلی را بنویس سپس ادامه بده.");
       return;
     }
 
@@ -125,11 +132,7 @@ const SupplementaryQuestions = () => {
   const handleModalClose = () => {
     setIsModalOpen(false);
     sessionStorage.removeItem(`assessmentState_${questionnaireId}`);
-    if (nextStage?.type === "mystery" && nextStage.slug) {
-      navigate(`/mystery/${nextStage.slug}`);
-    } else {
-      navigate("/dashboard");
-    }
+    navigate("/dashboard");
   };
 
   if (isLoading) {
@@ -143,14 +146,22 @@ const SupplementaryQuestions = () => {
     );
   }
 
-  const cards = CARD_PRESETS.map((preset) => ({
-    ...preset,
-    question:
+  const cards = CARD_PRESETS.map((preset) => {
+    const question =
       preset.key === "q1"
-        ? questions?.supplementary_question_1
-        : questions?.supplementary_question_2,
-    value: answers[preset.key],
-  })).filter((card) => Boolean(card.question));
+        ? questions?.supplementary_question_1?.trim()
+        : questions?.supplementary_question_2?.trim();
+    if (!question) {
+      return null;
+    }
+    return {
+      ...preset,
+      question,
+      value: answers[preset.key],
+    };
+  }).filter((card): card is { key: "q1" | "q2"; label: string; question: string; value: string } =>
+    Boolean(card)
+  );
 
   return (
     <div dir="rtl" className="min-h-screen bg-slate-950 text-white">
@@ -158,11 +169,13 @@ const SupplementaryQuestions = () => {
         <header className="space-y-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="text-right">
-              <p className="text-xs font-semibold text-purple-200/70">رازآموزی تکمیلی</p>
-              <h1 className="mt-1 text-2xl font-bold md:text-3xl">دو کارت آخر برای کشف دقیق‌تر</h1>
+              <p className="text-xs font-semibold text-purple-200/70">سوالات تکمیلی</p>
+              <h1 className="mt-1 text-2xl font-bold md:text-3xl">
+                دو تصویر آخر برای تکمیل تحلیل
+              </h1>
               <p className="mt-2 max-w-xl text-sm leading-7 text-white/70 md:text-base">
-                این دو کارت برای تعمیق تحلیل ارزیابی طراحی شده‌اند. هر کارت را با تمرکز بخوان و
-                پاسخ شخصی خودت را بنویس؛ پاسخ‌ها مستقیم به گزارش نهایی اضافه می‌شوند.
+                متن هر سوال روی تصویر نمایش داده شده است. پس از مرور دقیق، پاسخ شخصی خودت را
+                در کادر پایین بنویس تا مستقیماً به جمع‌بندی گزارش اضافه شود.
               </p>
             </div>
             <Button
@@ -183,35 +196,30 @@ const SupplementaryQuestions = () => {
         <main className="space-y-10">
           <div className="grid gap-8 lg:grid-cols-2">
             {cards.map((card) => (
-              <AspectRatio
+              <div
                 key={card.key}
-                ratio={3 / 4}
-                className={`relative overflow-hidden rounded-[32px] border border-white/10 ${card.glow}`}
+                className="space-y-4 rounded-[32px] border border-white/10 bg-white/5 p-5 backdrop-blur"
               >
-                <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient}`} />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.22),_transparent_65%)] opacity-80" />
-                <div className="absolute inset-0 opacity-70 mix-blend-soft-light" />
-                <div className="relative flex h-full flex-col justify-between p-6 sm:p-8">
-                  <div className="space-y-4">
-                    <span className="inline-flex items-center gap-2 self-end rounded-full bg-white/15 px-4 py-2 text-[0.7rem] font-semibold uppercase tracking-wide text-white/80">
-                      {card.label}
-                    </span>
-                    <p className="text-lg font-semibold leading-8 text-white md:text-xl">
-                      {card.question}
-                    </p>
+                <div className="space-y-3">
+                  <span className="inline-flex items-center gap-2 self-end rounded-full bg-white/15 px-4 py-2 text-[0.7rem] font-semibold tracking-wide text-white/85">
+                    {card.label}
+                  </span>
+                  <div className="overflow-hidden rounded-[28px] border border-white/10 bg-white">
+                    <SupplementaryPromptImage text={card.question} />
                   </div>
-                  <Textarea
-                    rows={5}
-                    spellCheck={false}
-                    value={card.value}
-                    onChange={(event) =>
-                      setAnswers((prev) => ({ ...prev, [card.key]: event.target.value }))
-                    }
-                    className="min-h-[140px] resize-none rounded-3xl border border-white/20 bg-white/15 text-sm text-white placeholder:text-white/60 focus-visible:ring-2 focus-visible:ring-white/70"
-                    placeholder="پاسخ خود را اینجا ثبت کن..."
-                  />
                 </div>
-              </AspectRatio>
+                <Textarea
+                  dir="rtl"
+                  rows={5}
+                  spellCheck={false}
+                  value={card.value}
+                  onChange={(event) =>
+                    setAnswers((prev) => ({ ...prev, [card.key]: event.target.value }))
+                  }
+                  className="min-h-[140px] resize-none rounded-3xl border border-white/20 bg-white/15 text-sm text-white placeholder:text-white/60 focus-visible:ring-2 focus-visible:ring-white/70"
+                  placeholder="پاسخ خود را اینجا بنویس..."
+                />
+              </div>
             ))}
           </div>
 

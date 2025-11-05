@@ -267,7 +267,7 @@ const AssessmentChat = () => {
       }
 
       if (response.data?.isComplete) {
-        toast.info("ارزیابی به پایان رسید. در حال ورود به رازآموزی تکمیلی...");
+        toast.info("ارزیابی به پایان رسید. در حال نمایش سوالات تکمیلی...");
         scheduleSupplementaryRedirect();
       }
     } catch (error: any) {
@@ -377,7 +377,7 @@ const AssessmentChat = () => {
 
       if (response.data?.isComplete) {
         console.log("Response Data:", response.data);
-        toast.info("ارزیابی به پایان رسید. در حال ورود به رازآموزی تکمیلی...");
+        toast.info("ارزیابی به پایان رسید. در حال نمایش سوالات تکمیلی...");
         scheduleSupplementaryRedirect();
       }
     } catch (error: any) {

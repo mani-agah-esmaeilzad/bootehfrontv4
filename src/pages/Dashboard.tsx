@@ -30,9 +30,8 @@ interface Assessment {
   status: "completed" | "current" | "locked";
   category?: string;
   display_order?: number;
-  type: "questionnaire" | "mystery";
+  type?: string;
   questionnaireId?: number | null;
-  mysterySlug?: string | null;
   accentColor?: string | null;
 }
 
@@ -42,7 +41,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   "شایستگی های فردی": "#EC4899",
   "شایستگی های رهبری و مدیریت": "#F97316",
   "نیمرخ روانشناختی": "#10B981",
-  "رازآموزی": "#F59E0B",
 };
 
 const DEFAULT_CATEGORY_COLOR = "#6366F1";
@@ -120,7 +118,9 @@ const Dashboard = () => {
       setError(null);
       const response = await apiFetch("assessment/status");
       if (response.success) {
-        setAssessments(response.data);
+        const list = Array.isArray(response.data) ? (response.data as Assessment[]) : [];
+        const filtered = list.filter((item) => item.type !== "mystery");
+        setAssessments(filtered);
       } else {
         throw new Error(response.message);
       }
@@ -141,17 +141,6 @@ const Dashboard = () => {
     if (!assessment) return;
 
     setStartingAssessmentKey(assessment.stringId);
-
-    if (assessment.type === "mystery") {
-      if (!assessment.mysterySlug) {
-        toast.error("مرحله رازآموزی مرتبط تعریف نشده است.");
-        setStartingAssessmentKey(null);
-        return;
-      }
-      navigate(`/mystery/${assessment.mysterySlug}`);
-      setStartingAssessmentKey(null);
-      return;
-    }
 
     const questionnaireId = assessment.questionnaireId ?? assessment.id;
     if (!questionnaireId) {

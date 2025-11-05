@@ -184,7 +184,7 @@ const AssessmentChat = () => {
       navigate("/dashboard");
       return;
     }
-    toast.info(`${reason} در حال ورود به رازآموزی تکمیلی...`);
+    toast.info(`${reason} در حال نمایش سوالات تکمیلی...`);
     navigate(assessmentIdFromUrl ? `/supplementary/${assessmentIdFromUrl}` : "/dashboard");
   };
 

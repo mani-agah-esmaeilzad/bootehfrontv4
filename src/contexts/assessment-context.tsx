@@ -10,9 +10,8 @@ export interface Assessment {
   description: string;
   status: 'completed' | 'current' | 'locked';
   category?: string;
-  type: 'questionnaire' | 'mystery';
+  type?: string;
   questionnaireId?: number | null;
-  mysterySlug?: string | null;
   display_order?: number;
   accentColor?: string | null;
 }
@@ -43,7 +42,9 @@ export const AssessmentProvider = ({ children }: { children: ReactNode }) => {
       const response = await apiFetch('assessment/status');
       if (response.success) {
         // const data = Array.isArray(response.data) ? response.data : [];
-        setAssessments(response.data);
+        const list = Array.isArray(response.data) ? (response.data as Assessment[]) : [];
+        const filtered = list.filter((item) => item.type !== 'mystery');
+        setAssessments(filtered);
       } else {
         throw new Error(response.message || 'خطا در دریافت اطلاعات ارزیابی‌ها');
       }
