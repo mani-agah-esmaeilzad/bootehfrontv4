@@ -72,6 +72,7 @@ const tooltipStyle = {
   color: "#f8fafc",
   boxShadow: "0 12px 30px -12px rgba(15,23,42,0.65)",
   direction: "rtl" as const,
+  textAlign: "right" as const,
   fontFamily: rtlFontStack,
 };
 
@@ -79,6 +80,7 @@ const axisProps = {
   tickLine: false,
   axisLine: { stroke: "#cbd5f5" },
   tick: { fill: "#475569", fontSize: 12, fontFamily: rtlFontStack },
+  tickMargin: 12,
 };
 
 const verticalAxisProps = {
@@ -89,7 +91,11 @@ const verticalAxisProps = {
 const chartGridColor = "rgba(148, 163, 184, 0.25)";
 
 const noData = (message = "داده‌ای وجود ندارد.") => (
-  <div className="flex h-full items-center justify-center rounded-lg bg-slate-50 text-center text-sm text-muted-foreground">
+  <div
+    dir="rtl"
+    className="flex h-full items-center justify-center rounded-lg bg-slate-50 text-center text-sm text-muted-foreground"
+    style={{ fontFamily: rtlFontStack }}
+  >
     {message}
   </div>
 );
@@ -239,7 +245,7 @@ const ChartFlipCard = ({ title, front, back, className, corner = "left" }: Chart
   const cornerPosition = corner === "right" ? "right-2" : "left-2";
 
   return (
-    <Card className={cn("relative min-h-[320px] overflow-hidden [perspective:2000px]", className)}>
+    <Card dir="rtl" className={cn("relative min-h-[320px] overflow-hidden [perspective:2000px]", className)}>
       <button
         type="button"
         onClick={() => setFlipped((prev) => !prev)}
@@ -260,20 +266,35 @@ const ChartFlipCard = ({ title, front, back, className, corner = "left" }: Chart
           flipped ? "[transform:rotateY(180deg)]" : "",
         )}
       >
-        <div className="absolute inset-0 flex h-full flex-col bg-card [backface-visibility:hidden]">
-          <CardHeader className="space-y-1 pb-2 pt-6">
-            <CardTitle>{title}</CardTitle>
+        <div className="absolute inset-0 flex h-full flex-col bg-card [backface-visibility:hidden]" style={{ direction: "rtl" }}>
+          <CardHeader className="space-y-1 pb-2 pt-6 text-right">
+            <CardTitle className="text-right" style={{ fontFamily: rtlFontStack }}>
+              {title}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="flex-1">
-            <div className="h-full">{front}</div>
+          <CardContent className="flex-1" style={{ direction: "rtl" }}>
+            <div className="h-full" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+              {front}
+            </div>
           </CardContent>
         </div>
-        <div className="absolute inset-0 flex h-full flex-col bg-card [backface-visibility:hidden] [transform:rotateY(180deg)]">
-          <CardHeader className="space-y-1 pb-2 pt-6">
-            <CardTitle>{title}</CardTitle>
+        <div
+          className="absolute inset-0 flex h-full flex-col bg-card [backface-visibility:hidden] [transform:rotateY(180deg)]"
+          style={{ direction: "rtl" }}
+        >
+          <CardHeader className="space-y-1 pb-2 pt-6 text-right">
+            <CardTitle className="text-right" style={{ fontFamily: rtlFontStack }}>
+              {title}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto">
-            <div className="space-y-3 text-sm leading-7 text-muted-foreground">{back}</div>
+          <CardContent className="flex-1 overflow-y-auto" style={{ direction: "rtl" }}>
+            <div
+              className="space-y-3 text-right text-sm leading-7 text-muted-foreground"
+              dir="rtl"
+              style={{ fontFamily: rtlFontStack, direction: "rtl", unicodeBidi: "plaintext" as const }}
+            >
+              {back}
+            </div>
           </CardContent>
         </div>
       </div>
@@ -525,25 +546,25 @@ const AdminReportDetail = () => {
   });
 
   return (
-    <div className="space-y-6">
+    <div dir="rtl" className="space-y-6">
       <div style={{ position: "absolute", left: -9999, top: 0, pointerEvents: "none" }}>
         {report && <ReportPDFLayout report={report} ref={pdfPrintRef} />}
       </div>
 
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">
+        <h1 className="text-3xl font-bold text-right" style={{ fontFamily: rtlFontStack }}>
           جزئیات گزارش: {report.firstName} {report.lastName}
         </h1>
         <div className="flex gap-2">
-          <Button onClick={() => navigate("/admin/reports")} variant="outline">
+          <Button onClick={() => navigate("/admin/reports")} variant="outline" className="flex-row-reverse gap-2">
             بازگشت
-            <ArrowRight className="mr-2 h-4 w-4" />
+            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
-          <Button onClick={handleDownloadPDF} disabled={isDownloading}>
+          <Button onClick={handleDownloadPDF} disabled={isDownloading} className="flex-row-reverse gap-2">
             {isDownloading ? (
-              <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+              <LoaderCircle className="ml-2 h-4 w-4 animate-spin" />
             ) : (
-              <Download className="mr-2 h-4 w-4" />
+              <Download className="ml-2 h-4 w-4" />
             )}
             دانلود PDF
           </Button>
@@ -551,36 +572,36 @@ const AdminReportDetail = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>کاربر</CardTitle>
+        <Card dir="rtl">
+          <CardHeader className="text-right">
+            <CardTitle className="text-right">کاربر</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="text-right" style={{ fontFamily: rtlFontStack }}>
             <p className="font-bold">{report.username}</p>
             <p className="text-xs text-muted-foreground">{report.email}</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>پرسشنامه</CardTitle>
+        <Card dir="rtl">
+          <CardHeader className="text-right">
+            <CardTitle className="text-right">پرسشنامه</CardTitle>
           </CardHeader>
-          <CardContent>{report.questionnaire_title}</CardContent>
+          <CardContent className="text-right" style={{ fontFamily: rtlFontStack }}>{report.questionnaire_title}</CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>تاریخ تکمیل</CardTitle>
+        <Card dir="rtl">
+          <CardHeader className="text-right">
+            <CardTitle className="text-right">تاریخ تکمیل</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="text-right" style={{ fontFamily: rtlFontStack }}>
             {report.completed_at
               ? new Date(report.completed_at).toLocaleDateString("fa-IR")
               : "نامشخص"}
           </CardContent>
         </Card>
-        <Card className="bg-primary text-primary-foreground">
-          <CardHeader>
-            <CardTitle>امتیاز کل</CardTitle>
+        <Card dir="rtl" className="bg-primary text-primary-foreground">
+          <CardHeader className="text-right">
+            <CardTitle className="text-right">امتیاز کل</CardTitle>
           </CardHeader>
-          <CardContent className="text-3xl font-bold">
+          <CardContent className="text-right text-3xl font-bold" style={{ fontFamily: rtlFontStack }}>
             {toNum(analysis.score)} / {report.max_score || 100}
           </CardContent>
         </Card>
@@ -591,7 +612,7 @@ const AdminReportDetail = () => {
           className="lg:col-span-2 min-h-[420px]"
           title="نمودار شایستگی‌ها"
           front={
-            <div className="h-[350px]">
+            <div className="h-[350px]" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {chartData.length > 0 ? (
                 <SpiderChart data={chartData} />
               ) : (
@@ -615,12 +636,12 @@ const AdminReportDetail = () => {
             </>
           }
         />
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>تحلیل کلی</CardTitle>
+        <Card dir="rtl" className="lg:col-span-3">
+          <CardHeader className="text-right">
+            <CardTitle className="text-right">تحلیل کلی</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="prose prose-sm max-w-none text-muted-foreground">
+          <CardContent className="text-right" style={{ fontFamily: rtlFontStack }}>
+            <div className="prose prose-sm max-w-none text-right text-muted-foreground" style={{ direction: "rtl" }}>
               <ReactMarkdown>{analysis.report || "تحلیل متنی وجود ندارد."}</ReactMarkdown>
             </div>
           </CardContent>
@@ -631,20 +652,20 @@ const AdminReportDetail = () => {
         className="min-h-[520px]"
         title="چرخ توانمندی پاور ویل (نسخه آزمایشی)"
         front={
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
-            <div className="h-[420px]">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            <div className="h-[420px]" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart data={powerWheelData} outerRadius="75%">
                   <PolarGrid strokeDasharray="3 6" />
                   <PolarAngleAxis
                     dataKey="dimension"
-                    tick={{ fill: "#475569", fontSize: 11 }}
+                    tick={{ fill: "#475569", fontSize: 11, fontFamily: rtlFontStack }}
                   />
                   <PolarRadiusAxis
                     angle={90}
                     domain={[0, 100]}
                     stroke="#cbd5f5"
-                    tick={{ fill: "#94a3b8", fontSize: 10 }}
+                    tick={{ fill: "#94a3b8", fontSize: 10, fontFamily: rtlFontStack }}
                   />
                   {powerWheelCategories.map((category) => (
                     <Radar
@@ -658,6 +679,7 @@ const AdminReportDetail = () => {
                     />
                   ))}
                   <Tooltip
+                    contentStyle={tooltipStyle}
                     formatter={(value: number, _name: string, item: any) => {
                       if (typeof value !== "number" || value === 0 || !item) return null;
                       const categoryLabel = powerWheelCategories.find((cat) => cat.key === item.dataKey)?.label;
@@ -711,12 +733,12 @@ const AdminReportDetail = () => {
         }
       />
 
-      <h2 className="pt-4 text-2xl font-bold">تحلیل‌های تکمیلی</h2>
+      <h2 className="pt-4 text-2xl font-bold text-right" style={{ fontFamily: rtlFontStack }}>تحلیل‌های تکمیلی</h2>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         <ChartFlipCard
           title="۱. تحلیل احساسات"
           front={
-            <div className="h-64">
+            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {sentimentData.length === 0 ? (
                 noData()
               ) : (
@@ -773,7 +795,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۲. کلمات کلیدی"
           front={
-            <div className="h-64">
+            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               <KeywordWordCloud data={keywordData} />
             </div>
           }
@@ -791,7 +813,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۳. روند حجم پاسخ‌ها"
           front={
-            <div className="h-64">
+            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {verbosityData.length === 0 ? (
                 noData("داده‌ای برای روند گفتگو وجود ندارد.")
               ) : (
@@ -805,7 +827,7 @@ const AdminReportDetail = () => {
                     </defs>
                     <CartesianGrid stroke={chartGridColor} />
                     <XAxis dataKey="turn" {...axisProps} />
-                    <YAxis {...axisProps} />
+                    <YAxis {...axisProps} orientation="right" />
                     <Tooltip
                       contentStyle={tooltipStyle}
                       formatter={(value: number) => [`${value} کلمه`, "حجم پاسخ"]}
@@ -841,7 +863,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۴. کنش‌محوری"
           front={
-            <div className="h-64">
+            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {actionData.length === 0 ? (
                 noData("داده‌ای برای مقایسه واژگان کنشی موجود نیست.")
               ) : (
@@ -849,7 +871,7 @@ const AdminReportDetail = () => {
                   <BarChart data={actionData} barSize={32}>
                     <CartesianGrid stroke={chartGridColor} />
                     <XAxis dataKey="name" {...axisProps} />
-                    <YAxis {...axisProps} />
+                    <YAxis {...axisProps} orientation="right" />
                     <Tooltip
                       contentStyle={tooltipStyle}
                       formatter={(value: number, key: string) => [
@@ -887,7 +909,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۵. رویکرد حل مسئله"
           front={
-            <div className="h-64">
+            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {problemSolvingData.length === 0 ? (
                 noData("داده‌ای از رویکرد حل مسئله ثبت نشده است.")
               ) : (
@@ -934,7 +956,11 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۶. سطح اطمینان"
           front={
-            <div className="flex h-64 flex-col items-center justify-center gap-3">
+            <div
+              className="flex h-64 flex-col items-center justify-center gap-3"
+              dir="rtl"
+              style={{ direction: "rtl", unicodeBidi: "plaintext" as const, fontFamily: rtlFontStack }}
+            >
               {analysis.confidence_level ? (
                 <>
                   <div
@@ -971,7 +997,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۷. سبک ارتباطی"
           front={
-            <div className="h-64">
+            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {commStyle.length === 0 ? (
                 noData("تحلیلی برای سبک ارتباطی موجود نیست.")
               ) : (
@@ -979,7 +1005,7 @@ const AdminReportDetail = () => {
                   <BarChart data={commStyle} barCategoryGap={20}>
                     <CartesianGrid stroke={chartGridColor} vertical={false} />
                     <XAxis dataKey="name" {...axisProps} />
-                    <YAxis {...axisProps} />
+                    <YAxis {...axisProps} orientation="right" />
                     <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [`${value}`, "امتیاز"]} />
                     <defs>
                       <linearGradient id="commGradient" x1="0" x2="0" y1="0" y2="1">
@@ -1007,7 +1033,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۸. توزیع نمرات"
           front={
-            <div className="h-64">
+            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {chartData.length === 0 ? (
                 noData("داده‌ای برای نمرات فاکتور‌ها موجود نیست.")
               ) : (
@@ -1020,8 +1046,8 @@ const AdminReportDetail = () => {
                       </linearGradient>
                     </defs>
                     <CartesianGrid stroke={chartGridColor} />
-                    <XAxis dataKey="subject" {...axisProps} interval={0} angle={-20} textAnchor="end" height={60} />
-                    <YAxis {...axisProps} />
+                    <XAxis dataKey="subject" {...axisProps} interval={0} angle={20} textAnchor="start" height={60} />
+                    <YAxis {...axisProps} orientation="right" />
                     <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [`${value}`, "امتیاز"]} />
                     <Area
                       dataKey="score"
@@ -1050,7 +1076,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۹. همبستگی فاکتورها"
           front={
-            <div className="h-64">
+            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {chartData.length === 0 ? (
                 noData()
               ) : (
@@ -1058,7 +1084,7 @@ const AdminReportDetail = () => {
                   <ScatterChart>
                     <CartesianGrid stroke={chartGridColor} />
                     <XAxis dataKey="score" name="امتیاز" {...axisProps} />
-                    <YAxis dataKey="fullMark" name="حداکثر" {...axisProps} />
+                    <YAxis dataKey="fullMark" name="حداکثر" {...axisProps} orientation="right" />
                     <Tooltip
                       cursor={{ strokeDasharray: "4 4" }}
                       contentStyle={tooltipStyle}
@@ -1089,7 +1115,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۱۰. سهم فاکتورها"
           front={
-            <div className="h-64">
+            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {chartData.length === 0 ? (
                 noData()
               ) : (
@@ -1113,7 +1139,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۱۱. شاخص‌های زبانی"
           front={
-            <div className="h-64">
+            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {semanticRadar.every((entry) => !entry.value) ? (
                 noData("شاخص‌های زبانی محاسبه نشده‌اند.")
               ) : (
@@ -1149,7 +1175,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۱۲. استفاده از ضمایر"
           front={
-            <div className="h-64">
+            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {pronouns.every((entry) => !entry.value) ? (
                 noData("تحلیلی از ضمایر یافت نشد.")
               ) : (
@@ -1194,7 +1220,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۱۳. حوزه‌های معنایی پرتکرار"
           front={
-            <div className="h-64">
+            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {semanticFields.length === 0 ? (
                 noData("حوزه معنایی شناسایی نشد.")
               ) : (
@@ -1202,7 +1228,7 @@ const AdminReportDetail = () => {
                   <BarChart data={semanticFields} layout="vertical" barCategoryGap={20}>
                     <CartesianGrid stroke={chartGridColor} horizontal={false} />
                     <XAxis type="number" {...axisProps} />
-                    <YAxis dataKey="field" type="category" width={120} {...verticalAxisProps} />
+                    <YAxis dataKey="field" type="category" width={140} orientation="right" {...verticalAxisProps} />
                     <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [`${value} بار`, "تکرار"]} />
                     <defs>
                       <linearGradient id="semanticGradient" x1="0" x2="1" y1="0" y2="0">
@@ -1230,7 +1256,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۱۴. شاخص آمادگی"
           front={
-            <div className="h-64">
+            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               <div className="relative h-full">
                 <ResponsiveContainer>
                   <PieChart>
@@ -1318,7 +1344,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۱۵. پراکندگی پیشرفت با خط روند"
           front={
-            <div className="h-64">
+            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               <ResponsiveContainer>
                 <ComposedChart data={scatterLinePreviewData} margin={{ top: 10, right: 16, left: 0, bottom: 10 }}>
                   <defs>
@@ -1337,7 +1363,7 @@ const AdminReportDetail = () => {
                     {...axisProps}
                     tickFormatter={(value: number) => `مرحله ${value}`}
                   />
-                  <YAxis {...axisProps} domain={[0, 100]} />
+                  <YAxis {...axisProps} domain={[0, 100]} orientation="right" />
                   <Tooltip
                     contentStyle={tooltipStyle}
                     formatter={(value: number, name: string) => [
@@ -1356,7 +1382,7 @@ const AdminReportDetail = () => {
                     stroke="#c084fc"
                     strokeDasharray="4 4"
                     ifOverflow="extendDomain"
-                    label={{ value: "میانگین عملکرد", position: "right", fill: "#7c3aed", fontSize: 11 }}
+                    label={{ value: "میانگین عملکرد", position: "right", fill: "#7c3aed", fontSize: 11, fontFamily: rtlFontStack }}
                   />
                   <Area type="monotone" dataKey="trend" fill="url(#trendArea)" stroke="none" name="" legendType="none" />
                   <Scatter
