@@ -247,7 +247,7 @@ const ChartFlipCard = ({ title, front, back, className, corner = "left" }: Chart
   const cornerPosition = corner === "right" ? "right-2" : "left-2";
 
   return (
-    <Card dir="rtl" className={cn("relative min-h-[320px] overflow-hidden border border-slate-200 bg-white text-slate-900 shadow-md [perspective:2000px]", className)}>
+    <Card dir="rtl" className={cn("relative min-h-[360px] overflow-hidden border border-slate-200 bg-white text-slate-900 shadow-md [perspective:2000px]", className)}>
       <button
         type="button"
         onClick={() => setFlipped((prev) => !prev)}
@@ -1021,7 +1021,7 @@ const AdminReportDetail = () => {
           className="lg:col-span-2 min-h-[420px]"
           title="نمودار شایستگی‌ها"
           front={
-            <div className="h-[350px]" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            <div className="h-[380px]" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {chartData.length > 0 ? (
                 <SpiderChart data={chartData} />
               ) : (
@@ -1155,7 +1155,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۱. تحلیل احساسات"
           front={
-            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {sentimentData.length === 0 ? (
                 noData()
               ) : (
@@ -1212,7 +1212,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۲. کلمات کلیدی"
           front={
-            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               <KeywordWordCloud data={keywordData} />
             </div>
           }
@@ -1230,7 +1230,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۳. روند حجم پاسخ‌ها"
           front={
-            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {verbosityData.length === 0 ? (
                 noData("داده‌ای برای روند گفتگو وجود ندارد.")
               ) : (
@@ -1280,7 +1280,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۴. کنش‌محوری"
           front={
-            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {actionData.length === 0 ? (
                 noData("داده‌ای برای مقایسه واژگان کنشی موجود نیست.")
               ) : (
@@ -1326,7 +1326,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۵. رویکرد حل مسئله"
           front={
-            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {problemSolvingData.length === 0 ? (
                 noData("داده‌ای از رویکرد حل مسئله ثبت نشده است.")
               ) : (
@@ -1374,7 +1374,7 @@ const AdminReportDetail = () => {
           title="۶. سطح اطمینان"
           front={
             <div
-              className="flex h-64 flex-col items-center justify-center gap-3"
+              className="flex h-72 flex-col items-center justify-center gap-3"
               dir="rtl"
               style={{ direction: "rtl", unicodeBidi: "plaintext" as const, fontFamily: rtlFontStack }}
             >
@@ -1415,7 +1415,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۷. سبک ارتباطی"
           front={
-            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {commStyle.length === 0 ? (
                 noData("تحلیلی برای سبک ارتباطی موجود نیست.")
               ) : (
@@ -1451,7 +1451,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۸. توزیع نمرات"
           front={
-            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {chartData.length === 0 ? (
                 noData("داده‌ای برای نمرات فاکتور‌ها موجود نیست.")
               ) : (
@@ -1494,7 +1494,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۹. همبستگی فاکتورها"
           front={
-            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {chartData.length === 0 ? (
                 noData()
               ) : (
@@ -1533,7 +1533,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۱۰. سهم فاکتورها"
           front={
-            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {chartData.length === 0 ? (
                 noData()
               ) : (
@@ -1557,7 +1557,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۱۱. شاخص‌های زبانی"
           front={
-            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {semanticRadar.every((entry) => !entry.value) ? (
                 noData("شاخص‌های زبانی محاسبه نشده‌اند.")
               ) : (
@@ -1593,7 +1593,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۱۲. استفاده از ضمایر"
           front={
-            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {pronouns.every((entry) => !entry.value) ? (
                 noData("تحلیلی از ضمایر یافت نشد.")
               ) : (
@@ -1638,7 +1638,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۱۳. حوزه‌های معنایی پرتکرار"
           front={
-            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {semanticFields.length === 0 ? (
                 noData("حوزه معنایی شناسایی نشد.")
               ) : (
@@ -1674,7 +1674,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۱۴. شاخص آمادگی"
           front={
-            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {gaugeValue === null ? (
                 noData("شاخص آمادگی محاسبه نشده است.")
               ) : (
@@ -1768,7 +1768,7 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۱۵. پراکندگی پیشرفت با خط روند"
           front={
-            <div className="h-64" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {scatterLineData.length === 0 ? (
                 noData("داده‌ای برای روند پیشرفت در دسترس نیست.")
               ) : (
