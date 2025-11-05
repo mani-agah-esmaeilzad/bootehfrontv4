@@ -247,7 +247,13 @@ const ChartFlipCard = ({ title, front, back, className, corner = "left" }: Chart
   const cornerPosition = corner === "right" ? "right-2" : "left-2";
 
   return (
-    <Card dir="rtl" className={cn("relative min-h-[320px] overflow-hidden [perspective:2000px]", className)}>
+    <Card
+      dir="rtl"
+      className={cn(
+        "relative min-h-[320px] overflow-hidden border border-slate-800/60 bg-[#0f172a] text-slate-100 shadow-xl shadow-slate-900/30 [perspective:2000px]",
+        className,
+      )}
+    >
       <button
         type="button"
         onClick={() => setFlipped((prev) => !prev)}
@@ -268,30 +274,35 @@ const ChartFlipCard = ({ title, front, back, className, corner = "left" }: Chart
           flipped ? "[transform:rotateY(180deg)]" : "",
         )}
       >
-        <div className="absolute inset-0 flex h-full flex-col bg-card [backface-visibility:hidden]" style={{ direction: "rtl" }}>
+        <div className="absolute inset-0 flex h-full flex-col [backface-visibility:hidden]" style={{ direction: "rtl" }}>
           <CardHeader className="space-y-1 pb-2 pt-6 text-right">
-            <CardTitle className="text-right" style={{ fontFamily: rtlFontStack }}>
+            <CardTitle className="text-right text-slate-100" style={{ fontFamily: rtlFontStack }}>
               {title}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1" style={{ direction: "rtl" }}>
-            <div className="h-full" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
-              {front}
+            <div
+              className="relative h-full overflow-hidden rounded-3xl border border-slate-800/40 bg-gradient-to-br from-slate-950/90 via-slate-900/35 to-slate-800/20 p-4 shadow-inner shadow-slate-900/40 backdrop-blur"
+              dir="rtl"
+              style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}
+            >
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(148,163,184,0.28),transparent_65%)]" />
+              <div className="relative h-full">{front}</div>
             </div>
           </CardContent>
         </div>
         <div
-          className="absolute inset-0 flex h-full flex-col bg-card [backface-visibility:hidden] [transform:rotateY(180deg)]"
+          className="absolute inset-0 flex h-full flex-col [backface-visibility:hidden] [transform:rotateY(180deg)]"
           style={{ direction: "rtl" }}
         >
           <CardHeader className="space-y-1 pb-2 pt-6 text-right">
-            <CardTitle className="text-right" style={{ fontFamily: rtlFontStack }}>
+            <CardTitle className="text-right text-slate-900" style={{ fontFamily: rtlFontStack }}>
               {title}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto" style={{ direction: "rtl" }}>
             <div
-              className="space-y-3 text-right text-sm leading-7 text-muted-foreground"
+              className="relative h-full space-y-3 rounded-3xl border border-slate-200/70 bg-white/90 p-5 text-right text-sm leading-7 text-slate-700 shadow-inner"
               dir="rtl"
               style={{ fontFamily: rtlFontStack, direction: "rtl", unicodeBidi: "plaintext" as const }}
             >
@@ -469,6 +480,23 @@ const AdminReportDetail = () => {
     { name: "سوم شخص", value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.third_person) },
   ];
   const semanticFields = withRtlFields(analysis.linguistic_semantic_analysis?.semantic_fields);
+
+  const maxScore = toNum(report.max_score ?? (analysis as Record<string, unknown>).max_score ?? 100) || 100;
+  const normalizedOverallScore =
+    Number.isFinite(overallScore) && maxScore
+      ? clamp((overallScore / maxScore) * 100, 0, 100)
+      : null;
+  const normalizedConfidence =
+    confidenceScoreDisplay !== null ? clamp(confidenceScoreDisplay * 10, 0, 100) : null;
+
+  const radialSummaryData = [
+    normalizedOverallScore !== null
+      ? { name: "امتیاز کلی", value: normalizedOverallScore, fill: "#38bdf8" }
+      : null,
+    normalizedConfidence !== null
+      ? { name: "اطمینان تحلیل", value: normalizedConfidence, fill: "#f97316" }
+      : null,
+  ].filter(Boolean) as { name: string; value: number; fill: string }[];
 
   type WheelEntry = {
     dimension: string;
@@ -683,6 +711,24 @@ const AdminReportDetail = () => {
     "confidence_level",
   ]);
 
+  const analysisKeyLabels: Record<string, string> = {
+    dominant_behaviors: "رفتارهای غالب",
+    linguistic_summary: "جمع‌بندی زبانی",
+    communication_tone: "لحن ارتباطی",
+    collaboration_notes: "یادداشت‌های همکاری",
+    highlights: "نکات برجسته",
+    cautions: "هشدارها",
+  };
+
+  const prettifyKey = (key: string) => {
+    if (analysisKeyLabels[key]) return analysisKeyLabels[key];
+    return key
+      .replace(/_/g, " ")
+      .trim()
+      .replace(/\s+/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
   const analysisEntries = Object.entries(analysis).filter(([key, value]) => value !== undefined && !hiddenAnalysisKeys.has(key));
 
   return (
@@ -801,6 +847,72 @@ const AdminReportDetail = () => {
           </CardContent>
         </Card>
       </div>
+
+      {radialSummaryData.length > 0 && (
+        <Card dir="rtl" className="border border-slate-800/60 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-100">
+          <CardHeader className="text-right">
+            <CardTitle className="text-right">نمای کلی شاخص‌ها</CardTitle>
+            <CardDescription className="text-right text-slate-300/80">
+              مقایسه امتیاز کلی گزارش و شاخص اطمینان در قالب نمودار حلقه‌ای.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="h-72">
+            <ResponsiveContainer>
+              <RadialBarChart
+                data={radialSummaryData}
+                innerRadius="25%"
+                outerRadius="90%"
+                startAngle={180}
+                endAngle={-180}
+              >
+                <defs>
+                  <radialGradient id="radialScore" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.4} />
+                    <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0.9} />
+                  </radialGradient>
+                  <radialGradient id="radialConfidence" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#fb923c" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="#f97316" stopOpacity={0.9} />
+                  </radialGradient>
+                </defs>
+                <PolarAngleAxis
+                  type="number"
+                  domain={[0, 100]}
+                  tick={{ fill: "#cbd5f5", fontSize: 11, fontFamily: rtlFontStack }}
+                />
+                <RadialBar
+                  background={{ fill: "rgba(15,23,42,0.35)" }}
+                  dataKey="value"
+                  nameKey="name"
+                  cornerRadius={14}
+                  clockWise
+                  fill="#38bdf8"
+                >
+                  {radialSummaryData.map((entry, index) => (
+                    <Cell key={`radial-${entry.name}`} fill={index === 0 ? "url(#radialScore)" : "url(#radialConfidence)"} />
+                  ))}
+                </RadialBar>
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  formatter={(value: number, name: string) => [`${value}٪`, name]}
+                />
+                <Legend
+                  iconType="circle"
+                  align="left"
+                  verticalAlign="middle"
+                  layout="vertical"
+                  wrapperStyle={{ left: 16 }}
+                  formatter={(value, entry) => (
+                    <span className="text-xs text-slate-200" style={{ fontFamily: rtlFontStack }}>
+                      {value} — {(entry?.payload?.value ?? 0).toFixed(1)}%
+                    </span>
+                  )}
+                />
+              </RadialBarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
 
       {summaryText && (
         <Card dir="rtl" className="border-slate-200 bg-slate-50/70">
@@ -1770,7 +1882,7 @@ const AdminReportDetail = () => {
           <CardContent className="space-y-4 text-sm text-slate-700" style={{ fontFamily: rtlFontStack }}>
             {analysisEntries.map(([key, value]) => (
               <div key={`analysis-entry-${key}`} className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-                <p className="text-xs font-semibold text-slate-500">{key}</p>
+                <p className="text-xs font-semibold text-slate-500">{prettifyKey(key)}</p>
                 <pre className="mt-2 whitespace-pre-wrap text-[13px] leading-6 text-slate-700">
                   {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
                 </pre>
