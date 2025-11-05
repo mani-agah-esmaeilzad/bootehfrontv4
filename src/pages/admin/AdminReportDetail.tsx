@@ -247,21 +247,15 @@ const ChartFlipCard = ({ title, front, back, className, corner = "left" }: Chart
   const cornerPosition = corner === "right" ? "right-2" : "left-2";
 
   return (
-    <Card
-      dir="rtl"
-      className={cn(
-        "relative min-h-[320px] overflow-hidden border border-slate-800/60 bg-[#0f172a] text-slate-100 shadow-xl shadow-slate-900/30 [perspective:2000px]",
-        className,
-      )}
-    >
+    <Card dir="rtl" className={cn("relative min-h-[320px] overflow-hidden border border-slate-200 bg-white text-slate-900 shadow-md [perspective:2000px]", className)}>
       <button
         type="button"
         onClick={() => setFlipped((prev) => !prev)}
         aria-pressed={flipped}
         className={cn(
-          "absolute top-2 z-30 inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary transition",
-          "hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-          "focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          "absolute top-2 z-30 inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-slate-700 transition",
+          "hover:bg-slate-900 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400",
+          "focus-visible:ring-offset-2 focus-visible:ring-offset-white",
           cornerPosition,
         )}
       >
@@ -276,13 +270,13 @@ const ChartFlipCard = ({ title, front, back, className, corner = "left" }: Chart
       >
         <div className="absolute inset-0 flex h-full flex-col [backface-visibility:hidden]" style={{ direction: "rtl" }}>
           <CardHeader className="space-y-1 pb-2 pt-6 text-right">
-            <CardTitle className="text-right text-slate-100" style={{ fontFamily: rtlFontStack }}>
+            <CardTitle className="text-right" style={{ fontFamily: rtlFontStack }}>
               {title}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1" style={{ direction: "rtl" }}>
             <div
-              className="relative h-full overflow-hidden rounded-3xl border border-slate-800/40 bg-gradient-to-br from-slate-950/90 via-slate-900/35 to-slate-800/20 p-4 shadow-inner shadow-slate-900/40 backdrop-blur"
+              className="relative h-full overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 p-4 shadow-inner"
               dir="rtl"
               style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}
             >
@@ -296,13 +290,13 @@ const ChartFlipCard = ({ title, front, back, className, corner = "left" }: Chart
           style={{ direction: "rtl" }}
         >
           <CardHeader className="space-y-1 pb-2 pt-6 text-right">
-            <CardTitle className="text-right text-slate-900" style={{ fontFamily: rtlFontStack }}>
+            <CardTitle className="text-right" style={{ fontFamily: rtlFontStack }}>
               {title}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto" style={{ direction: "rtl" }}>
             <div
-              className="relative h-full space-y-3 rounded-3xl border border-slate-200/70 bg-white/90 p-5 text-right text-sm leading-7 text-slate-700 shadow-inner"
+              className="relative h-full space-y-3 rounded-3xl border border-slate-200 bg-white p-5 text-right text-sm leading-7 text-slate-700 shadow-inner"
               dir="rtl"
               style={{ fontFamily: rtlFontStack, direction: "rtl", unicodeBidi: "plaintext" as const }}
             >
@@ -872,7 +866,6 @@ const AdminReportDetail = () => {
                     clockWise
                     minAngle={10}
                     fill="#6366f1"
-                    label={{ position: "insideStart", fill: "#1e293b", fontSize: 12, formatter: (val: number) => `${Math.round(val)}%` }}
                   >
                     {radialSummaryData.map((entry) => (
                       <Cell key={`radial-${entry.name}`} fill={entry.fill} />
