@@ -489,14 +489,13 @@ const AdminReportDetail = () => {
   const normalizedConfidence =
     confidenceScoreDisplay !== null ? clamp(confidenceScoreDisplay * 10, 0, 100) : null;
 
-  const radialSummaryData = [
-    normalizedOverallScore !== null
-      ? { name: "امتیاز کلی", value: normalizedOverallScore, fill: "#38bdf8" }
-      : null,
-    normalizedConfidence !== null
-      ? { name: "اطمینان تحلیل", value: normalizedConfidence, fill: "#f97316" }
-      : null,
-  ].filter(Boolean) as { name: string; value: number; fill: string }[];
+  const radialSummaryData: { name: string; value: number; fill: string }[] = [];
+  if (normalizedOverallScore !== null && normalizedOverallScore > 0) {
+    radialSummaryData.push({ name: "امتیاز کلی", value: normalizedOverallScore, fill: "url(#radialScore)" });
+  }
+  if (normalizedConfidence !== null && normalizedConfidence > 0) {
+    radialSummaryData.push({ name: "اطمینان تحلیل", value: normalizedConfidence, fill: "url(#radialConfidence)" });
+  }
 
   type WheelEntry = {
     dimension: string;
@@ -849,25 +848,28 @@ const AdminReportDetail = () => {
       </div>
 
       {radialSummaryData.length > 0 && (
-        <Card dir="rtl" className="border border-slate-800/60 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-100">
+        <Card
+          dir="rtl"
+          className="overflow-hidden border border-slate-800/60 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-100 shadow-xl shadow-slate-900/30"
+        >
           <CardHeader className="text-right">
             <CardTitle className="text-right">نمای کلی شاخص‌ها</CardTitle>
             <CardDescription className="text-right text-slate-300/80">
-              مقایسه امتیاز کلی گزارش و شاخص اطمینان در قالب نمودار حلقه‌ای.
-            </CardDescription>
+              مقایسه امتیاز کلی گزارش و شاخص اطمینان در قالب نمودار حلقه‌ای.</CardDescription>
           </CardHeader>
-          <CardContent className="h-72">
+          <CardContent className="relative h-72">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.25),transparent_60%)]" />
             <ResponsiveContainer>
               <RadialBarChart
                 data={radialSummaryData}
-                innerRadius="25%"
-                outerRadius="90%"
+                innerRadius="30%"
+                outerRadius="95%"
                 startAngle={180}
                 endAngle={-180}
               >
                 <defs>
                   <radialGradient id="radialScore" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.4} />
+                    <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.35} />
                     <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0.9} />
                   </radialGradient>
                   <radialGradient id="radialConfidence" cx="50%" cy="50%" r="50%">
@@ -884,18 +886,21 @@ const AdminReportDetail = () => {
                   background={{ fill: "rgba(15,23,42,0.35)" }}
                   dataKey="value"
                   nameKey="name"
-                  cornerRadius={14}
+                  cornerRadius={16}
                   clockWise
-                  fill="#38bdf8"
+                  minAngle={20}
+                  label={{
+                    position: "insideStart",
+                    fill: "#f8fafc",
+                    fontSize: 11,
+                    formatter: (value: number) => `${Math.round(value)}%`,
+                  }}
                 >
-                  {radialSummaryData.map((entry, index) => (
-                    <Cell key={`radial-${entry.name}`} fill={index === 0 ? "url(#radialScore)" : "url(#radialConfidence)"} />
+                  {radialSummaryData.map((entry) => (
+                    <Cell key={`radial-${entry.name}`} fill={entry.fill} />
                   ))}
                 </RadialBar>
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  formatter={(value: number, name: string) => [`${value}٪`, name]}
-                />
+                <Tooltip contentStyle={tooltipStyle} formatter={(value: number, name: string) => [`${value}٪`, name]} />
                 <Legend
                   iconType="circle"
                   align="left"
