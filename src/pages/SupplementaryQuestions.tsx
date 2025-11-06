@@ -1,13 +1,15 @@
 // src/pages/SupplementaryQuestions.tsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { LoaderCircle, ArrowRight } from "lucide-react";
+import { LoaderCircle, ArrowRight, Mic } from "lucide-react";
 import { toast } from "sonner";
 import apiFetch from "@/services/apiService";
 import ResultsModal from "@/components/modals/ResultsModal";
+import { cn } from "@/lib/utils";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
 type SupplementaryAnswers = Record<"q1" | "q2", string>;
 
@@ -57,6 +59,62 @@ const SupplementaryQuestions = () => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [finalAssessmentId, setFinalAssessmentId] = useState<number | null>(null);
+  const [activeRecordingKey, setActiveRecordingKey] = useState<"q1" | "q2" | null>(null);
+
+  const activeRecordingKeyRef = useRef<"q1" | "q2" | null>(null);
+
+  const {
+    isSupported: isSpeechSupported,
+    isRecording,
+    start: startSpeechRecording,
+    stop: stopSpeechRecording,
+    restart: restartSpeechRecording,
+  } = useSpeechRecognition({
+    onFinalResult: (transcript) => {
+      const targetKey = activeRecordingKeyRef.current;
+      if (!targetKey) return;
+      const trimmed = transcript.trim();
+      if (!trimmed) return;
+      setAnswers((prev) => {
+        const current = prev[targetKey] ?? "";
+        const needsSpace = current.length > 0 && !current.endsWith(" ");
+        return {
+          ...prev,
+          [targetKey]: `${current}${needsSpace ? " " : ""}${trimmed}`,
+        };
+      });
+    },
+  });
+
+  const setRecordingTarget = (target: "q1" | "q2" | null) => {
+    activeRecordingKeyRef.current = target;
+    setActiveRecordingKey(target);
+  };
+
+  const handleToggleVoice = (target: "q1" | "q2") => {
+    if (!isSpeechSupported) {
+      toast.error("مرورگر شما از ضبط صدا پشتیبانی نمی‌کند.");
+      return;
+    }
+
+    if (activeRecordingKeyRef.current === target && isRecording) {
+      stopSpeechRecording();
+      setRecordingTarget(null);
+      return;
+    }
+
+    setRecordingTarget(target);
+
+    if (isRecording) {
+      restartSpeechRecording();
+    } else {
+      startSpeechRecording();
+    }
+  };
+
+  useEffect(() => {
+    activeRecordingKeyRef.current = activeRecordingKey;
+  }, [activeRecordingKey]);
 
   useEffect(() => {
     if (!questionnaireId) {
@@ -107,6 +165,8 @@ const SupplementaryQuestions = () => {
 
     setIsSubmitting(true);
     try {
+      stopSpeechRecording();
+      setRecordingTarget(null);
       const response = await apiFetch(`assessment/finish/${questionnaireId}`, {
         method: "POST",
         body: JSON.stringify({
@@ -131,6 +191,8 @@ const SupplementaryQuestions = () => {
 
   const handleModalClose = () => {
     setIsModalOpen(false);
+    stopSpeechRecording();
+    setRecordingTarget(null);
     sessionStorage.removeItem(`assessmentState_${questionnaireId}`);
     navigate("/dashboard");
   };
@@ -208,17 +270,39 @@ const SupplementaryQuestions = () => {
                     <SupplementaryPromptImage text={card.question} />
                   </div>
                 </div>
-                <Textarea
-                  dir="rtl"
-                  rows={5}
-                  spellCheck={false}
-                  value={card.value}
-                  onChange={(event) =>
-                    setAnswers((prev) => ({ ...prev, [card.key]: event.target.value }))
-                  }
-                  className="min-h-[140px] resize-none rounded-3xl border border-white/20 bg-white/15 text-sm text-white placeholder:text-white/60 focus-visible:ring-2 focus-visible:ring-white/70"
-                  placeholder="پاسخ خود را اینجا بنویس..."
-                />
+                <div className="relative">
+                  <Textarea
+                    dir="rtl"
+                    rows={5}
+                    spellCheck={false}
+                    value={card.value}
+                    onChange={(event) =>
+                      setAnswers((prev) => ({ ...prev, [card.key]: event.target.value }))
+                    }
+                    className="min-h-[140px] resize-none rounded-3xl border border-white/20 bg-white/15 pr-6 text-sm text-white placeholder:text-white/60 focus-visible:ring-2 focus-visible:ring-white/70"
+                    placeholder="پاسخ خود را اینجا بنویس..."
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    aria-label="ضبط صدا"
+                    onClick={() => handleToggleVoice(card.key)}
+                    className={cn(
+                      "absolute bottom-4 left-4 h-11 w-11 rounded-full border border-white/25 bg-white/15 text-white transition hover:bg-white/25",
+                      activeRecordingKey === card.key && isRecording
+                        ? "border-purple-300 bg-purple-500/70 text-white shadow-[0_10px_30px_-12px_rgba(168,85,247,0.8)]"
+                        : "shadow-sm",
+                      !isSpeechSupported && "cursor-not-allowed opacity-60 hover:bg-white/15"
+                    )}
+                  >
+                    <Mic className="h-4 w-4" />
+                  </Button>
+                </div>
+                {activeRecordingKey === card.key && isRecording && (
+                  <p className="text-[0.7rem] font-medium text-purple-200/90">
+                    در حال ضبط صدا هستیم؛ پس از پایان جمله کمی مکث کن تا متن اضافه شود.
+                  </p>
+                )}
               </div>
             ))}
           </div>

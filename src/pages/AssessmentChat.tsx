@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import apiFetch from "@/services/apiService";
 import { cn } from "@/lib/utils";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
 import avatarUser from "@/assets/avatar1.jpg"; // کاربر
 import avatarProctor from "@/assets/avatar2.jpg"; // مبصر
@@ -45,7 +46,6 @@ const AssessmentChat = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [activeTyping, setActiveTyping] = useState<string | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
   const [isUserTyping, setIsUserTyping] = useState(false);
   const [viewport, setViewport] = useState<"mobile" | "tablet" | "desktop">("desktop");
   const [isHistoryView, setIsHistoryView] = useState(false);
@@ -64,8 +64,25 @@ const AssessmentChat = () => {
   };
 
   const messageScrollRef = useRef<HTMLDivElement | null>(null);
-  const recognitionRef = useRef<any>(null);
   const userTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const {
+    isSupported: isSpeechSupported,
+    isRecording,
+    toggle: toggleSpeechRecording,
+    stop: stopSpeechRecording,
+  } = useSpeechRecognition({
+    onFinalResult: (transcript) => {
+      if (!transcript) return;
+      setInputValue((prev) => prev + transcript);
+    },
+    onUnsupported: () => {
+      toast.error("مرورگر شما از Speech Recognition پشتیبانی نمی‌کند.");
+    },
+    onError: () => {
+      toast.error("خطا در ضبط صدا. لطفاً دوباره تلاش کنید.");
+    },
+  });
 
   useEffect(() => {
     try {
@@ -87,49 +104,6 @@ const AssessmentChat = () => {
     if (!container) return;
     container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
   }, [messages, isHistoryView]);
-
-  // Speech Recognition
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const SpeechRecognitionClass =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-
-    if (!SpeechRecognitionClass) {
-      toast.error("مرورگر شما از Speech Recognition پشتیبانی نمی‌کند.");
-      return;
-    }
-
-    const recognition = new SpeechRecognitionClass();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = "fa-IR";
-
-    recognition.onresult = (event: any) => {
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0]?.transcript ?? "";
-        if (!transcript) continue;
-        if (event.results[i].isFinal) {
-          setInputValue((prev) => prev + transcript);
-        }
-      }
-    };
-
-    recognition.onend = () => setIsRecording(false);
-
-    recognitionRef.current = recognition;
-
-    return () => {
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop?.();
-        } catch (error) {
-          console.error("Speech recognition stop error", error);
-        }
-        recognitionRef.current = null;
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -305,14 +279,12 @@ const AssessmentChat = () => {
   };
 
   const toggleRecording = () => {
-    if (!hasConversationStarted || !recognitionRef.current) return;
-    if (!isRecording) {
-      recognitionRef.current.start();
-      setIsRecording(true);
-    } else {
-      recognitionRef.current.stop();
-      setIsRecording(false);
+    if (!hasConversationStarted) return;
+    if (!isSpeechSupported) {
+      toast.error("مرورگر شما از ضبط صدا پشتیبانی نمی‌کند.");
+      return;
     }
+    toggleSpeechRecording();
   };
 
   const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
@@ -384,6 +356,7 @@ const AssessmentChat = () => {
       setHasConversationStarted(false);
       toast.error(error?.message || "خطا در شروع گفتگو");
     } finally {
+      stopSpeechRecording();
       setActiveTyping(null);
       setIsInitializing(false);
     }
