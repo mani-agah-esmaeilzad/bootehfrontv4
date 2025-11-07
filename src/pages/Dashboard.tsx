@@ -40,10 +40,39 @@ const CATEGORY_COLORS: Record<string, string> = {
   "شایستگی های شناختی": "#0EA5E9",
   "شایستگی های فردی": "#EC4899",
   "شایستگی های رهبری و مدیریت": "#F97316",
-  "نیمرخ روانشناختی": "#10B981",
+  "شایستگی‌های روانشناختی": "#10B981",
+  "سایر دسته‌بندی‌ها": "#6366F1",
 };
 
 const DEFAULT_CATEGORY_COLOR = "#6366F1";
+
+const CATEGORY_SEQUENCE = [
+  "شایستگی های رفتاری (بین فردی)",
+  "شایستگی های شناختی",
+  "شایستگی های فردی",
+  "شایستگی های رهبری و مدیریت",
+  "شایستگی‌های روانشناختی",
+  "سایر دسته‌بندی‌ها",
+] as const;
+
+const LEGACY_CATEGORY_MAP: Record<string, string> = {
+  "نیمرخ روانشناختی": "شایستگی‌های روانشناختی",
+};
+
+const normalizeCategoryName = (category?: string | null) => {
+  if (!category) return "سایر دسته‌بندی‌ها";
+  const trimmed = category.trim();
+  return LEGACY_CATEGORY_MAP[trimmed] ?? trimmed;
+};
+
+const getCategoryColor = (category?: string | null) =>
+  CATEGORY_COLORS[normalizeCategoryName(category)] ?? DEFAULT_CATEGORY_COLOR;
+
+const getCategoryOrder = (category?: string | null) => {
+  const normalized = normalizeCategoryName(category);
+  const index = CATEGORY_SEQUENCE.indexOf(normalized as (typeof CATEGORY_SEQUENCE)[number]);
+  return index === -1 ? CATEGORY_SEQUENCE.length : index;
+};
 
 const SPIRAL_POSITIONS = [
   { top: "260px", left: "78%" },
@@ -120,7 +149,11 @@ const Dashboard = () => {
       if (response.success) {
         const list = Array.isArray(response.data) ? (response.data as Assessment[]) : [];
         const filtered = list.filter((item) => item.type !== "mystery");
-        setAssessments(filtered);
+        const normalized = filtered.map((item) => ({
+          ...item,
+          category: normalizeCategoryName(item.category),
+        }));
+        setAssessments(normalized);
       } else {
         throw new Error(response.message);
       }
@@ -179,19 +212,25 @@ const Dashboard = () => {
     const map = new Map<string, Assessment>();
     assessments.forEach((assessment) => {
       const key = assessment.stringId || String(assessment.id);
+      const normalized = { ...assessment, category: normalizeCategoryName(assessment.category) };
       const existing = map.get(key);
       if (!existing || statusPriority[assessment.status] >= statusPriority[existing.status]) {
-        map.set(key, assessment);
+        map.set(key, normalized);
       }
     });
 
     return Array.from(map.values()).sort((a, b) => {
+      const categoryOrderDiff = getCategoryOrder(a.category) - getCategoryOrder(b.category);
+      if (categoryOrderDiff !== 0) return categoryOrderDiff;
+
       const orderA = a.display_order ?? Number.MAX_SAFE_INTEGER;
       const orderB = b.display_order ?? Number.MAX_SAFE_INTEGER;
       if (orderA !== orderB) return orderA - orderB;
+
       if (a.status !== b.status) {
         return (statusPriority[b.status] ?? 0) - (statusPriority[a.status] ?? 0);
       }
+
       return (a.id ?? 0) - (b.id ?? 0);
     });
   }, [assessments]);
@@ -221,21 +260,45 @@ const Dashboard = () => {
     [stageLabels, dedupedAssessments]
   );
 
-  const mapSteps: AssessmentMapStep[] = useMemo(
-    () =>
-      dedupedAssessments.map((assessment, index) => {
-        const accentColor = assessment.accentColor ?? CATEGORY_COLORS[assessment.category ?? ""] ?? DEFAULT_CATEGORY_COLOR;
-        const key = assessment.stringId || String(assessment.id);
-        return {
-          id: key,
-          title: resolveStageLabel(assessment, index),
-          status: assessment.status,
-          category: assessment.category,
+  const mapSteps: AssessmentMapStep[] = useMemo(() => {
+    let lastCategory: string | null = null;
+    let stageCounter = 0;
+
+    const steps: AssessmentMapStep[] = [];
+
+    dedupedAssessments.forEach((assessment, index) => {
+      const category = normalizeCategoryName(assessment.category);
+      const accentColor = getCategoryColor(category);
+      const key = assessment.stringId || String(assessment.id);
+
+      if (category && category !== lastCategory) {
+        steps.push({
+          id: `station-${category}`,
+          title: category,
+          status: "station",
+          category,
           accentColor,
-        };
-      }),
-    [dedupedAssessments, resolveStageLabel]
-  );
+          kind: "station",
+        });
+        lastCategory = category;
+      }
+
+      stageCounter += 1;
+
+      steps.push({
+        id: key,
+        title: resolveStageLabel(assessment, index),
+        description: assessment.title || assessment.description,
+        status: assessment.status,
+        category,
+        accentColor,
+        kind: "stage",
+        sequence: stageCounter,
+      });
+    });
+
+    return steps;
+  }, [dedupedAssessments, resolveStageLabel]);
 
   const currentAssessment = dedupedAssessments.find((a) => a.status === "current");
   const currentStageLabel = useMemo(() => {
@@ -254,24 +317,20 @@ const Dashboard = () => {
   const stations = useMemo(() => {
     const grouped = new Map<string, Assessment[]>();
     dedupedAssessments.forEach((assessment) => {
-      const category = assessment.category || "سایر دسته‌بندی‌ها";
+      const category = normalizeCategoryName(assessment.category);
       if (!grouped.has(category)) {
         grouped.set(category, []);
       }
       grouped.get(category)!.push(assessment);
     });
 
-    const entries = Array.from(grouped.entries()).sort(([categoryA], [categoryB]) => {
-      const anchorA = categoryAnchorPositions[categoryA];
-      const anchorB = categoryAnchorPositions[categoryB];
-      const topA = anchorA ? parseFloat(anchorA.top) : Number.POSITIVE_INFINITY;
-      const topB = anchorB ? parseFloat(anchorB.top) : Number.POSITIVE_INFINITY;
-      if (topA !== topB) return topA - topB;
-      return categoryA.localeCompare(categoryB, "fa");
-    });
+    const orderedCategories = Array.from(grouped.keys()).sort(
+      (categoryA, categoryB) => getCategoryOrder(categoryA) - getCategoryOrder(categoryB)
+    );
 
-    return entries.map(([category, steps], index) => {
-      const color = CATEGORY_COLORS[category] ?? DEFAULT_CATEGORY_COLOR;
+    return orderedCategories.map((category, index) => {
+      const steps = grouped.get(category) ?? [];
+      const color = getCategoryColor(category);
       const fallbackPosition = SPIRAL_POSITIONS[index % SPIRAL_POSITIONS.length];
       const anchorPosition = categoryAnchorPositions[category];
       const position = anchorPosition ?? fallbackPosition;
@@ -293,7 +352,11 @@ const Dashboard = () => {
     (_nodes: { step: AssessmentMapStep; index: number; x: number; y: number }[], categories: CategoryAnchor[]) => {
       setCategoryAnchorPositions(() => {
         const next: Record<string, { top: string; left: string }> = {};
-        const sorted = [...categories].sort((a, b) => a.startIndex - b.startIndex);
+        const sorted = [...categories].sort((a, b) => {
+          const orderDiff = getCategoryOrder(a.name) - getCategoryOrder(b.name);
+          if (orderDiff !== 0) return orderDiff;
+          return a.startIndex - b.startIndex;
+        });
         let lastTop = -Infinity;
 
         sorted.forEach((category) => {

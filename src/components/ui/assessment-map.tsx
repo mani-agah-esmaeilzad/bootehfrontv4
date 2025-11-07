@@ -6,9 +6,11 @@ export interface AssessmentMapStep {
   id: string;
   title: string;
   description?: string;
-  status: "completed" | "current" | "locked";
+  status: "completed" | "current" | "locked" | "station";
   category?: string;
   accentColor?: string;
+  kind?: "stage" | "station";
+  sequence?: number;
 }
 
 interface AssessmentMapProps {
@@ -60,63 +62,47 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
   }, []);
 
   const layout = useMemo(
-    () =>
-      isMobile
-        ? {
-            centerX: 50,
-            baseRadius: 14,
-            radiusGrowth: 4.4,
-            angleStart: Math.PI / 2.4,
-            angleStep: Math.PI / 1.9,
-            verticalSpacing: 122,
-            swayX: 5.5,
-            swayY: 36,
-            baseYOffset: 120,
-            leftMin: 14,
-            leftMax: 86,
-            verticalJitter: 18,
-          }
-        : {
-            centerX: 50,
-            baseRadius: 18,
-            radiusGrowth: 5.75,
-            angleStart: Math.PI / 3,
-            angleStep: Math.PI / 1.75,
-            verticalSpacing: 150,
-            swayX: 9,
-            swayY: 52,
-            baseYOffset: 140,
-            leftMin: 8,
-            leftMax: 92,
-            verticalJitter: 24,
-          },
+    () => ({
+      spacingY: isMobile ? 120 : 170,
+      baseYOffset: isMobile ? 110 : 150,
+      stageLeftX: isMobile ? 28 : 30,
+      stageRightX: isMobile ? 72 : 70,
+      stationX: 50,
+      stationYOffset: isMobile ? -10 : -20,
+    }),
     [isMobile]
   );
 
   const nodePositions = useMemo(() => {
+    let fallbackSequence = 0;
+
     return steps.map((step, index) => {
-      const angle = layout.angleStart + index * layout.angleStep;
-      const radius = layout.baseRadius + index * layout.radiusGrowth;
-      const cosine = Math.cos(angle);
-      const sine = Math.sin(angle);
+      const isStation = step.kind === "station" || step.status === "station";
+      let stageSequence = step.sequence;
 
+      if (!isStation) {
+        if (typeof stageSequence !== "number") {
+          fallbackSequence += 1;
+          stageSequence = fallbackSequence;
+        } else {
+          fallbackSequence = stageSequence;
+        }
+      }
+
+      const isEvenSequence = !isStation && typeof stageSequence === "number" ? stageSequence % 2 === 0 : false;
       const x = clamp(
-        layout.centerX + cosine * radius + Math.sin(angle * 1.25) * layout.swayX,
-        layout.leftMin,
-        layout.leftMax
+        isStation ? layout.stationX : isEvenSequence ? layout.stageRightX : layout.stageLeftX,
+        8,
+        92
       );
-
-      const y =
-        layout.baseYOffset +
-        index * layout.verticalSpacing +
-        sine * layout.swayY +
-        Math.cos(angle * 0.9) * layout.verticalJitter;
+      const y = layout.baseYOffset + index * layout.spacingY + (isStation ? layout.stationYOffset : 0);
 
       return {
         step,
         index,
         x,
         y,
+        isStation,
       };
     });
   }, [steps, layout]);
@@ -130,11 +116,13 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
       const midX = (prev.x + point.x) / 2;
       const controlOffset = (point.y - prev.y) / 3;
       const d = `M ${prev.x} ${prev.y} C ${midX} ${prev.y + controlOffset}, ${midX} ${point.y - controlOffset}, ${point.x} ${point.y}`;
+      const normalizedStatus =
+        point.step.kind === "station" || point.step.status === "station" ? "completed" : point.step.status;
 
       return {
         d,
         color: point.step.accentColor ?? DEFAULT_ACCENT,
-        status: point.step.status,
+        status: normalizedStatus,
       };
     });
   }, [nodePositions]);
@@ -171,6 +159,120 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
     return (
       <div className="flex items-center justify-center py-16 text-slate-400">
         هنوز ارزیابی‌ای برای نمایش وجود ندارد
+      </div>
+    );
+  }
+
+  if (isMobile) {
+    return (
+      <div className="relative mx-auto w-full max-w-xl px-3">
+        <div className="pointer-events-none absolute inset-x-8 top-6 bottom-6">
+          <div className="mx-auto h-full w-px bg-gradient-to-b from-purple-200 via-purple-100 to-purple-300" />
+        </div>
+        <div className="relative space-y-6">
+          {steps.map((step, index) => {
+            const accent = step.accentColor ?? DEFAULT_ACCENT;
+            const isStation = step.kind === "station" || step.status === "station";
+            const isLocked = step.status === "locked";
+            const isCurrent = step.status === "current";
+            const isCompleted = step.status === "completed";
+            const sequenceLabel = step.sequence?.toLocaleString("fa-IR");
+
+            const cardClass = cn(
+              "rounded-2xl border px-4 py-4 text-right shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur transition",
+              isStation
+                ? "border-purple-200/70 bg-white/60"
+                : isLocked
+                ? "border-slate-200 bg-white/70 text-slate-400"
+                : isCurrent
+                ? "border-transparent bg-gradient-to-l from-purple-600 to-sky-500 text-white shadow-[0_20px_50px_rgba(79,70,229,0.35)]"
+                : "border-slate-100 bg-white/95"
+            );
+
+            const dotClass = cn(
+              "relative z-10 h-4 w-4 rounded-full border-2 transition",
+              isStation
+                ? "border-purple-300 bg-white shadow-[0_8px_24px_rgba(168,85,247,0.35)]"
+                : isLocked
+                ? "border-slate-300 bg-white/80"
+                : isCurrent
+                ? "border-transparent bg-gradient-to-br from-purple-600 to-sky-500 shadow-[0_12px_32px_rgba(79,70,229,0.45)]"
+                : "border-transparent bg-white shadow-[0_12px_32px_rgba(148,163,184,0.35)]"
+            );
+
+            const statusPill = !isStation && (
+              <span
+                className={cn(
+                  "mt-3 inline-flex items-center justify-center rounded-full px-3 py-1 text-[11px] font-semibold",
+                  isLocked
+                    ? "bg-slate-100 text-slate-400"
+                    : isCurrent
+                    ? "bg-white/25 text-white"
+                    : "bg-emerald-50 text-emerald-600"
+                )}
+              >
+                {isCurrent ? "مرحله جاری" : isLocked ? "قفل شده" : "تکمیل شده"}
+              </span>
+            );
+
+            const handleStageSelect = () => {
+              if (!isStation && !isLocked) {
+                onStepSelect?.(step, index);
+              }
+            };
+
+            return (
+              <div
+                key={step.id}
+                className="relative grid grid-cols-[auto,1fr] gap-4"
+                style={{ minHeight: isStation ? 88 : 108 }}
+              >
+                <div className="relative flex flex-col items-center">
+                  <span className={dotClass} style={{ borderColor: isStation || isLocked ? undefined : accent }} />
+                  {index < steps.length - 1 && (
+                    <span className="mt-1 h-full w-px bg-gradient-to-b from-purple-200 via-purple-100 to-purple-200" />
+                  )}
+                </div>
+                <div
+                  className={cn(cardClass, !isStation && !isLocked ? "cursor-pointer" : "cursor-default")}
+                  style={!isStation && !isLocked && !isCurrent ? { borderColor: accent } : undefined}
+                  role={!isStation ? "button" : undefined}
+                  tabIndex={!isStation && !isLocked ? 0 : undefined}
+                  onClick={handleStageSelect}
+                  onKeyDown={(event) => {
+                    if ((event.key === "Enter" || event.key === " ") && !isStation && !isLocked) {
+                      event.preventDefault();
+                      handleStageSelect();
+                    }
+                  }}
+                >
+                  {isStation ? (
+                    <>
+                      <p className="text-[11px] font-semibold text-purple-600">ایستگاه شایستگی</p>
+                      <h4 className="mt-1 text-base font-bold text-slate-900">{step.title}</h4>
+                      <p className="mt-2 text-[12px] leading-6 text-slate-500">
+                        همهٔ مرحله‌های مربوط به این شایستگی پشت سر هم قرار گرفته‌اند.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-[11px] font-semibold text-slate-500">
+                        {sequenceLabel ? `مرحله ${sequenceLabel}` : "مرحله"}
+                      </div>
+                      <h4 className={cn("mt-1 text-base font-bold", isCurrent ? "text-white" : "text-slate-900")}>
+                        {step.description || step.title}
+                      </h4>
+                      <p className={cn("mt-2 text-[12px] leading-6", isCurrent ? "text-white/80" : "text-slate-500")}>
+                        {step.title}
+                      </p>
+                      {statusPill}
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   }
@@ -275,6 +377,7 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
             );
           })}
           {nodePositions.map((point) => {
+            if (point.isStation) return null;
             const orbitRadius = isMobile ? 14 : 18;
             const haloRadius = isMobile ? 22 : 27;
 
@@ -302,18 +405,39 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
         </svg>
       </div>
 
-      {nodePositions.map(({ step, index, x, y }) => {
+      {nodePositions.map(({ step, index, x, y, isStation }) => {
         const accent = step.accentColor ?? DEFAULT_ACCENT;
+
+        if (isStation) {
+          return (
+            <div
+              key={step.id}
+              className="absolute flex flex-col items-center gap-2 text-center"
+              style={{
+                left: `${x}%`,
+                top: `${y}px`,
+                transform: "translate(-50%, -50%)",
+              }}
+            >
+              <div className="rounded-[28px] border-2 border-dashed border-white/60 bg-white/85 px-6 py-3 text-xs font-semibold text-slate-500 shadow-[0_18px_60px_rgba(15,23,42,0.12)] backdrop-blur">
+                <div className="text-[11px] text-purple-600">ایستگاه شایستگی</div>
+                <div className="mt-1 text-base font-bold text-slate-900">{step.title}</div>
+              </div>
+            </div>
+          );
+        }
+
         const isLocked = step.status === "locked";
         const isCurrent = step.status === "current";
         const isCompleted = step.status === "completed";
+        const sequenceLabel = step.sequence?.toLocaleString("fa-IR") ?? (index + 1).toLocaleString("fa-IR");
 
         const buttonStyle: CSSProperties = {
           borderColor: accent,
           background: isLocked
             ? "rgba(255,255,255,0.75)"
             : isCompleted
-            ? hexToRgba(accent, 0.15)
+            ? hexToRgba(accent, 0.12)
             : "rgba(255,255,255,0.95)",
           color: isLocked ? "#94A3B8" : isCurrent || isCompleted ? accent : "#475569",
           boxShadow: isLocked
@@ -334,14 +458,14 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
         };
 
         const titleStyle: CSSProperties = {
-          color: isLocked ? "#94A3B8" : "#1E293B",
+          color: isLocked ? "#94A3B8" : isCurrent ? accent : "#1E293B",
         };
 
         return (
           <div
             key={step.id}
             className={cn(
-              "absolute flex flex-col items-center gap-2 transition-all duration-300 md:gap-3",
+              "absolute flex max-w-[240px] flex-col items-center gap-2 text-center transition-all duration-300 md:gap-3",
               !isLocked && "hover:-translate-y-1"
             )}
             style={{
@@ -368,12 +492,15 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
                 className="flex h-7 w-7 items-center justify-center rounded-full border text-[11px] font-semibold md:h-8 md:w-8 md:text-xs"
                 style={indexStyle}
               >
-                {index + 1}
+                {sequenceLabel}
               </span>
               <span className="px-3 text-[13px] font-semibold leading-relaxed md:px-4 md:text-sm" style={titleStyle}>
                 {step.title}
               </span>
             </button>
+            {step.description && (
+              <p className="mt-1 px-2 text-[12px] leading-6 text-slate-500">{step.description}</p>
+            )}
           </div>
         );
       })}
