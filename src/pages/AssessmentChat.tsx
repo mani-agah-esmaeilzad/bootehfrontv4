@@ -475,8 +475,8 @@ const AssessmentChat = () => {
           </p>
         </header>
 
-        <section className="relative flex w-full flex-1 min-h-0 flex-col items-center overflow-hidden">
-          <div className="relative flex w-full flex-1 min-h-[440px] items-center justify-center overflow-hidden">
+        <section className="relative flex w-full flex-1 min-h-0 flex-col items-center">
+          <div className="relative flex w-full flex-1 min-h-[440px] items-center justify-center">
             <div className="relative aspect-square w-full max-w-[640px] sm:max-w-[560px] md:max-w-[600px]">
               <div className="absolute inset-0 rounded-[48px] bg-gradient-to-br from-white/65 via-white/15 to-transparent shadow-[0_25px_80px_-40px_rgba(79,70,229,0.45)] backdrop-blur-xl" />
               <div className="pointer-events-none absolute inset-[6%] rounded-[48px] border border-dashed border-white/60" />
