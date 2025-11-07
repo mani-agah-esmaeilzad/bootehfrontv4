@@ -437,7 +437,7 @@ const AssessmentChat = () => {
     const isTyping = (typingPersonaKey ?? (isUserTyping ? "user" : null)) === key;
     const radiusSet = config.radius;
     const radiusValue = radiusSet[viewport] ?? radiusSet.desktop;
-    const orbitDistance = radiusValue + (isMobileViewport ? 60 : 90);
+    const orbitDistance = radiusValue + (isMobileViewport ? 90 : 135);
     const transform = `translate(-50%, -50%) rotate(${config.angle}deg) translate(${orbitDistance}%) rotate(${-config.angle}deg)`;
 
     return {
@@ -594,7 +594,7 @@ const AssessmentChat = () => {
             </div>
 
             <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center">
-              <div className="relative aspect-square w-[160%] max-w-[880px] sm:w-[150%]">
+              <div className="relative aspect-square w-[185%] max-w-[980px] sm:w-[170%]">
                 {orbitMembers.map((persona) => {
                   const avatarSrc = persona.avatar?.src ?? persona.meta.avatar;
                   const avatarName = persona.avatar?.name ?? persona.meta.name;
