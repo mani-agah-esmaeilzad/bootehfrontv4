@@ -436,7 +436,8 @@ const AssessmentChat = () => {
     const isTyping = (typingPersonaKey ?? (isUserTyping ? "user" : null)) === key;
     const radiusSet = config.radius;
     const radiusValue = radiusSet[viewport] ?? radiusSet.desktop;
-    const transform = `translate(-50%, -50%) rotate(${config.angle}deg) translate(${radiusValue}%) rotate(${-config.angle}deg)`;
+    const orbitDistance = radiusValue + (isMobile ? 26 : 36);
+    const transform = `translate(-50%, -50%) rotate(${config.angle}deg) translate(${orbitDistance}%) rotate(${-config.angle}deg)`;
 
     return {
       key,
@@ -594,11 +595,11 @@ const AssessmentChat = () => {
               const avatarSrc = persona.avatar?.src ?? persona.meta.avatar;
               const avatarName = persona.avatar?.name ?? persona.meta.name;
               return (
-                <div key={persona.key} className="pointer-events-none absolute top-1/2 left-1/2 z-50">
+                <div key={persona.key} className="pointer-events-none absolute top-1/2 left-1/2 z-30">
                   <div
                     style={{ transform: persona.transform }}
                     className={cn(
-                      "pointer-events-auto flex w-[88px] flex-col items-center gap-2 text-center text-[10px] font-medium transition-all duration-500 sm:w-[112px] sm:text-xs",
+                      "flex w-[78px] flex-col items-center gap-2 text-center text-[10px] font-medium transition-all duration-500 sm:w-[108px] sm:text-xs",
                       persona.isSpeaking ? "text-slate-700" : "text-slate-500"
                     )}
                   >
