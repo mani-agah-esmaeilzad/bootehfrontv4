@@ -474,34 +474,20 @@ const AssessmentChat = () => {
       <div className="pointer-events-none absolute left-1/2 top-10 h-40 w-[78%] -translate-x-1/2 rounded-full bg-white/70 blur-2xl" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(124,58,237,0.18),transparent_60%)]" />
 
-      <div className="relative z-10 flex w-full max-w-6xl flex-1 min-h-0 flex-col gap-8 lg:flex-row lg:items-start">
-        <aside className="order-2 rounded-[32px] border border-white/60 bg-white/85 p-6 text-right shadow-[0_20px_60px_rgba(79,70,229,0.12)] backdrop-blur sm:p-8 lg:order-1 lg:max-w-sm">
+      <div className="relative z-10 flex w-full max-w-6xl flex-1 min-h-0 flex-col items-center gap-8 sm:gap-10">
+        <header className="flex flex-col items-center gap-3 text-center sm:gap-4">
           <span className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 px-4 py-1 text-xs font-semibold text-purple-600">
             <Sparkles className="h-4 w-4" />
             اتاق ارزیابی سه‌نفره
           </span>
-          <h1 className="mt-4 text-3xl font-extrabold text-slate-900 sm:text-[32px]">حلقه گفتگو با الهام از مسیرهای خمیده</h1>
-          <p className="mt-3 text-sm leading-7 text-slate-600">
+          <h1 className="text-2xl font-extrabold text-slate-900 sm:text-3xl">حلقه گفتگو با الهام از مسیرهای خمیده</h1>
+          <p className="max-w-2xl text-sm leading-7 text-slate-500 sm:text-base">
             پیام‌های شما در مرکز حلقه قرار می‌گیرند و نقش هر شخصیت با مدار اختصاصی مشخص است؛ وقتی هرکدام صحبت یا تایپ
-            می‌کند، آواتار او با موج ملایم می‌لرزد. هر زمان آماده بودید، از سمت راست گفتگو را ادامه دهید.
+            می‌کند، آواتار او با موج ملایم می‌لرزد.
           </p>
-          <div className="mt-6 space-y-3 text-xs text-slate-500">
-            <div className="flex items-start gap-2">
-              <span className="mt-1 inline-block h-2 w-2 rounded-full bg-violet-500" />
-              <span>آواتارهای دور حلقه نشان می‌دهند کدام شخصیت در حال صحبت یا انتظار است.</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="mt-1 inline-block h-2 w-2 rounded-full bg-sky-500" />
-              <span>برای خواندن پیام‌های بلند، داخل حلقه به‌صورت مستقل اسکرول کنید.</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="mt-1 inline-block h-2 w-2 rounded-full bg-emerald-500" />
-              <span>ورود به مرحله بعد از همین چت امکان‌پذیر است.</span>
-            </div>
-          </div>
-        </aside>
+        </header>
 
-        <section className="order-1 relative flex w-full flex-1 min-h-0 flex-col items-center lg:order-2">
+        <section className="relative flex w-full flex-1 min-h-0 flex-col items-center">
           <div className="relative flex w-full flex-1 min-h-[440px] items-center justify-center">
             <div className="relative aspect-square w-full max-w-[640px] sm:max-w-[560px] md:max-w-[600px]">
               <div className="absolute inset-0 rounded-[48px] bg-gradient-to-br from-white/65 via-white/15 to-transparent shadow-[0_25px_80px_-40px_rgba(79,70,229,0.45)] backdrop-blur-xl" />
