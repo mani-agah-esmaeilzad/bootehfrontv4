@@ -154,9 +154,19 @@ const Dashboard = () => {
     const map = new Map<string, Assessment>();
     assessments.forEach((assessment) => {
       const key = assessment.stringId || String(assessment.id);
-      const normalized = { ...assessment, category: normalizeCategoryName(assessment.category) };
+      const normalizedStatus =
+        assessment.status === "completed"
+          ? "completed"
+          : assessment.status === "current"
+            ? "current"
+            : "locked";
+      const normalized = {
+        ...assessment,
+        status: normalizedStatus,
+        category: normalizeCategoryName(assessment.category),
+      };
       const existing = map.get(key);
-      if (!existing || statusPriority[assessment.status] >= statusPriority[existing.status]) {
+      if (!existing || statusPriority[normalizedStatus] >= statusPriority[existing.status]) {
         map.set(key, normalized);
       }
     });
@@ -194,19 +204,34 @@ const Dashboard = () => {
       return stages.some((stage) => stage.status !== "completed");
     });
 
-    const lockedOrder = firstIncompleteCategory ? getCategoryOrder(firstIncompleteCategory) : null;
+    const lockedOrder =
+      typeof firstIncompleteCategory === "string" ? getCategoryOrder(firstIncompleteCategory) : null;
 
-    if (lockedOrder === null) {
-      return ordered;
-    }
-
-    return ordered.map((assessment) => {
+    const gatedAssessments = ordered.map((assessment) => {
       const categoryOrder = getCategoryOrder(assessment.category);
-      if (categoryOrder > lockedOrder && assessment.status !== "completed") {
+      if (
+        lockedOrder !== null &&
+        categoryOrder > lockedOrder &&
+        assessment.status !== "completed"
+      ) {
         return { ...assessment, status: "locked" };
       }
       return assessment;
     });
+
+    const hasCurrent = gatedAssessments.some((assessment) => assessment.status === "current");
+    if (hasCurrent) {
+      return gatedAssessments;
+    }
+
+    const firstAvailableIndex = gatedAssessments.findIndex((assessment) => assessment.status !== "completed");
+    if (firstAvailableIndex === -1) {
+      return gatedAssessments;
+    }
+
+    const promoted = [...gatedAssessments];
+    promoted[firstAvailableIndex] = { ...promoted[firstAvailableIndex], status: "current" };
+    return promoted;
   }, [assessments]);
 
   const stageLabels = useMemo(() => {
