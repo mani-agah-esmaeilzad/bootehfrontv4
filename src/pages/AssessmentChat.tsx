@@ -509,6 +509,7 @@ const AssessmentChat = () => {
                       ref={messageScrollRef}
                       onScroll={handleMessagesScroll}
                       className="relative z-10 flex flex-1 flex-col overflow-y-auto px-6 pb-14 pt-10 text-center sm:px-10 sm:pt-14"
+                      style={{ touchAction: "pan-y" }}
                     >
                       {!isHistoryView && (
                         <div className="pointer-events-none absolute inset-x-4 top-0 z-30 h-24 bg-gradient-to-b from-white via-white/70 to-transparent sm:inset-x-6" />
@@ -596,7 +597,7 @@ const AssessmentChat = () => {
               const avatarSrc = persona.avatar?.src ?? persona.meta.avatar;
               const avatarName = persona.avatar?.name ?? persona.meta.name;
               return (
-                <div key={persona.key} className="pointer-events-none absolute top-1/2 left-1/2 z-30">
+                <div key={persona.key} className="pointer-events-none absolute top-1/2 left-1/2 z-50">
                   <div
                     style={{ transform: persona.transform }}
                     className={cn(
