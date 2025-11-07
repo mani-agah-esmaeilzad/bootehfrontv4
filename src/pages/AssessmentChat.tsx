@@ -428,6 +428,7 @@ const AssessmentChat = () => {
   const typingPersonaKey = resolveTypingPersonaKey(activeTyping);
   const typingMeta = typingPersonaKey ? personaMeta[typingPersonaKey] : null;
 
+  const isMobileViewport = viewport === "mobile";
   const orbitMembers = (Object.keys(orbitMap) as Array<keyof typeof orbitMap>).map((key) => {
     const meta = personaMeta[key];
     const avatar = avatars.find((item) => item.role === (key === "user" ? "user" : key));
@@ -436,7 +437,7 @@ const AssessmentChat = () => {
     const isTyping = (typingPersonaKey ?? (isUserTyping ? "user" : null)) === key;
     const radiusSet = config.radius;
     const radiusValue = radiusSet[viewport] ?? radiusSet.desktop;
-    const orbitDistance = radiusValue + (isMobile ? 26 : 36);
+    const orbitDistance = radiusValue + (isMobileViewport ? 26 : 36);
     const transform = `translate(-50%, -50%) rotate(${config.angle}deg) translate(${orbitDistance}%) rotate(${-config.angle}deg)`;
 
     return {
