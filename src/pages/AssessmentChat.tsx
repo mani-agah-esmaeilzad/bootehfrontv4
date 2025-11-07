@@ -127,6 +127,18 @@ const AssessmentChat = () => {
     return () => window.removeEventListener("resize", updateViewport);
   }, []);
 
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, []);
+
   const extractAiMessages = (response: any): ChatMessage[] => {
     const normalizedResponses: Array<{ senderName?: string; text?: string }> = [];
     const rawResponses = response?.data?.responses;
@@ -456,7 +468,7 @@ const AssessmentChat = () => {
   });
 
   return (
-    <div className="relative flex min-h-[100dvh] w-full justify-center overflow-hidden bg-gradient-to-b from-[#dcd5ff] via-[#ede9ff] to-[#f8f7ff] px-4 py-10 text-slate-900 sm:px-6 lg:px-10">
+    <div className="relative flex min-h-screen w-full justify-center overflow-hidden bg-gradient-to-b from-[#dcd5ff] via-[#ede9ff] to-[#f8f7ff] px-4 py-6 text-slate-900 sm:px-6 sm:py-8 lg:px-10">
       <div className="pointer-events-none absolute -left-36 top-16 h-80 w-80 rounded-full bg-violet-300/35 blur-3xl" />
       <div className="pointer-events-none absolute -right-28 -bottom-40 h-[420px] w-[420px] rounded-full bg-sky-200/40 blur-3xl" />
       <div className="pointer-events-none absolute left-1/2 top-10 h-40 w-[78%] -translate-x-1/2 rounded-full bg-white/70 blur-2xl" />
@@ -475,7 +487,7 @@ const AssessmentChat = () => {
           </p>
         </header>
 
-        <section className="relative flex w-full flex-1 min-h-0 flex-col items-center">
+        <section className="relative flex w-full flex-1 min-h-0 flex-col items-center overflow-hidden">
           <div className="relative flex w-full flex-1 min-h-[440px] items-center justify-center">
             <div className="relative aspect-square w-full max-w-[640px] sm:max-w-[560px] md:max-w-[600px]">
               <div className="absolute inset-0 rounded-[48px] bg-gradient-to-br from-white/65 via-white/15 to-transparent shadow-[0_25px_80px_-40px_rgba(79,70,229,0.45)] backdrop-blur-xl" />
@@ -512,8 +524,8 @@ const AssessmentChat = () => {
                     <div
                       ref={messageScrollRef}
                       onScroll={handleMessagesScroll}
-                      className="relative z-10 flex flex-1 flex-col overflow-y-auto px-6 pb-14 pt-10 text-center sm:px-10 sm:pt-14"
-                      style={{ touchAction: "pan-y" }}
+                      className="relative z-10 flex flex-1 flex-col overflow-y-auto overscroll-contain px-6 pb-14 pt-10 text-center sm:px-10 sm:pt-14"
+                      style={{ touchAction: "pan-y", WebkitOverflowScrolling: "touch" }}
                     >
                       {!isHistoryView && (
                         <div className="pointer-events-none absolute inset-x-4 top-0 z-30 h-24 bg-gradient-to-b from-white via-white/70 to-transparent sm:inset-x-6" />
