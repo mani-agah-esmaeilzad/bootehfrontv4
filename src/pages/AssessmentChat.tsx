@@ -476,10 +476,6 @@ const AssessmentChat = () => {
 
       <div className="relative z-10 flex w-full max-w-6xl flex-1 min-h-0 flex-col items-center gap-8 sm:gap-10">
         <header className="flex flex-col items-center gap-3 text-center sm:gap-4">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 px-4 py-1 text-xs font-semibold text-purple-600">
-            <Sparkles className="h-4 w-4" />
-            اتاق ارزیابی سه‌نفره
-          </span>
           <h1 className="text-2xl font-extrabold text-slate-900 sm:text-3xl">حلقه گفتگو با الهام از مسیرهای خمیده</h1>
           <p className="max-w-2xl text-sm leading-7 text-slate-500 sm:text-base">
             پیام‌های شما در مرکز حلقه قرار می‌گیرند و نقش هر شخصیت با مدار اختصاصی مشخص است؛ وقتی هرکدام صحبت یا تایپ
