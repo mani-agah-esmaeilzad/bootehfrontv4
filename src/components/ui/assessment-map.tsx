@@ -251,20 +251,15 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
                       <p className="text-[11px] font-semibold text-purple-600">ایستگاه شایستگی</p>
                       <h4 className="mt-1 text-base font-bold text-slate-900">{step.title}</h4>
                       <p className="mt-2 text-[12px] leading-6 text-slate-500">
-                        همهٔ مرحله‌های مربوط به این شایستگی پشت سر هم قرار گرفته‌اند.
+                        از اینجا به بعد مرحله‌های مربوط به این شایستگی فعال می‌شود.
                       </p>
                     </>
                   ) : (
                     <>
-                      <div className="text-[11px] font-semibold text-slate-500">
-                        {sequenceLabel ? `مرحله ${sequenceLabel}` : "مرحله"}
-                      </div>
+                      <div className="text-[11px] font-semibold text-slate-500">مرحله {sequenceLabel ?? "…"}</div>
                       <h4 className={cn("mt-1 text-base font-bold", isCurrent ? "text-white" : "text-slate-900")}>
-                        {step.description || step.title}
-                      </h4>
-                      <p className={cn("mt-2 text-[12px] leading-6", isCurrent ? "text-white/80" : "text-slate-500")}>
                         {step.title}
-                      </p>
+                      </h4>
                       {statusPill}
                     </>
                   )}
@@ -498,9 +493,6 @@ export const AssessmentMap = ({ steps, onStepSelect, onLayoutChange }: Assessmen
                 {step.title}
               </span>
             </button>
-            {step.description && (
-              <p className="mt-1 px-2 text-[12px] leading-6 text-slate-500">{step.description}</p>
-            )}
           </div>
         );
       })}

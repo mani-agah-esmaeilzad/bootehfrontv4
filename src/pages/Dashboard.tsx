@@ -1,7 +1,6 @@
 // src/pages/Dashboard.tsx
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -74,70 +73,13 @@ const getCategoryOrder = (category?: string | null) => {
   return index === -1 ? CATEGORY_SEQUENCE.length : index;
 };
 
-const SPIRAL_POSITIONS = [
-  { top: "260px", left: "78%" },
-  { top: "420px", left: "20%" },
-  { top: "600px", left: "74%" },
-  { top: "780px", left: "24%" },
-  { top: "960px", left: "70%" },
-  { top: "1140px", left: "30%" },
-];
-
-type CategoryAnchor = {
-  name: string;
-  color: string;
-  startIndex: number;
-  x: number;
-  y: number;
-};
-
-const clampPositionTop = (value: number) => Math.max(value, 48);
-const clampPositionLeft = (value: number) => Math.min(Math.max(value, 12), 88);
-
-const hexToRgba = (hex: string, alpha: number) => {
-  const sanitized = hex.replace('#', '');
-  const bigint = parseInt(sanitized.length === 3 ? sanitized.repeat(2) : sanitized, 16);
-  const r = (bigint >> 16) & 255;
-  const g = (bigint >> 8) & 255;
-  const b = bigint & 255;
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-};
-
-const truncate = (value: string, maxLength = 18) =>
-  value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
-
 const formatStageLabel = (index: number) => `مرحله ${(index + 1).toLocaleString("fa-IR")}`;
-
-const getStageStyles = (status: string, color: string): CSSProperties => {
-  if (status === "completed") {
-    return {
-      backgroundColor: color,
-      color: "#ffffff",
-      boxShadow: `0 10px 24px ${hexToRgba(color, 0.28)}`,
-    };
-  }
-
-  if (status === "current") {
-    return {
-      backgroundColor: hexToRgba(color, 0.2),
-      color,
-      border: `1px solid ${hexToRgba(color, 0.45)}`,
-    };
-  }
-
-  return {
-    backgroundColor: "rgba(148,163,184,0.18)",
-    color: "#64748B",
-  };
-};
 
 const Dashboard = () => {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [startingAssessmentKey, setStartingAssessmentKey] = useState<string | null>(null);
-  const [categoryAnchorPositions, setCategoryAnchorPositions] = useState<Record<string, { top: string; left: string }>>({});
-
   const navigate = useNavigate();
 
   // گرفتن لیست ارزیابی‌ها
@@ -219,7 +161,7 @@ const Dashboard = () => {
       }
     });
 
-    return Array.from(map.values()).sort((a, b) => {
+    const ordered = Array.from(map.values()).sort((a, b) => {
       const categoryOrderDiff = getCategoryOrder(a.category) - getCategoryOrder(b.category);
       if (categoryOrderDiff !== 0) return categoryOrderDiff;
 
@@ -232,6 +174,38 @@ const Dashboard = () => {
       }
 
       return (a.id ?? 0) - (b.id ?? 0);
+    });
+
+    const categoryGroups = new Map<string, Assessment[]>();
+    ordered.forEach((assessment) => {
+      const category = normalizeCategoryName(assessment.category);
+      if (!categoryGroups.has(category)) {
+        categoryGroups.set(category, []);
+      }
+      categoryGroups.get(category)!.push(assessment);
+    });
+
+    const orderedCategories = Array.from(categoryGroups.keys()).sort(
+      (categoryA, categoryB) => getCategoryOrder(categoryA) - getCategoryOrder(categoryB)
+    );
+
+    const firstIncompleteCategory = orderedCategories.find((category) => {
+      const stages = categoryGroups.get(category) ?? [];
+      return stages.some((stage) => stage.status !== "completed");
+    });
+
+    const lockedOrder = firstIncompleteCategory ? getCategoryOrder(firstIncompleteCategory) : null;
+
+    if (lockedOrder === null) {
+      return ordered;
+    }
+
+    return ordered.map((assessment) => {
+      const categoryOrder = getCategoryOrder(assessment.category);
+      if (categoryOrder > lockedOrder && assessment.status !== "completed") {
+        return { ...assessment, status: "locked" };
+      }
+      return assessment;
     });
   }, [assessments]);
 
@@ -288,7 +262,6 @@ const Dashboard = () => {
       steps.push({
         id: key,
         title: resolveStageLabel(assessment, index),
-        description: assessment.title || assessment.description,
         status: assessment.status,
         category,
         accentColor,
@@ -313,70 +286,6 @@ const Dashboard = () => {
   const progressPercent = totalCount ? Math.round((completedCount / totalCount) * 100) : 0;
 
   const formatNumber = (value: number) => value.toLocaleString("fa-IR");
-
-  const stations = useMemo(() => {
-    const grouped = new Map<string, Assessment[]>();
-    dedupedAssessments.forEach((assessment) => {
-      const category = normalizeCategoryName(assessment.category);
-      if (!grouped.has(category)) {
-        grouped.set(category, []);
-      }
-      grouped.get(category)!.push(assessment);
-    });
-
-    const orderedCategories = Array.from(grouped.keys()).sort(
-      (categoryA, categoryB) => getCategoryOrder(categoryA) - getCategoryOrder(categoryB)
-    );
-
-    return orderedCategories.map((category, index) => {
-      const steps = grouped.get(category) ?? [];
-      const color = getCategoryColor(category);
-      const fallbackPosition = SPIRAL_POSITIONS[index % SPIRAL_POSITIONS.length];
-      const anchorPosition = categoryAnchorPositions[category];
-      const position = anchorPosition ?? fallbackPosition;
-      const isAnchor = Boolean(anchorPosition);
-      return {
-        name: category,
-        color,
-        position,
-        isAnchor,
-        stages: steps.map((step, stepIndex) => ({
-          label: resolveStageLabel(step, stepIndex),
-          status: step.status,
-        })),
-      };
-    });
-  }, [dedupedAssessments, categoryAnchorPositions, resolveStageLabel]);
-
-  const handleMapLayoutChange = useCallback(
-    (_nodes: { step: AssessmentMapStep; index: number; x: number; y: number }[], categories: CategoryAnchor[]) => {
-      setCategoryAnchorPositions(() => {
-        const next: Record<string, { top: string; left: string }> = {};
-        const sorted = [...categories].sort((a, b) => {
-          const orderDiff = getCategoryOrder(a.name) - getCategoryOrder(b.name);
-          if (orderDiff !== 0) return orderDiff;
-          return a.startIndex - b.startIndex;
-        });
-        let lastTop = -Infinity;
-
-        sorted.forEach((category) => {
-          let topPx = clampPositionTop(category.y - 110);
-          if (Number.isFinite(lastTop) && topPx - lastTop < 90) {
-            topPx = lastTop + 90;
-          }
-          lastTop = topPx;
-
-          const leftPercent = clampPositionLeft(category.x + (category.x >= 50 ? 6 : -6));
-          next[category.name] = {
-            top: `${topPx}px`,
-            left: `${leftPercent}%`,
-          };
-        });
-        return next;
-      });
-    },
-    []
-  );
 
   // رندر محتوا
   const renderContent = () => {
@@ -567,97 +476,24 @@ const Dashboard = () => {
             </p>
           </div>
           <div className="mt-10">
-            <div className="relative hidden md:block">
-              <AssessmentMap
-                steps={mapSteps}
-                onStepSelect={(step) => {
-                  const selectedAssessment = dedupedAssessments.find(
-                    (assessment) => (assessment.stringId || String(assessment.id)) === step.id
-                  );
+            <AssessmentMap
+              steps={mapSteps}
+              onStepSelect={(step) => {
+                const selectedAssessment = dedupedAssessments.find(
+                  (assessment) => (assessment.stringId || String(assessment.id)) === step.id
+                );
 
-                  if (!selectedAssessment) return;
+                if (!selectedAssessment) return;
 
-                  if (selectedAssessment.status === "current") {
-                    handleStartAssessment(selectedAssessment);
-                  } else if (selectedAssessment.status === "completed") {
-                    toast.info("این مرحله پیش‌تر تکمیل شده است. نتایج در بخش گزارش‌ها در دسترس است.");
-                  } else {
-                    toast.info("برای دسترسی به این مرحله ابتدا مرحله‌های قبلی را تکمیل کنید.");
-                  }
-                }}
-                onLayoutChange={handleMapLayoutChange}
-              />
-              {stations.map((station) => (
-                <div
-                  key={station.name}
-                  className={`absolute -translate-x-1/2 ${station.isAnchor ? "-translate-y-full" : "-translate-y-1/2"} space-y-2 text-right`}
-                  style={{ top: station.position.top, left: station.position.left }}
-                >
-                  <div
-                    className="rounded-full px-3 py-1 text-[12px] font-semibold text-white shadow-lg"
-                    style={{ backgroundColor: station.color }}
-                  >
-                    {station.name}
-                  </div>
-                  <div className="flex flex-wrap justify-end gap-1.5">
-                    {station.stages.map((stage, idx) => (
-                      <span
-                        key={`${stage.label}-${idx}`}
-                        className="rounded-full px-2 py-1 text-[11px] font-medium shadow-sm"
-                        style={getStageStyles(stage.status, station.color)}
-                      >
-                        {truncate(stage.label, 16)}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="md:hidden">
-              <AssessmentMap
-                steps={mapSteps}
-                onStepSelect={(step) => {
-                  const selectedAssessment = dedupedAssessments.find(
-                    (assessment) => (assessment.stringId || String(assessment.id)) === step.id
-                  );
-
-                  if (!selectedAssessment) return;
-
-                  if (selectedAssessment.status === "current") {
-                    handleStartAssessment(selectedAssessment);
-                  } else if (selectedAssessment.status === "completed") {
-                    toast.info("این مرحله پیش‌تر تکمیل شده است. نتایج در بخش گزارش‌ها در دسترس است.");
-                  } else {
-                    toast.info("برای دسترسی به این مرحله ابتدا مرحله‌های قبلی را تکمیل کنید.");
-                  }
-                }}
-                onLayoutChange={handleMapLayoutChange}
-              />
-              <div className="mt-6 grid gap-3">
-                {stations.map((station) => (
-                  <div
-                    key={station.name}
-                    className="flex items-center justify-between rounded-2xl border border-purple-100 bg-white/95 p-3"
-                  >
-                    <div>
-                      <p className="text-xs font-semibold text-slate-900">{station.name}</p>
-                      <div className="mt-2 flex flex-wrap justify-end gap-1.5 text-xs">
-                        {station.stages.map((stage, idx) => (
-                          <span
-                            key={`${stage.label}-${idx}`}
-                            className="rounded-full px-2 py-0.5 text-[11px]"
-                            style={getStageStyles(stage.status, station.color)}
-                          >
-                            {truncate(stage.label, 14)}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: station.color }} />
-                  </div>
-                ))}
-              </div>
-            </div>
+                if (selectedAssessment.status === "current") {
+                  handleStartAssessment(selectedAssessment);
+                } else if (selectedAssessment.status === "completed") {
+                  toast.info("این مرحله پیش‌تر تکمیل شده است. نتایج در بخش گزارش‌ها در دسترس است.");
+                } else {
+                  toast.info("برای دسترسی به این مرحله ابتدا مرحله‌های قبلی را تکمیل کنید.");
+                }
+              }}
+            />
           </div>
         </section>
       </div>
