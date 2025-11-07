@@ -437,7 +437,7 @@ const AssessmentChat = () => {
     const isTyping = (typingPersonaKey ?? (isUserTyping ? "user" : null)) === key;
     const radiusSet = config.radius;
     const radiusValue = radiusSet[viewport] ?? radiusSet.desktop;
-    const orbitDistance = radiusValue + (isMobileViewport ? 26 : 36);
+    const orbitDistance = radiusValue + (isMobileViewport ? 48 : 68);
     const transform = `translate(-50%, -50%) rotate(${config.angle}deg) translate(${orbitDistance}%) rotate(${-config.angle}deg)`;
 
     return {
@@ -593,47 +593,51 @@ const AssessmentChat = () => {
               </div>
             </div>
 
-            {orbitMembers.map((persona) => {
-              const avatarSrc = persona.avatar?.src ?? persona.meta.avatar;
-              const avatarName = persona.avatar?.name ?? persona.meta.name;
-              return (
-                <div key={persona.key} className="pointer-events-none absolute top-1/2 left-1/2 z-50">
-                  <div
-                    style={{ transform: persona.transform }}
-                    className={cn(
-                      "flex w-[78px] flex-col items-center gap-2 text-center text-[10px] font-medium transition-all duration-500 sm:w-[108px] sm:text-xs",
-                      persona.isSpeaking ? "text-slate-700" : "text-slate-500"
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "relative flex h-14 w-14 items-center justify-center rounded-2xl border border-white/70 bg-white/90 shadow-md backdrop-blur sm:h-16 sm:w-16",
-                        persona.meta.glow,
-                        persona.isTyping && "animate-avatar-wiggle",
-                        persona.isSpeaking && "ring-2 ring-violet-300 ring-offset-2 ring-offset-white"
-                      )}
-                    >
-                      <Avatar className="h-12 w-12 border border-white/70 shadow-sm sm:h-14 sm:w-14">
-                        <AvatarImage src={avatarSrc} alt={avatarName} />
-                        <AvatarFallback>{avatarName[0]}</AvatarFallback>
-                      </Avatar>
-                      {persona.isTyping && (
-                        <span className="absolute -bottom-2 rounded-full bg-gradient-to-r from-violet-500 to-sky-500 px-2 py-0.5 text-[10px] font-bold text-white shadow">
-                          در حال تایپ
-                        </span>
-                      )}
-                      {!persona.isTyping && persona.isSpeaking && (
-                        <span className="absolute -bottom-2 rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-violet-500 shadow">
-                          در نوبت
-                        </span>
-                      )}
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <div className="relative aspect-square w-[140%] max-w-[760px] sm:w-[135%]">
+                {orbitMembers.map((persona) => {
+                  const avatarSrc = persona.avatar?.src ?? persona.meta.avatar;
+                  const avatarName = persona.avatar?.name ?? persona.meta.name;
+                  return (
+                    <div key={persona.key} className="absolute top-1/2 left-1/2">
+                      <div
+                        style={{ transform: persona.transform }}
+                        className={cn(
+                          "flex w-[78px] flex-col items-center gap-2 text-center text-[10px] font-medium transition-all duration-500 sm:w-[108px] sm:text-xs",
+                          persona.isSpeaking ? "text-slate-700" : "text-slate-500"
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "relative flex h-14 w-14 items-center justify-center rounded-2xl border border-white/70 bg-white/95 shadow-md backdrop-blur sm:h-16 sm:w-16",
+                            persona.meta.glow,
+                            persona.isTyping && "animate-avatar-wiggle",
+                            persona.isSpeaking && "ring-2 ring-violet-300 ring-offset-2 ring-offset-white"
+                          )}
+                        >
+                          <Avatar className="h-12 w-12 border border-white/70 shadow-sm sm:h-14 sm:w-14">
+                            <AvatarImage src={avatarSrc} alt={avatarName} />
+                            <AvatarFallback>{avatarName[0]}</AvatarFallback>
+                          </Avatar>
+                          {persona.isTyping && (
+                            <span className="absolute -bottom-2 rounded-full bg-gradient-to-r from-violet-500 to-sky-500 px-2 py-0.5 text-[10px] font-bold text-white shadow">
+                              در حال تایپ
+                            </span>
+                          )}
+                          {!persona.isTyping && persona.isSpeaking && (
+                            <span className="absolute -bottom-2 rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-violet-500 shadow">
+                              در نوبت
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-sm font-bold text-slate-700 sm:text-base">{persona.meta.name}</span>
+                        <span className="text-[10px] text-slate-400 sm:text-xs">{persona.meta.badge}</span>
+                      </div>
                     </div>
-                    <span className="text-sm font-bold text-slate-700 sm:text-base">{persona.meta.name}</span>
-                    <span className="text-[10px] text-slate-400 sm:text-xs">{persona.meta.badge}</span>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </section>
 
