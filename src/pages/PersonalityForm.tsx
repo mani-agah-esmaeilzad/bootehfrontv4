@@ -8,8 +8,7 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, LoaderCircle, Loader2, MessageCircle, Send, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { startPersonalityForm, finishPersonalityForm } from "@/services/apiService";
-import { PowerWheelChart } from "@/components/ui/PowerWheelChart";
-import { buildMbtiWheelData } from "@/lib/personalityChart";
+import { AxisDonutChart } from "@/components/ui/AxisDonutChart";
 
 type FormQuestion = {
   id: number;
@@ -51,7 +50,6 @@ const PersonalityForm = () => {
   const answeredCount = useMemo(() => Object.keys(responses).length, [responses]);
   const progress = totalQuestions ? Math.round((answeredCount / totalQuestions) * 100) : 0;
   const currentQuestion = questions[currentIndex];
-  const { categories: wheelCategories, data: wheelData } = useMemo(() => buildMbtiWheelData(analysis), [analysis]);
 
   useEffect(() => {
     const init = async () => {
@@ -323,34 +321,29 @@ const PersonalityForm = () => {
                       <p>{analysis.summary}</p>
                       <div className="space-y-3">
                         {analysis.axes?.map((axis: any) => (
-                          <div key={axis.dimension} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                            <p className="text-xs text-slate-400">بعد {axis.dimension}</p>
-                            <div className="mt-2 flex items-center justify-between text-sm">
-                              <span>{axis.primary.label}</span>
-                              <span className="font-semibold">{axis.primary.score}</span>
+                          <div key={axis.dimension} className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+                            <AxisDonutChart axis={axis} size={110} />
+                            <div className="flex-1 space-y-2">
+                              <p className="text-xs text-slate-400">بعد {axis.dimension}</p>
+                              <div className="text-sm leading-6 text-slate-100">
+                                <p className="flex items-center justify-between">
+                                  <span>{axis.primary.label}</span>
+                                  <span className="font-semibold">{axis.primary.score}%</span>
+                                </p>
+                                <p className="flex items-center justify-between">
+                                  <span>{axis.secondary.label}</span>
+                                  <span className="font-semibold">{axis.secondary.score}%</span>
+                                </p>
+                              </div>
+                              <p className="text-[11px] text-slate-400">
+                                تمایل غالب: {axis.dominantLetter} | اختلاف {axis.delta}
+                              </p>
                             </div>
-                            <div className="mt-1 flex items-center justify-between text-sm">
-                              <span>{axis.secondary.label}</span>
-                              <span className="font-semibold">{axis.secondary.score}</span>
-                            </div>
-                            <p className="mt-2 text-xs text-slate-400">
-                              تمایل غالب: {axis.dominantLetter} | اختلاف {axis.delta}
-                            </p>
                           </div>
                         ))}
                       </div>
                     </CardContent>
                   </Card>
-
-              {wheelCategories.length > 0 && wheelData.length > 0 && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-cyan-200">
-                    <Sparkles className="h-4 w-4" />
-                    چرخ توانمندی MBTI
-                  </div>
-                  <PowerWheelChart categories={wheelCategories} data={wheelData} className="border-white/20" />
-                </div>
-              )}
 
               <div className="flex flex-col gap-3 text-sm">
                 <Button variant="outline" className="border-white/20 text-white" onClick={() => navigate("/personality/results")}>

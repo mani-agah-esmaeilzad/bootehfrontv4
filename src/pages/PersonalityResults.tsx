@@ -4,8 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoaderCircle, Sparkles } from "lucide-react";
-import { PowerWheelChart } from "@/components/ui/PowerWheelChart";
-import { buildMbtiWheelData } from "@/lib/personalityChart";
+import { AxisDonutChart } from "@/components/ui/AxisDonutChart";
 import { getPersonalityResults } from "@/services/apiService";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -70,8 +69,7 @@ const PersonalityResults = () => {
     return (
       <div className="grid gap-6 md:grid-cols-2">
         {items.map((item) => {
-          const { categories: wheelCategories, data: wheelData } = buildMbtiWheelData(item.results?.analysis);
-          return (
+        return (
             <Card key={item.sessionId} className="border-purple-100 bg-white/90 shadow-sm">
               <CardHeader className="flex flex-col items-start gap-2">
               <CardTitle className="text-lg text-slate-900">{item.name}</CardTitle>
@@ -95,27 +93,22 @@ const PersonalityResults = () => {
                   {Array.isArray(item.results.analysis.axes) && item.results.analysis.axes.length > 0 && (
                     <div className="grid gap-3 text-xs text-slate-600 md:grid-cols-2">
                       {item.results.analysis.axes.map((axis: any) => (
-                        <div key={axis.dimension} className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
-                          <p className="text-xs font-semibold text-slate-500">بعد {axis.dimension}</p>
-                          <div className="mt-1 flex items-center justify-between">
-                            <span>{axis.primary?.label}</span>
-                            <span className="font-semibold text-slate-900">{axis.primary?.score ?? "-"}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>{axis.secondary?.label}</span>
-                            <span className="font-semibold text-slate-900">{axis.secondary?.score ?? "-"}</span>
+                        <div key={axis.dimension} className="flex gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                          <AxisDonutChart axis={axis} size={120} />
+                          <div className="flex-1 space-y-2 text-slate-700">
+                            <p className="text-[11px] font-semibold text-slate-500">بعد {axis.dimension}</p>
+                            <p className="flex items-center justify-between">
+                              <span>{axis.primary?.label}</span>
+                              <span className="font-semibold">{axis.primary?.score ?? "-"}%</span>
+                            </p>
+                            <p className="flex items-center justify-between">
+                              <span>{axis.secondary?.label}</span>
+                              <span className="font-semibold">{axis.secondary?.score ?? "-"}%</span>
+                            </p>
+                            <p className="text-[11px] text-slate-500">تمایل غالب: {axis.dominantLetter} | اختلاف {axis.delta}</p>
                           </div>
                         </div>
                       ))}
-                    </div>
-                  )}
-                  {wheelCategories.length > 0 && wheelData.length > 0 && (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                        <Sparkles className="h-4 w-4 text-cyan-500" />
-                        چرخ توانمندی پاور ویل
-                      </div>
-                      <PowerWheelChart categories={wheelCategories} data={wheelData} />
                     </div>
                   )}
                   {!item.results.analysis.mbti && !item.results.analysis.axes && (
