@@ -69,6 +69,10 @@ const PersonalityAssessmentDetail = () => {
       navigate("/login", { state: { redirectTo: `/personality/${test.slug}/chat` } });
       return;
     }
+    if (test.slug === "mbti") {
+      navigate(`/personality/${test.slug}/form`);
+      return;
+    }
     navigate(`/personality/${test.slug}/chat`);
   };
 

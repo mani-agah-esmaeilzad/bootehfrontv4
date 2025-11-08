@@ -18,6 +18,7 @@ import PersonalityAssessments from './pages/PersonalityAssessments';
 import PersonalityAssessmentDetail from './pages/PersonalityAssessmentDetail';
 import PersonalityChat from './pages/PersonalityChat';
 import PersonalityResultsPage from './pages/PersonalityResults';
+import PersonalityForm from './pages/PersonalityForm';
 import Blog from './pages/Blog';
 import BlogDetail from './pages/BlogDetail';
 
@@ -63,6 +64,7 @@ function App() {
           <Route path="/personality" element={<PersonalityAssessments />} />
           <Route path="/personality/:slug" element={<PersonalityAssessmentDetail />} />
           <Route path="/personality/:slug/chat" element={<PersonalityChat />} />
+          <Route path="/personality/:slug/form" element={<PersonalityForm />} />
           <Route path="/personality/results" element={<PersonalityResultsPage />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogDetail />} />

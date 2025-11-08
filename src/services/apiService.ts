@@ -180,6 +180,15 @@ export const sendPersonalityMessage = async (sessionId: string, message: string)
 export const finishPersonalityTest = async (sessionId: string) =>
     await apiFetch(`personality/finish/${sessionId}`, { method: 'POST' });
 
+export const startPersonalityForm = async (slug: string) =>
+    await apiFetch(`personality/form/${slug}/start`, { method: 'POST' });
+
+export const finishPersonalityForm = async (sessionId: string, answers: { questionId: number; value: number }[]) =>
+    await apiFetch(`personality/form/finish/${sessionId}`, {
+        method: 'POST',
+        body: JSON.stringify({ answers }),
+    });
+
 export const getPersonalityResults = async () =>
     await apiFetch('personality/results');
 

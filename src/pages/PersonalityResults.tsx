@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoaderCircle, Sparkles } from "lucide-react";
+import { SpiderChart } from "@/components/ui/SpiderChart";
 import { getPersonalityResults } from "@/services/apiService";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -76,14 +77,50 @@ const PersonalityResults = () => {
             </CardHeader>
             <CardContent className="space-y-4 text-sm leading-7 text-slate-700">
               {item.results?.analysis ? (
-                Object.entries(item.results.analysis).map(([key, value]) => (
-                  <div key={key}>
-                    <p className="font-semibold text-purple-700">{key}</p>
-                    <pre className="mt-1 whitespace-pre-wrap break-words rounded-md bg-slate-50 p-3 text-xs text-slate-600">
-                      {JSON.stringify(value, null, 2)}
+                <div className="space-y-4">
+                  {item.results.analysis.mbti && (
+                    <div className="rounded-2xl border border-purple-100 bg-purple-50/60 p-4 text-center">
+                      <p className="text-xs font-semibold text-purple-600">تیپ نهایی</p>
+                      <p className="text-3xl font-black text-purple-700">{item.results.analysis.mbti}</p>
+                      {item.results.analysis.summary && (
+                        <p className="mt-2 text-xs leading-6 text-purple-800">
+                          {item.results.analysis.summary}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {Array.isArray(item.results.analysis.axes) && item.results.analysis.axes.length > 0 && (
+                    <div className="grid gap-3 text-xs text-slate-600 md:grid-cols-2">
+                      {item.results.analysis.axes.map((axis: any) => (
+                        <div key={axis.dimension} className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                          <p className="text-xs font-semibold text-slate-500">بعد {axis.dimension}</p>
+                          <div className="mt-1 flex items-center justify-between">
+                            <span>{axis.primary?.label}</span>
+                            <span className="font-semibold text-slate-900">{axis.primary?.score ?? "-"}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>{axis.secondary?.label}</span>
+                            <span className="font-semibold text-slate-900">{axis.secondary?.score ?? "-"}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {Array.isArray(item.results.analysis.radar) && item.results.analysis.radar.length > 0 && (
+                    <div className="rounded-[28px] border border-slate-200 bg-[#050814] p-4">
+                      <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
+                        <Sparkles className="h-4 w-4 text-cyan-300" />
+                        نمودار ترجیحات
+                      </h4>
+                      <SpiderChart data={item.results.analysis.radar} />
+                    </div>
+                  )}
+                  {!item.results.analysis.mbti && !item.results.analysis.axes && (
+                    <pre className="whitespace-pre-wrap break-words rounded-md bg-slate-50 p-3 text-xs text-slate-600">
+                      {JSON.stringify(item.results.analysis, null, 2)}
                     </pre>
-                  </div>
-                ))
+                  )}
+                </div>
               ) : (
                 <p className="text-slate-500">گزارش هنوز آماده نشده است.</p>
               )}
