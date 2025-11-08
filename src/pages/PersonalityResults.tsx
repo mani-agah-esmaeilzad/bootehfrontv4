@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoaderCircle, Sparkles } from "lucide-react";
 import { SpiderChart } from "@/components/ui/SpiderChart";
-import { buildCompactRadarData } from "@/lib/personalityChart";
 import { getPersonalityResults } from "@/services/apiService";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -69,10 +68,8 @@ const PersonalityResults = () => {
 
     return (
       <div className="grid gap-6 md:grid-cols-2">
-        {items.map((item) => {
-          const wheelData = buildCompactRadarData(item.results?.analysis);
-          return (
-            <Card key={item.sessionId} className="border-purple-100 bg-white/90 shadow-sm">
+        {items.map((item) => (
+          <Card key={item.sessionId} className="border-purple-100 bg-white/90 shadow-sm">
             <CardHeader className="flex flex-col items-start gap-2">
               <CardTitle className="text-lg text-slate-900">{item.name}</CardTitle>
               <p className="text-xs text-slate-500">گزارش: {item.report_name}</p>
@@ -109,13 +106,13 @@ const PersonalityResults = () => {
                       ))}
                     </div>
                   )}
-                  {wheelData.length > 0 && (
+                  {Array.isArray(item.results.analysis.radar) && item.results.analysis.radar.length > 0 && (
                     <div className="rounded-[28px] border border-slate-200 bg-[#050814] p-4">
                       <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
                         <Sparkles className="h-4 w-4 text-cyan-300" />
                         نمودار ترجیحات
                       </h4>
-                      <SpiderChart data={wheelData} />
+                      <SpiderChart data={item.results.analysis.radar} />
                     </div>
                   )}
                   {!item.results.analysis.mbti && !item.results.analysis.axes && (
@@ -134,9 +131,8 @@ const PersonalityResults = () => {
                 </span>
               </div>
             </CardContent>
-            </Card>
-          );
-        })}
+          </Card>
+        ))}
       </div>
     );
   }, [items]);

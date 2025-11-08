@@ -2,26 +2,18 @@
 
 import * as React from "react";
 import {
-  RadialBarChart,
-  RadialBar,
+  Radar,
+  RadarChart,
+  PolarGrid,
   PolarAngleAxis,
+  PolarRadiusAxis,
   ResponsiveContainer,
   Legend,
   Tooltip,
 } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
 
-const spiderChartFontFamily = "Vazirmatn, Tahoma, sans-serif";
-const COLORS = [
-  "#3b82f6",
-  "#a855f7",
-  "#06b6d4",
-  "#f97316",
-  "#22c55e",
-  "#ec4899",
-  "#eab308",
-  "#14b8a6",
-];
+const spiderChartFontFamily = 'Vazirmatn, Tahoma, sans-serif';
 
 // --- Type Definitions ---
 interface ChartData {
@@ -36,12 +28,11 @@ interface SpiderChartProps {
 
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
-    const item = payload[0].payload;
     return (
-      <div className="rounded-md border border-white/20 bg-slate-900/95 px-3 py-2 text-sm font-sans text-white shadow-lg">
-        <p className="font-bold">{item.subject}</p>
+      <div className="rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm font-sans text-white shadow-lg">
+        <p className="font-bold">{payload[0].payload.subject}</p>
         <p style={{ color: payload[0].color }}>
-          امتیاز: {item.score} از {item.fullMark} ({Math.round((item.score / item.fullMark) * 100)}%)
+          امتیاز: {payload[0].value} از {payload[0].payload.fullMark}
         </p>
       </div>
     );
@@ -50,62 +41,62 @@ const CustomTooltip = ({ active, payload }: any) => {
 };
 
 export function SpiderChart({ data }: SpiderChartProps) {
-  if (!data?.length) return null;
-
-  const processed = data.map((item, index) => ({
-    ...item,
-    fill: COLORS[index % COLORS.length],
-    percent: Math.round((item.score / item.fullMark) * 100),
-  }));
-
-  const maxScore = Math.max(...processed.map((item) => item.fullMark), 1);
+  const chartColor = "#3b82f6";
+  const maxScore = Math.max(...data.map((item) => item.fullMark), 5);
+  const domain: [number, number] = [0, maxScore];
 
   return (
     <ChartContainer
       config={{
-        score: { label: "Power Wheel", color: "#fff" },
+        score: { label: "امتیاز", color: chartColor },
       }}
-      className="mx-auto h-full w-full max-h-[420px] rounded-[32px] bg-[#050714] p-6 shadow-[0_40px_100px_rgba(8,15,40,0.7)]"
+      className="mx-auto h-full w-full max-h-[420px] rounded-2xl bg-[#0b0f19] p-4 shadow-lg"
     >
       <ResponsiveContainer>
-        <RadialBarChart
-          innerRadius="25%"
-          outerRadius="95%"
-          data={processed}
-          startAngle={90}
-          endAngle={-270}
-        >
+        <RadarChart data={data}>
+          <PolarGrid gridType="polygon" stroke="#555" strokeDasharray="3 3" radialLines />
           <PolarAngleAxis
-            type="number"
-            domain={[0, maxScore]}
-            tick={false}
+            dataKey="subject"
+            tick={{ fill: '#fff', fontSize: 13, fontWeight: 600, fontFamily: spiderChartFontFamily }}
+          />
+          <PolarRadiusAxis
+            angle={90}
+            domain={domain}
+            tick={{ fill: '#888', fontSize: 12, fontFamily: spiderChartFontFamily }}
+            stroke="#666"
             axisLine={false}
           />
-          <RadialBar
-            background
-            clockWise
+          <defs>
+            <linearGradient id="radarGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={chartColor} stopOpacity={0.6} />
+              <stop offset="100%" stopColor={chartColor} stopOpacity={0.2} />
+            </linearGradient>
+          </defs>
+          <Radar
+            name="امتیاز شما"
             dataKey="score"
-            nameKey="subject"
-            cornerRadius={12}
-            minAngle={10}
+            stroke={chartColor}
+            strokeWidth={2.5}
+            fill="url(#radarGradient)"
+            fillOpacity={0.6}
+            dot={{ r: 4, fill: chartColor, stroke: "#fff", strokeWidth: 1.5 }}
+            activeDot={{ r: 6 }}
           />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip
+            content={<CustomTooltip />}
+            cursor={{ stroke: chartColor, strokeWidth: 1, strokeDasharray: "3 3" }}
+          />
           <Legend
-            iconType="circle"
             verticalAlign="bottom"
-            formatter={(value: string, entry: any) => {
-              const item = entry?.payload as typeof processed[number];
-              return `${value} – ${item.percent}%`;
-            }}
             wrapperStyle={{
               color: "white",
-              fontSize: "13px",
-              fontWeight: 500,
-              paddingTop: 20,
+              fontSize: "14px",
+              fontWeight: 600,
+              paddingTop: '20px',
               fontFamily: spiderChartFontFamily,
             }}
           />
-        </RadialBarChart>
+        </RadarChart>
       </ResponsiveContainer>
     </ChartContainer>
   );
