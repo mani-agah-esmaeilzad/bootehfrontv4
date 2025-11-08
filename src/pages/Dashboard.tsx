@@ -17,7 +17,7 @@ import {
   Trophy,
   User,
 } from "lucide-react";
-import apiFetch from "@/services/apiService";
+import apiFetch, { getPersonalityResults } from "@/services/apiService";
 import { toast } from "sonner";
 
 // این اینترفیس برای هماهنگی بیشتر با کانتکست به‌روز شد
@@ -75,11 +75,25 @@ const getCategoryOrder = (category?: string | null) => {
 
 const formatStageLabel = (index: number) => `مرحله ${(index + 1).toLocaleString("fa-IR")}`;
 
+const formatDateTime = (value?: string | null) => {
+  if (!value) return "-";
+  try {
+    return new Date(value).toLocaleString("fa-IR", {
+      dateStyle: "long",
+      timeStyle: "short",
+    });
+  } catch {
+    return value;
+  }
+};
+
 const Dashboard = () => {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [startingAssessmentKey, setStartingAssessmentKey] = useState<string | null>(null);
+  const [personalityResults, setPersonalityResults] = useState<any[]>([]);
+  const [isPersonalityLoading, setIsPersonalityLoading] = useState(true);
   const navigate = useNavigate();
 
   // گرفتن لیست ارزیابی‌ها
@@ -108,6 +122,26 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchAssessments();
+  }, []);
+
+  useEffect(() => {
+    const fetchPersonality = async () => {
+      setIsPersonalityLoading(true);
+      try {
+        const response = await getPersonalityResults();
+        if (!response.success) {
+          throw new Error(response.message || "خطا در دریافت کارنامه‌های شخصیت");
+        }
+        setPersonalityResults(Array.isArray(response.data) ? response.data : []);
+      } catch (err) {
+        console.error("Personality results fetch error:", err);
+        setPersonalityResults([]);
+      } finally {
+        setIsPersonalityLoading(false);
+      }
+    };
+
+    fetchPersonality();
   }, []);
 
   // شروع ارزیابی
@@ -259,6 +293,22 @@ const Dashboard = () => {
     [stageLabels, dedupedAssessments]
   );
 
+  const hasCompletedPersonality = useMemo(
+    () => personalityResults.some((item) => item.status === "completed"),
+    [personalityResults]
+  );
+
+  const latestPersonalityResult = useMemo(() => {
+    if (!personalityResults.length) return null;
+    const copy = [...personalityResults];
+    copy.sort((a, b) => {
+      const dateA = new Date(a.updated_at || a.created_at || 0).getTime();
+      const dateB = new Date(b.updated_at || b.created_at || 0).getTime();
+      return dateB - dateA;
+    });
+    return copy[0];
+  }, [personalityResults]);
+
   const mapSteps: AssessmentMapStep[] = useMemo(() => {
     let lastCategory: string | null = null;
     let stageCounter = 0;
@@ -295,8 +345,25 @@ const Dashboard = () => {
       });
     });
 
+    const personalityCategory = "سایر دسته‌بندی‌ها";
+    const personalityAccent = "#0EA5E9";
+    const personalitySequence = stageCounter + 1;
+    const personalityLabel = formatStageLabel(stageCounter);
+    stageCounter = personalitySequence;
+
+    steps.push({
+      id: "personality-stage",
+      title: personalityLabel,
+      description: "مرحله رایگان: آزمون‌های شخصیت بوته",
+      status: hasCompletedPersonality ? "completed" : "current",
+      category: personalityCategory,
+      accentColor: personalityAccent,
+      kind: "stage",
+      sequence: personalitySequence,
+    });
+
     return steps;
-  }, [dedupedAssessments, resolveStageLabel]);
+  }, [dedupedAssessments, resolveStageLabel, hasCompletedPersonality]);
 
   const currentAssessment = dedupedAssessments.find((a) => a.status === "current");
   const currentStageLabel = useMemo(() => {
@@ -504,6 +571,10 @@ const Dashboard = () => {
             <AssessmentMap
               steps={mapSteps}
               onStepSelect={(step) => {
+                if (step.id === "personality-stage") {
+                  navigate("/personality");
+                  return;
+                }
                 const selectedAssessment = dedupedAssessments.find(
                   (assessment) => (assessment.stringId || String(assessment.id)) === step.id
                 );
@@ -519,6 +590,60 @@ const Dashboard = () => {
                 }
               }}
             />
+          </div>
+        </section>
+
+        <section className="rounded-[32px] border border-cyan-100/80 bg-white/95 p-8 shadow-[0_20px_70px_rgba(14,165,233,0.12)]">
+          <div className="flex flex-col gap-3 text-right">
+            <div>
+              <p className="text-xs font-semibold text-cyan-600">کارنامه آزمون‌های شخصیت</p>
+              <h3 className="mt-1 text-2xl font-bold text-slate-900">مرحله رایگان بوته همیشه در دسترس شماست</h3>
+            </div>
+            <p className="text-sm leading-7 text-slate-600">
+              گفت‌وگوهای شخصیتی برای همه کاربران رایگان است. می‌توانید هر زمان وارد آزمون شوید و گزارش تحلیل‌شده را در کارنامه اختصاصی مشاهده کنید.
+            </p>
+          </div>
+          <div className="mt-6 rounded-2xl border border-cyan-100 bg-cyan-50/50 p-5 text-sm text-slate-700">
+            {isPersonalityLoading ? (
+              <div className="flex items-center gap-3 text-cyan-600">
+                <LoaderCircle className="h-5 w-5 animate-spin" />
+                در حال بررسی آخرین نتایج...
+              </div>
+            ) : latestPersonalityResult ? (
+              <div className="space-y-2">
+                <p className="text-base font-bold text-slate-900">{latestPersonalityResult.name}</p>
+                <p className="text-xs text-slate-500">
+                  آخرین به‌روزرسانی: {formatDateTime(latestPersonalityResult.updated_at || latestPersonalityResult.created_at)}
+                </p>
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white/80 px-3 py-1 font-semibold text-cyan-700">
+                    وضعیت: {latestPersonalityResult.status === "completed" ? "تکمیل شده" : "در حال انجام"}
+                  </span>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white/80 px-3 py-1 font-semibold text-cyan-700">
+                    گزارش: {latestPersonalityResult.report_name || "نامشخص"}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-slate-600">
+                هنوز کارنامه‌ای ثبت نشده است. با شروع آزمون‌های شخصیت رایگان، اولین گزارش شما اینجا نمایش داده می‌شود.
+              </div>
+            )}
+          </div>
+          <div className="mt-6 flex flex-wrap justify-end gap-3">
+            <Button
+              variant="outline"
+              className="border-cyan-200 text-cyan-700 hover:border-cyan-300 hover:text-cyan-800"
+              onClick={() => navigate("/personality/results")}
+            >
+              مشاهده کارنامه‌ها
+            </Button>
+            <Button
+              className="bg-gradient-to-r from-cyan-500 to-sky-500 text-white shadow-[0_10px_25px_rgba(14,165,233,0.35)] hover:from-cyan-600 hover:to-sky-600"
+              onClick={() => navigate("/personality")}
+            >
+              ورود به مرحله رایگان
+            </Button>
           </div>
         </section>
       </div>
