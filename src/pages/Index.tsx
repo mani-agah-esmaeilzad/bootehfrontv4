@@ -10,10 +10,12 @@ import {
   Calendar,
   LineChart,
   LoaderCircle,
+  Menu,
   PanelsTopLeft,
   ShieldCheck,
   Sparkles,
   UsersRound,
+  X,
 } from "lucide-react";
 import { getBlogPosts } from "@/services/apiService";
 import type { BlogPostSummary } from "@/types/blog";
@@ -185,6 +187,9 @@ const Index = () => {
   const navigate = useNavigate();
   const [latestPosts, setLatestPosts] = useState<BlogPostSummary[]>([]);
   const [isLoadingBlogs, setIsLoadingBlogs] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   useEffect(() => {
     const fetchLatestPosts = async () => {
@@ -222,9 +227,13 @@ const Index = () => {
               <a className="transition hover:text-slate-900" href="#path">
                 تماس با ما
               </a>
-              <a className="transition hover:text-slate-900" href="#personality">
+              <button
+                type="button"
+                className="transition hover:text-slate-900"
+                onClick={() => navigate("/personality")}
+              >
                 آزمون‌های شخصیتی
-              </a>
+              </button>
               <a className="transition hover:text-slate-900" href="#insights">
                 بینش‌ها
               </a>
@@ -246,9 +255,72 @@ const Index = () => {
               شروع کنید
               <ArrowLeft className="h-4 w-4" />
             </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setIsMobileMenuOpen(true)}
+            >
+              <Menu className="h-5 w-5 text-slate-700" />
+            </Button>
           </div>
         </div>
       </header>
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 bg-white/95 backdrop-blur-sm md:hidden">
+          <div className="flex items-center justify-between border-b border-purple-100 px-4 py-4">
+            <Logo variant="large" />
+            <Button variant="ghost" size="icon" onClick={closeMobileMenu}>
+              <X className="h-5 w-5 text-slate-700" />
+            </Button>
+          </div>
+          <div className="space-y-4 px-6 py-6 text-right text-sm text-slate-600">
+            <a className="block rounded-2xl bg-slate-50 px-4 py-3 font-semibold text-slate-900" href="#hero" onClick={closeMobileMenu}>
+              درباره ما
+            </a>
+            <a className="block rounded-2xl bg-slate-50 px-4 py-3 font-semibold text-slate-900" href="#blog" onClick={closeMobileMenu}>
+              بلاگ
+            </a>
+            <a className="block rounded-2xl bg-slate-50 px-4 py-3 font-semibold text-slate-900" href="#path" onClick={closeMobileMenu}>
+              تماس با ما
+            </a>
+            <button
+              type="button"
+              className="block w-full rounded-2xl bg-purple-50 px-4 py-3 text-right font-semibold text-purple-700"
+              onClick={() => {
+                navigate("/personality");
+                closeMobileMenu();
+              }}
+            >
+              آزمون‌های شخصیتی
+            </button>
+            <a className="block rounded-2xl bg-slate-50 px-4 py-3 font-semibold text-slate-900" href="#insights" onClick={closeMobileMenu}>
+              بینش‌ها
+            </a>
+            <div className="mt-4 flex flex-col gap-3">
+              <Button
+                variant="outline"
+                className="border-slate-200 text-slate-700"
+                onClick={() => {
+                  navigate("/login");
+                  closeMobileMenu();
+                }}
+              >
+                ورود
+              </Button>
+              <Button
+                className="bg-purple-600 text-white hover:bg-purple-700"
+                onClick={() => {
+                  navigate("/register");
+                  closeMobileMenu();
+                }}
+              >
+                شروع کنید
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="space-y-32 pb-24">
         <section
