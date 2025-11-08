@@ -139,6 +139,55 @@ const AssessmentChat = () => {
     };
   }, []);
 
+  const SPEAKER_PATTERNS = [
+    { label: "مبصر", personaName: "مبصر" },
+    { label: "راوی", personaName: "راوی" },
+    { label: "مشاور", personaName: "مشاور" },
+    { label: "آقای منصوری", personaName: "مبصر" },
+  ] as const;
+
+  const parseSpeakerTaggedSegments = (text: string, fallbackPersonaName: string) => {
+    const lines = text
+      .split(/\r?\n+/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (lines.length === 0) return [];
+
+    const segments: { personaName: string; text: string }[] = [];
+    let currentPersona: string | null = null;
+    let buffer: string[] = [];
+
+    const flush = () => {
+      if (!buffer.length) return;
+      segments.push({
+        personaName: currentPersona ?? fallbackPersonaName,
+        text: buffer.join(" "),
+      });
+      buffer = [];
+    };
+
+    for (const line of lines) {
+      const speaker = SPEAKER_PATTERNS.find((pattern) =>
+        line.startsWith(`${pattern.label}:`) ||
+        line.startsWith(`${pattern.label} :`) ||
+        line.startsWith(`${pattern.label}：`)
+      );
+
+      if (speaker) {
+        flush();
+        const content = line.replace(/^([^\s:：]+)\s*[:：]\s*/, "").trim();
+        currentPersona = speaker.personaName;
+        if (content) buffer.push(content);
+      } else {
+        buffer.push(line);
+      }
+    }
+
+    flush();
+    return segments;
+  };
+
   const extractAiMessages = (response: any): ChatMessage[] => {
     const normalizedResponses: Array<{ senderName?: string; text?: string }> = [];
     const rawResponses = response?.data?.responses;
@@ -173,14 +222,32 @@ const AssessmentChat = () => {
             ? response.data.text
             : null;
 
-    const sanitized = normalizedResponses
+    const sanitized: ChatMessage[] = [];
+    normalizedResponses
       .filter((item) => typeof item?.text === "string" && item.text.trim().length > 0)
-      .map((item, index) => ({
-        id: Date.now() + index,
-        text: item.text.trim(),
-        sender: "ai" as const,
-        personaName: item.senderName ?? assessmentState?.personaName ?? "مشاور",
-      }));
+      .forEach((item, index) => {
+        const fallbackPersonaName = item.senderName ?? assessmentState?.personaName ?? "مشاور";
+        const segments = parseSpeakerTaggedSegments(item.text!.trim(), fallbackPersonaName);
+
+        if (segments.length === 0) {
+          sanitized.push({
+            id: Date.now() + index,
+            text: item.text!.trim(),
+            sender: "ai",
+            personaName: fallbackPersonaName,
+          });
+          return;
+        }
+
+        segments.forEach((segment, segIndex) => {
+          sanitized.push({
+            id: Date.now() + index * 10 + segIndex,
+            text: segment.text,
+            sender: "ai",
+            personaName: segment.personaName,
+          });
+        });
+      });
 
     const directPersonaName =
       typeof response?.data?.personaName === "string" && response.data.personaName.trim().length > 0
@@ -197,12 +264,24 @@ const AssessmentChat = () => {
           : fallbackText;
 
     if (sanitized.length === 0 && typeof directText === "string" && directText.trim().length > 0) {
-      sanitized.push({
-        id: Date.now(),
-        text: directText.trim(),
-        sender: "ai" as const,
-        personaName: directPersonaName,
-      });
+      const fallbackSegments = parseSpeakerTaggedSegments(directText.trim(), directPersonaName);
+      if (fallbackSegments.length === 0) {
+        sanitized.push({
+          id: Date.now(),
+          text: directText.trim(),
+          sender: "ai" as const,
+          personaName: directPersonaName,
+        });
+      } else {
+        fallbackSegments.forEach((segment, index) => {
+          sanitized.push({
+            id: Date.now() + index,
+            text: segment.text,
+            sender: "ai",
+            personaName: segment.personaName,
+          });
+        });
+      }
     }
 
     return sanitized;
