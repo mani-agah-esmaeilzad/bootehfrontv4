@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, LoaderCircle, Loader2, MessageCircle, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, LoaderCircle, Loader2, MessageCircle, Send, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { startPersonalityForm, finishPersonalityForm } from "@/services/apiService";
 import { SpiderChart } from "@/components/ui/SpiderChart";
@@ -42,6 +43,7 @@ const PersonalityForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [inputValue, setInputValue] = useState("");
 
   const chatRef = useRef<HTMLDivElement | null>(null);
   const totalQuestions = questions.length;
@@ -99,10 +101,9 @@ const PersonalityForm = () => {
     };
   }
 
-  const handleChoice = async (choice: "A" | "B") => {
+  const handleAnswer = async (choice: 1 | 2, rawText: string) => {
     if (!currentQuestion || isSubmitting || isThinking || analysis) return;
-    const numericValue = choice === "A" ? 1 : 2;
-    const nextResponses = { ...responses, [currentQuestion.id]: numericValue };
+    const nextResponses = { ...responses, [currentQuestion.id]: choice };
 
     setResponses(nextResponses);
     setMessages((prev) => [
@@ -110,7 +111,7 @@ const PersonalityForm = () => {
       {
         id: `answer-${currentQuestion.id}`,
         role: "user",
-        content: choice === "A" ? "گزینه الف" : "گزینه ب",
+        content: rawText,
       },
     ]);
 
@@ -125,6 +126,48 @@ const PersonalityForm = () => {
     } else {
       await submitAnswers(nextResponses);
     }
+  };
+
+  const detectChoice = (text: string): 1 | 2 | null => {
+    const normalized = text.trim().toLowerCase();
+    if (!normalized) return null;
+    const tokensA = ["گزینه الف", "الف", "a", "option a", "١", "۱", "1"];
+    const tokensB = ["گزینه ب", "ب", "b", "option b", "٢", "۲", "2"];
+
+    const findIndex = (tokens: string[]) => {
+      const indices = tokens
+        .map((token) => normalized.indexOf(token))
+        .filter((index) => index >= 0);
+      return indices.length ? Math.min(...indices) : -1;
+    };
+
+    const indexA = findIndex(tokensA);
+    const indexB = findIndex(tokensB);
+
+    if (indexA >= 0 && indexB >= 0) {
+      return indexA <= indexB ? 1 : 2;
+    }
+    if (indexA >= 0) return 1;
+    if (indexB >= 0) return 2;
+    return null;
+  };
+
+  const handleSend = async () => {
+    if (!currentQuestion || analysis || isSubmitting) return;
+    const text = inputValue.trim();
+    if (!text) {
+      toast.info("لطفاً پاسخ خود را بنویسید.");
+      return;
+    }
+
+    const choice = detectChoice(text);
+    if (!choice) {
+      toast.error("در متن خود مشخص کنید که گزینه الف یا گزینه ب را انتخاب می‌کنید (می‌توانید توضیح بیشتری هم اضافه کنید).");
+      return;
+    }
+
+    setInputValue("");
+    await handleAnswer(choice, text);
   };
 
   const submitAnswers = async (answerMap: Record<number, number>) => {
@@ -226,21 +269,32 @@ const PersonalityForm = () => {
             </div>
 
             {!analysis && (
-              <div className="mt-5 grid gap-3 text-sm text-white md:grid-cols-2">
-                <Button
-                  disabled={!currentQuestion || isSubmitting || isThinking}
-                  className="rounded-2xl border border-white/10 bg-white/10 text-white hover:bg-white/20"
-                  onClick={() => handleChoice("A")}
-                >
-                  گزینه الف
-                </Button>
-                <Button
-                  disabled={!currentQuestion || isSubmitting || isThinking}
-                  className="rounded-2xl border border-white/10 bg-white/10 text-white hover:bg-white/20"
-                  onClick={() => handleChoice("B")}
-                >
-                  گزینه ب
-                </Button>
+              <div className="mt-5 flex flex-col gap-3 text-sm text-white">
+                <p className="text-xs text-slate-400">
+                  پاسخ خود را آزادانه بنویس و مشخص کن که گزینه الف یا ب را انتخاب می‌کنی (می‌توانی دلیل یا مثال هم اضافه کنی).
+                </p>
+                <div className="flex items-center gap-3">
+                  <Input
+                    placeholder="مثلاً: «گزینه الف چون در چنین موقعیت‌هایی سریع‌تر تصمیم می‌گیرم...»"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSend();
+                      }
+                    }}
+                    disabled={isSubmitting || isThinking}
+                    className="flex-1 border-white/20 bg-white/5 text-white placeholder:text-slate-500"
+                  />
+                  <Button
+                    className="rounded-2xl border border-white/10 bg-white/10 text-white hover:bg-white/20"
+                    onClick={handleSend}
+                    disabled={isSubmitting || isThinking}
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             )}
 
