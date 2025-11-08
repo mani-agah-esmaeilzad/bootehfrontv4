@@ -2,25 +2,24 @@
 
 import * as React from "react";
 
-const LETTER_COLORS: Record<string, string> = {
-  E: "#7C3AED",
-  I: "#F97316",
-  S: "#10B981",
-  N: "#0EA5E9",
-  T: "#A855F7",
-  F: "#EC4899",
-  J: "#FACC15",
-  P: "#22D3EE",
+const LETTER_COLORS: Record<string, { bar: string; glow: string }> = {
+  E: { bar: "from-indigo-400 to-blue-500", glow: "rgba(99,102,241,0.35)" },
+  I: { bar: "from-amber-400 to-orange-500", glow: "rgba(249,115,22,0.35)" },
+  S: { bar: "from-emerald-400 to-teal-500", glow: "rgba(16,185,129,0.35)" },
+  N: { bar: "from-sky-400 to-cyan-500", glow: "rgba(14,165,233,0.35)" },
+  T: { bar: "from-fuchsia-400 to-purple-500", glow: "rgba(192,132,252,0.35)" },
+  F: { bar: "from-rose-400 to-pink-500", glow: "rgba(244,114,182,0.35)" },
+  J: { bar: "from-yellow-300 to-amber-400", glow: "rgba(250,204,21,0.35)" },
+  P: { bar: "from-cyan-300 to-teal-400", glow: "rgba(34,211,238,0.35)" },
 };
-
-interface AxisDonutChartProps {
-  axis: any;
-  size?: number;
-}
 
 const rtlFont = "Vazirmatn, Tahoma, sans-serif";
 
-export const AxisDonutChart = ({ axis, size = 180 }: AxisDonutChartProps) => {
+interface AxisDonutChartProps {
+  axis: any;
+}
+
+export const AxisDonutChart = ({ axis }: AxisDonutChartProps) => {
   if (!axis?.primary || !axis?.secondary) return null;
 
   const primaryValue = Number(
@@ -30,109 +29,49 @@ export const AxisDonutChart = ({ axis, size = 180 }: AxisDonutChartProps) => {
     axis.secondary.score?.toFixed?.(2) ?? axis.secondary.score ?? 0
   );
 
-  const outerStroke = Math.max(size * 0.08, 12);
-  const innerStroke = outerStroke * 0.75;
-  const outerRadius = size / 2 - outerStroke;
-  const innerRadius = outerRadius - outerStroke - 10;
+  const primaryStyles = LETTER_COLORS[axis.primary.letter] || LETTER_COLORS.E;
+  const secondaryStyles =
+    LETTER_COLORS[axis.secondary.letter] || LETTER_COLORS.I;
 
-  const circumferenceOuter = 2 * Math.PI * outerRadius;
-  const circumferenceInner = 2 * Math.PI * innerRadius;
-
-  const dashOuter = `${(primaryValue / 100) * circumferenceOuter} ${
-    circumferenceOuter
-  }`;
-  const dashInner = `${(secondaryValue / 100) * circumferenceInner} ${
-    circumferenceInner
-  }`;
-
-  const primaryColor = LETTER_COLORS[axis.primary.letter] || "#64748B";
-  const secondaryColor = LETTER_COLORS[axis.secondary.letter] || "#CBD5F5";
+  const renderBar = (
+    label: string,
+    letter: string,
+    value: number,
+    styles: { bar: string; glow: string }
+  ) => (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-slate-200">
+        <span>
+          {label} ({letter})
+        </span>
+        <span className="font-semibold text-white">{value}%</span>
+      </div>
+      <div className="relative h-3.5 w-full overflow-hidden rounded-full bg-gradient-to-r from-white/5 to-white/0" style={{ boxShadow: `0 0 15px ${styles.glow}` }}>
+        <div
+          className={`h-full rounded-full bg-gradient-to-r ${styles.bar}`}
+          style={{ width: `${value}%`, boxShadow: `0 2px 12px ${styles.glow}` }}
+        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-transparent" />
+      </div>
+    </div>
+  );
 
   return (
-    <div
-      className="relative rounded-[34px] border border-white/10 bg-gradient-to-br from-[#040816] via-[#050b1e] to-[#0b1326] p-6 shadow-[0_28px_70px_rgba(4,7,17,0.85)]"
-      style={{ width: size, height: size }}
-    >
-      <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        className="text-white"
-      >
-        <defs>
-          <linearGradient
-            id={`track-${axis.dimension}`}
-            x1="0%"
-            y1="0%"
-            x2="100%"
-            y2="100%"
-          >
-            <stop offset="0%" stopColor="rgba(255,255,255,0.08)" />
-            <stop offset="100%" stopColor="rgba(255,255,255,0.02)" />
-          </linearGradient>
-        </defs>
-
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={outerRadius}
-          stroke={`url(#track-${axis.dimension})`}
-          strokeWidth={outerStroke}
-          fill="none"
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={innerRadius}
-          stroke="rgba(255,255,255,0.05)"
-          strokeWidth={innerStroke}
-          fill="none"
-        />
-
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={outerRadius}
-          stroke={primaryColor}
-          strokeWidth={outerStroke}
-          strokeLinecap="round"
-          strokeDasharray={dashOuter}
-          strokeDashoffset={circumferenceOuter * 0.25}
-          fill="none"
-          opacity={0.9}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={innerRadius}
-          stroke={secondaryColor}
-          strokeWidth={innerStroke}
-          strokeLinecap="round"
-          strokeDasharray={dashInner}
-          strokeDashoffset={circumferenceInner * 0.25}
-          fill="none"
-          opacity={0.85}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-      </svg>
-
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-400">
-          {axis.dimension}
-        </p>
-        <p
-          className="text-2xl font-bold text-white"
-          style={{ fontFamily: rtlFont }}
-        >
+    <div className="rounded-[28px] border border-white/10 bg-gradient-to-br from-[#050816] via-[#040a1c] to-[#0b1428] p-5 text-white shadow-[0_25px_60px_rgba(4,7,18,0.9)]">
+      <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
+        <span>{axis.dimension}</span>
+        <span style={{ fontFamily: rtlFont }}>
           {axis.primary.letter}/{axis.secondary.letter}
-        </p>
-        <p className="text-xs text-slate-400">
-          {axis.primary.score}% / {axis.secondary.score}%
-        </p>
-        <p className="text-[11px] text-slate-500">
-          اختلاف {axis.delta?.toFixed?.(1) ?? axis.delta}
-        </p>
+        </span>
+      </div>
+
+      <div className="mt-4 space-y-4">
+        {renderBar(axis.primary.label, axis.primary.letter, primaryValue, primaryStyles)}
+        {renderBar(axis.secondary.label, axis.secondary.letter, secondaryValue, secondaryStyles)}
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-white/5 bg-white/5 px-3 py-2 text-[11px] text-slate-200">
+        تمایل غالب: <span className="font-semibold text-white">{axis.dominantLetter}</span> | اختلاف {axis.delta}
       </div>
     </div>
   );
