@@ -9,6 +9,7 @@ import { ArrowLeft, LoaderCircle, Loader2, MessageCircle, Send, Sparkles } from 
 import { toast } from "sonner";
 import { startPersonalityForm, finishPersonalityForm } from "@/services/apiService";
 import { SpiderChart } from "@/components/ui/SpiderChart";
+import { buildCompactRadarData } from "@/lib/personalityChart";
 
 type FormQuestion = {
   id: number;
@@ -204,6 +205,8 @@ const PersonalityForm = () => {
     );
   }
 
+  const radarData = useMemo(() => buildCompactRadarData(analysis), [analysis]);
+
   return (
     <div dir="rtl" className="min-h-screen bg-slate-950 text-white">
       <header className="border-b border-white/10 bg-slate-950/80 backdrop-blur">
@@ -340,13 +343,13 @@ const PersonalityForm = () => {
                 </CardContent>
               </Card>
 
-              {analysis.radar && analysis.radar.length > 0 && (
+              {radarData.length > 0 && (
                 <div className="rounded-[28px] border border-white/10 bg-[#050814] p-4 text-white">
                   <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-cyan-200">
                     <Sparkles className="h-4 w-4" />
                     نمای ترجیحات
                   </h3>
-                  <SpiderChart data={analysis.radar} />
+                  <SpiderChart data={radarData} />
                 </div>
               )}
 
