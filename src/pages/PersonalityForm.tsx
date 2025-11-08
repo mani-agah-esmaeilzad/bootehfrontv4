@@ -312,35 +312,35 @@ const PersonalityForm = () => {
         <section className="w-full lg:w-[360px]">
           {analysis ? (
             <div className="space-y-4">
-              <Card className="border-white/10 bg-white/10 text-white">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>نتیجه نهایی</span>
-                    <span className="text-3xl font-black text-cyan-300">{analysis.mbti}</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4 text-sm leading-7 text-slate-100">
-                  <p>{analysis.summary}</p>
-                  <div className="space-y-3">
-                    {analysis.axes?.map((axis: any) => (
-                      <div key={axis.dimension} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                        <p className="text-xs text-slate-400">بعد {axis.dimension}</p>
-                        <div className="mt-2 flex items-center justify-between text-sm">
-                          <span>{axis.primary.label}</span>
-                          <span className="font-semibold">{axis.primary.score}</span>
-                        </div>
-                        <div className="mt-1 flex items-center justify-between text-sm">
-                          <span>{axis.secondary.label}</span>
-                          <span className="font-semibold">{axis.secondary.score}</span>
-                        </div>
-                        <p className="mt-2 text-xs text-slate-400">
-                          تمایل غالب: {axis.dominantLetter} | اختلاف {axis.delta}
-                        </p>
+                  <Card className="border-white/10 bg-white/10 text-white">
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <span>نتیجه نهایی</span>
+                        <span className="text-3xl font-black text-cyan-300">{analysis.mbti}</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4 text-sm leading-7 text-slate-100">
+                      <p>{analysis.summary}</p>
+                      <div className="space-y-3">
+                        {analysis.axes?.map((axis: any) => (
+                          <div key={axis.dimension} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                            <p className="text-xs text-slate-400">بعد {axis.dimension}</p>
+                            <div className="mt-2 flex items-center justify-between text-sm">
+                              <span>{axis.primary.label}</span>
+                              <span className="font-semibold">{axis.primary.score}</span>
+                            </div>
+                            <div className="mt-1 flex items-center justify-between text-sm">
+                              <span>{axis.secondary.label}</span>
+                              <span className="font-semibold">{axis.secondary.score}</span>
+                            </div>
+                            <p className="mt-2 text-xs text-slate-400">
+                              تمایل غالب: {axis.dominantLetter} | اختلاف {axis.delta}
+                            </p>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
 
               {wheelCategories.length > 0 && wheelData.length > 0 && (
                 <div className="space-y-3">

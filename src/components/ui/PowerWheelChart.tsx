@@ -42,14 +42,24 @@ export const PowerWheelChart = ({
   height = 360,
   className,
 }: PowerWheelChartProps) => {
-  if (!categories.length || !data.length) {
+  const activeCategories = React.useMemo(
+    () =>
+      categories.filter((category) =>
+        data.some((row) => {
+          const value = Number(row[category.key]);
+          return Number.isFinite(value) && value > 0;
+        })
+      ),
+    [categories, data]
+  );
+
+  if (!activeCategories.length || !data.length) {
     return (
       <div className="flex h-full items-center justify-center rounded-3xl border border-dashed border-slate-800/60 bg-slate-900/40 px-6 text-xs text-slate-400">
         داده‌ای برای نمایش نمودار پاور ویل وجود ندارد.
       </div>
     );
   }
-
   return (
     <div
       className={cn(
@@ -71,7 +81,7 @@ export const PowerWheelChart = ({
               stroke="#475569"
               tick={{ fill: "#94a3b8", fontSize: 10, fontFamily: rtlFont }}
             />
-            {categories.map((category) => (
+            {activeCategories.map((category) => (
               <Radar
                 key={category.key}
                 name={category.label}
@@ -86,7 +96,7 @@ export const PowerWheelChart = ({
               contentStyle={tooltipStyle}
               formatter={(value: number, _name: string, item: any) => {
                 if (typeof value !== "number" || value === 0 || !item) return null;
-                const categoryLabel = categories.find((cat) => cat.key === item.dataKey)?.label;
+                const categoryLabel = activeCategories.find((cat) => cat.key === item.dataKey)?.label;
                 return [`${value} از ${maxValue}`, categoryLabel];
               }}
               labelFormatter={(label: string) => `بعد: ${label}`}

@@ -73,12 +73,12 @@ const PersonalityResults = () => {
           const { categories: wheelCategories, data: wheelData } = buildMbtiWheelData(item.results?.analysis);
           return (
             <Card key={item.sessionId} className="border-purple-100 bg-white/90 shadow-sm">
-            <CardHeader className="flex flex-col items-start gap-2">
+              <CardHeader className="flex flex-col items-start gap-2">
               <CardTitle className="text-lg text-slate-900">{item.name}</CardTitle>
               <p className="text-xs text-slate-500">گزارش: {item.report_name}</p>
               <p className="text-xs text-slate-400">ثبت: {formatDate(item.created_at)}</p>
             </CardHeader>
-            <CardContent className="space-y-4 text-sm leading-7 text-slate-700">
+              <CardContent className="space-y-4 text-sm leading-7 text-slate-700">
               {item.results?.analysis ? (
                 <div className="space-y-4">
                   {item.results.analysis.mbti && (
@@ -133,7 +133,7 @@ const PersonalityResults = () => {
                   وضعیت: {item.status === "completed" ? "تکمیل شده" : "در حال انجام"}
                 </span>
               </div>
-            </CardContent>
+              </CardContent>
             </Card>
           );
         })}
