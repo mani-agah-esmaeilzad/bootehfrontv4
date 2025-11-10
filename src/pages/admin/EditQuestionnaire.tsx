@@ -17,18 +17,49 @@ import { LoaderCircle, ArrowRight } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { QUESTIONNAIRE_CATEGORIES } from "@/constants/questionnaireCategories";
 
-const questionnaireSchema = z.object({
-  name: z.string().min(3, { message: "نام پرسشنامه حداقل باید ۳ کاراکتر باشد." }),
-  category: z.enum(QUESTIONNAIRE_CATEGORIES, { errorMap: () => ({ message: "یک دسته‌بندی معتبر انتخاب کنید." }) }),
-  welcome_message: z.string().min(10, { message: "پیام خوشامدگویی حداقل باید ۱۰ کاراکتر باشد." }),
-  persona_name: z.string().min(2, { message: "نام نقش AI حداقل باید ۲ کاراکتر باشد." }),
-  persona_prompt: z.string().min(20, { message: "پرامپت شخصیت AI حداقل باید ۲۰ کاراکتر باشد." }),
-  analysis_prompt: z.string().min(20, { message: "پرامپت تحلیل حداقل باید ۲۰ کاراکتر باشد." }),
-  has_timer: z.boolean().default(false),
-  timer_duration: z.coerce.number().optional().nullable(),
-  secondary_persona_name: z.string().optional().nullable(),
-  secondary_persona_prompt: z.string().optional().nullable(),
-});
+const questionnaireSchema = z
+  .object({
+    name: z.string().min(3, { message: "نام پرسشنامه حداقل باید ۳ کاراکتر باشد." }),
+    category: z.enum(QUESTIONNAIRE_CATEGORIES, { errorMap: () => ({ message: "یک دسته‌بندی معتبر انتخاب کنید." }) }),
+    welcome_message: z.string().min(10, { message: "پیام خوشامدگویی حداقل باید ۱۰ کاراکتر باشد." }),
+    persona_name: z.string().min(2, { message: "نام نقش AI حداقل باید ۲ کاراکتر باشد." }),
+    persona_prompt: z.string().min(20, { message: "پرامپت شخصیت AI حداقل باید ۲۰ کاراکتر باشد." }),
+    analysis_prompt: z.string().min(20, { message: "پرامپت تحلیل حداقل باید ۲۰ کاراکتر باشد." }),
+    has_timer: z.boolean().default(false),
+    timer_duration: z.coerce.number().optional().nullable(),
+    secondary_persona_name: z.string().optional().nullable(),
+    secondary_persona_prompt: z.string().optional().nullable(),
+    enable_second_phase: z.boolean().default(false),
+    phase_two_persona_name: z.string().optional().nullable(),
+    phase_two_persona_prompt: z.string().optional().nullable(),
+    phase_two_analysis_prompt: z.string().optional().nullable(),
+    phase_two_welcome_message: z.string().optional().nullable(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.enable_second_phase) {
+      if (!data.phase_two_persona_name || data.phase_two_persona_name.trim().length < 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["phase_two_persona_name"],
+          message: "نام شخصیت مرحله دوم الزامی است.",
+        });
+      }
+      if (!data.phase_two_persona_prompt || data.phase_two_persona_prompt.trim().length < 20) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["phase_two_persona_prompt"],
+          message: "پرامپت مرحله دوم باید حداقل ۲۰ کاراکتر باشد.",
+        });
+      }
+      if (!data.phase_two_analysis_prompt || data.phase_two_analysis_prompt.trim().length < 20) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["phase_two_analysis_prompt"],
+          message: "پرامپت تحلیل مرحله دوم باید حداقل ۲۰ کاراکتر باشد.",
+        });
+      }
+    }
+  });
 
 const EditQuestionnaire = () => {
   const { id } = useParams<{ id: string }>();
@@ -48,8 +79,14 @@ const EditQuestionnaire = () => {
       timer_duration: null,
       secondary_persona_name: "",
       secondary_persona_prompt: "",
+      enable_second_phase: false,
+      phase_two_persona_name: "",
+      phase_two_persona_prompt: "",
+      phase_two_analysis_prompt: "",
+      phase_two_welcome_message: "",
     },
   });
+  const enableSecondPhase = form.watch("enable_second_phase");
 
   useEffect(() => {
     const fetchQuestionnaire = async () => {
@@ -73,6 +110,11 @@ const EditQuestionnaire = () => {
             timer_duration: data.timer_duration ?? null,
             secondary_persona_name: data.secondary_persona_name ?? "",
             secondary_persona_prompt: data.secondary_persona_prompt ?? "",
+            enable_second_phase: (data.total_phases ?? 1) > 1,
+            phase_two_persona_name: data.phase_two_persona_name ?? "",
+            phase_two_persona_prompt: data.phase_two_persona_prompt ?? "",
+            phase_two_analysis_prompt: data.phase_two_analysis_prompt ?? "",
+            phase_two_welcome_message: data.phase_two_welcome_message ?? "",
           });
         } else {
           throw new Error("پرسشنامه یافت نشد.");
@@ -165,6 +207,87 @@ const EditQuestionnaire = () => {
               <CardContent className="space-y-6">
                 <FormField control={form.control} name="secondary_persona_name" render={({ field }) => ( <FormItem> <FormLabel>نام نقش AI دوم</FormLabel> <FormControl><Input placeholder="مثال: مبصر، راهنمای فنی، ..." {...field} value={field.value || ''} /></FormControl> <FormMessage /> </FormItem> )}/>
                 <FormField control={form.control} name="secondary_persona_prompt" render={({ field }) => ( <FormItem> <FormLabel>پرامپت شخصیت AI دوم</FormLabel> <FormControl><Textarea rows={8} placeholder="وظایف و شرایط مداخله AI دوم را اینجا تعریف کنید..." {...field} value={field.value || ''} /></FormControl> <FormDescription>پرامپت باید شامل این باشد که اگر نیازی به مداخله نیست، عبارت '__NO_INTERVENTION__' را برگرداند.</FormDescription> <FormMessage /> </FormItem> )}/>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>مرحله دوم (در صورت نیاز)</CardTitle>
+                <CardDescription>پس از پایان مرحله اول، کاربر می‌تواند وارد گفتگوی دوم با پرسش‌های متفاوت شود.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="enable_second_phase"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel>فعال‌سازی مرحله دوم</FormLabel>
+                        <FormDescription>مرحله دوم شامل یک چت جدید و سپس سوالات تکمیلی اختصاصی است.</FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {enableSecondPhase && (
+                  <div className="space-y-6 rounded-2xl border border-dashed border-purple-200/40 p-4">
+                    <FormField
+                      control={form.control}
+                      name="phase_two_welcome_message"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>پیام خوشامدگویی مرحله دوم</FormLabel>
+                          <FormControl>
+                            <Textarea rows={4} {...field} value={field.value || ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="phase_two_persona_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>نام شخصیت مرحله دوم</FormLabel>
+                          <FormControl>
+                            <Input {...field} value={field.value || ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="phase_two_persona_prompt"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>پرامپت شخصیت مرحله دوم</FormLabel>
+                          <FormControl>
+                            <Textarea rows={8} {...field} value={field.value || ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="phase_two_analysis_prompt"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>پرامپت تحلیل مرحله دوم</FormLabel>
+                          <FormControl>
+                            <Textarea rows={8} {...field} value={field.value || ''} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
 

@@ -18,6 +18,19 @@ interface SupplementaryQuestionsData {
   supplementary_question_2: string;
 }
 
+interface StoredAssessmentState {
+  sessionId: string;
+  initialMessage?: string;
+  settings?: any;
+  personaName?: string;
+  nextStage?: {
+    type: string;
+    slug?: string | null;
+  } | null;
+  currentPhase?: number;
+  totalPhases?: number;
+}
+
 const SupplementaryPromptImage = ({ text }: { text: string }) => (
   <div className="relative w-full select-none">
     <img
@@ -61,7 +74,7 @@ const SupplementaryQuestions = () => {
   const [finalAssessmentId, setFinalAssessmentId] = useState<number | null>(null);
   const [activeRecordingKey, setActiveRecordingKey] = useState<"q1" | "q2" | null>(null);
   const [phaseInfo, setPhaseInfo] = useState<{ current: number; total: number }>({ current: 1, total: 1 });
-  const baseStateRef = useRef<any>(null);
+  const baseStateRef = useRef<StoredAssessmentState | null>(null);
 
   const activeRecordingKeyRef = useRef<"q1" | "q2" | null>(null);
 
@@ -132,8 +145,13 @@ const SupplementaryQuestions = () => {
       return;
     }
 
-    const storedState = JSON.parse(storedStateRaw);
+    const storedState: StoredAssessmentState = JSON.parse(storedStateRaw);
+    baseStateRef.current = storedState;
     setSessionId(storedState.sessionId);
+    setPhaseInfo({
+      current: storedState.currentPhase ?? 1,
+      total: storedState.totalPhases ?? 1,
+    });
 
     const fetchQuestions = async () => {
       try {
@@ -158,6 +176,20 @@ const SupplementaryQuestions = () => {
     fetchQuestions();
   }, [questionnaireId, navigate]);
 
+  const persistAssessmentState = (updates: Partial<StoredAssessmentState>) => {
+    if (!questionnaireId) return;
+    const nextState: StoredAssessmentState = {
+      ...(baseStateRef.current || ({} as StoredAssessmentState)),
+      ...updates,
+    };
+    baseStateRef.current = nextState;
+    sessionStorage.setItem(`assessmentState_${questionnaireId}`, JSON.stringify(nextState));
+    setPhaseInfo({
+      current: nextState.currentPhase ?? 1,
+      total: nextState.totalPhases ?? 1,
+    });
+  };
+
   const handleSubmit = async () => {
     if (!questionnaireId || !sessionId || isSubmitting) return;
     if (!answers.q1.trim() || !answers.q2.trim()) {
@@ -177,13 +209,34 @@ const SupplementaryQuestions = () => {
         }),
       });
 
-      if (response.success && response.data?.assessmentId) {
-        setFinalAssessmentId(response.data.assessmentId);
-        toast.success("پاسخ‌ها ثبت شد. تحلیل نهایی در حال آماده‌سازی است...");
-        setIsModalOpen(true);
+      if (response.success && response.data) {
+        if (response.data.nextPhase) {
+          const nextPhase = response.data.nextPhase;
+          persistAssessmentState({
+            sessionId: nextPhase.sessionId,
+            personaName: nextPhase.personaName ?? baseStateRef.current?.personaName,
+            initialMessage: nextPhase.initialMessage ?? baseStateRef.current?.initialMessage,
+            currentPhase: nextPhase.index ?? (baseStateRef.current?.currentPhase ?? 1) + 1,
+            totalPhases: nextPhase.total ?? baseStateRef.current?.totalPhases ?? nextPhase.index ?? 1,
+          });
+          setSessionId(nextPhase.sessionId);
+          setAnswers({ q1: "", q2: "" });
+          toast.success(`مرحله ${nextPhase.index} آماده شد. در حال بازگشت به گفت‌وگو...`);
+          navigate(`/assessment/chat/${questionnaireId}`, { replace: true });
+          return;
+        }
+
+        if (response.data.assessmentId) {
+          setFinalAssessmentId(response.data.assessmentId);
+          toast.success("پاسخ‌ها ثبت شد. تحلیل نهایی در حال آماده‌سازی است...");
+          setIsModalOpen(true);
+          return;
+        }
       } else {
         throw new Error(response.message || "خطا در نهایی‌سازی ارزیابی");
       }
+
+      throw new Error("پاسخ نامعتبر از سرور دریافت شد.");
     } catch (error: any) {
       toast.error(`خطا در ارسال پاسخ‌ها: ${error.message}`);
     } finally {
@@ -196,6 +249,7 @@ const SupplementaryQuestions = () => {
     stopSpeechRecording();
     setRecordingTarget(null);
     sessionStorage.removeItem(`assessmentState_${questionnaireId}`);
+    baseStateRef.current = null;
     navigate("/dashboard");
   };
 
@@ -251,6 +305,16 @@ const SupplementaryQuestions = () => {
               <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
+          {phaseInfo.total > 1 && (
+            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/85 shadow-inner shadow-white/10 backdrop-blur">
+              <span className="font-semibold text-white">
+                مرحله {phaseInfo.current} از {phaseInfo.total}
+              </span>
+              <span className="mr-3 text-white/60">
+                در حال پاسخ به سوالات تکمیلی این مرحله
+              </span>
+            </div>
+          )}
           <div className="rounded-3xl border border-white/10 bg-white/5 px-6 py-4 text-sm leading-7 text-white/70 backdrop-blur">
             هر پاسخ را با مثال یا موقعیت واقعی پشتیبانی کن. جزئیات رفتاری، تصمیم‌گیری و نتیجه‌ای
             که انتظار داشتی را توضیح بده تا هوش مصنوعی بتواند تحلیل کامل‌تری ارائه دهد.
