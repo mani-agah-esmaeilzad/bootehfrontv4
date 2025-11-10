@@ -60,6 +60,8 @@ const SupplementaryQuestions = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [finalAssessmentId, setFinalAssessmentId] = useState<number | null>(null);
   const [activeRecordingKey, setActiveRecordingKey] = useState<"q1" | "q2" | null>(null);
+  const [phaseInfo, setPhaseInfo] = useState<{ current: number; total: number }>({ current: 1, total: 1 });
+  const baseStateRef = useRef<any>(null);
 
   const activeRecordingKeyRef = useRef<"q1" | "q2" | null>(null);
 

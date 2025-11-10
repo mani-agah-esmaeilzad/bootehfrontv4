@@ -162,11 +162,19 @@ const Dashboard = () => {
       const response = await apiFetch(`assessment/start/${questionnaireId}`, { method: "POST" });
       if (!response.success || !response.data) throw new Error("خطا در شروع ارزیابی");
 
-      const { sessionId, initialMessage, settings, personaName, nextStage } = response.data;
+      const { sessionId, initialMessage, settings, personaName, nextStage, currentPhase, totalPhases } = response.data;
 
       sessionStorage.setItem(
         `assessmentState_${questionnaireId}`,
-        JSON.stringify({ sessionId, initialMessage, settings, personaName, nextStage })
+        JSON.stringify({
+          sessionId,
+          initialMessage,
+          settings,
+          personaName,
+          nextStage,
+          currentPhase: currentPhase ?? 1,
+          totalPhases: totalPhases ?? 1,
+        })
       );
 
       toast.success("ارزیابی با موفقیت شروع شد!");

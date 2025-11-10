@@ -30,6 +30,8 @@ interface AssessmentState {
     type: string;
     slug?: string | null;
   } | null;
+  currentPhase?: number;
+  totalPhases?: number;
 }
 
 const avatars = [
@@ -563,6 +565,11 @@ const AssessmentChat = () => {
         </header>
 
         <section className="relative flex w-full flex-1 min-h-0 flex-col items-center">
+          {assessmentState?.totalPhases && assessmentState.totalPhases > 1 && (
+            <div className="mb-4 rounded-full border border-white/60 bg-white/70 px-5 py-1 text-xs font-semibold text-slate-600 shadow">
+              مرحله {assessmentState.currentPhase ?? 1} از {assessmentState.totalPhases}
+            </div>
+          )}
           <div className="relative flex w-full flex-1 min-h-[440px] items-center justify-center">
             <div className="relative aspect-square w-full max-w-[640px] sm:max-w-[560px] md:max-w-[600px]">
               <div className="absolute inset-0 rounded-[48px] bg-gradient-to-br from-white/65 via-white/15 to-transparent shadow-[0_25px_80px_-40px_rgba(79,70,229,0.45)] backdrop-blur-xl" />
