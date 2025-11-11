@@ -17,7 +17,7 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
-import { getBlogPosts } from "@/services/apiService";
+import { getBlogPosts, resolveApiAssetUrl } from "@/services/apiService";
 import type { BlogPostSummary } from "@/types/blog";
 
 const formatPersianDate = (value: string | null | undefined) => {
@@ -612,14 +612,16 @@ const Index = () => {
                 </div>
               ) : latestPosts.length > 0 ? (
                 <div className="grid gap-6 md:grid-cols-3">
-                  {latestPosts.map((post) => (
+                  {latestPosts.map((post) => {
+                    const coverImage = resolveApiAssetUrl(post.cover_image_url);
+                    return (
                     <article
                       key={post.id}
                       className="flex h-full flex-col overflow-hidden rounded-3xl border border-purple-100 bg-white/90 text-right shadow-sm transition hover:-translate-y-1 hover:border-purple-200"
                     >
-                      {post.cover_image_url && (
+                      {coverImage && (
                         <div className="h-40 w-full overflow-hidden bg-slate-100">
-                          <img src={post.cover_image_url} alt={post.title} className="h-full w-full object-cover" />
+                          <img src={coverImage} alt={post.title} className="h-full w-full object-cover" />
                         </div>
                       )}
                       <div className="flex h-full flex-col justify-between gap-4 p-6">
@@ -644,7 +646,7 @@ const Index = () => {
                         </div>
                       </div>
                     </article>
-                  ))}
+                  )})}
                 </div>
               ) : (
                 <div className="rounded-3xl border border-dashed border-purple-200 bg-white/70 p-10 text-center text-sm text-slate-600">
