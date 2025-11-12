@@ -596,7 +596,7 @@ const AssessmentChat = () => {
                   </linearGradient>
                 </defs>
               </svg>
-              <div className="absolute left-1/2 top-1/2 z-40 flex aspect-square w-[88%] min-w-[260px] max-w-[520px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-full border border-white/70 bg-white/90 shadow-[0_25px_60px_-35px_rgba(15,23,42,0.55)] backdrop-blur sm:w-[80%]">
+              <div className="absolute left-1/2 top-1/2 z-40 flex aspect-square w-[88%] min-w-[260px] max-w-[520px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto overflow-x-hidden rounded-full border border-white/70 bg-white/90 shadow-[0_25px_60px_-35px_rgba(15,23,42,0.55)] backdrop-blur sm:w-[80%] scroll-smooth">
                 <div className="pointer-events-none absolute inset-[10%] rounded-full border border-dashed border-violet-100/80" />
                 <div className="pointer-events-none absolute inset-[18%] rounded-full border border-white/50" />
                 <div className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white via-white/60 to-white/30 opacity-80" />

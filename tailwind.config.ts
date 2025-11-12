@@ -119,6 +119,7 @@ export default {
           to: {
             height: "0",
           },
+          
         },
         "pulse-gentle": {
           "0%, 100%": {
