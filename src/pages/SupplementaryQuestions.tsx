@@ -1,6 +1,6 @@
 // src/pages/SupplementaryQuestions.tsx
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -74,6 +74,7 @@ const SupplementaryQuestions = () => {
   const [finalAssessmentId, setFinalAssessmentId] = useState<number | null>(null);
   const [activeRecordingKey, setActiveRecordingKey] = useState<"q1" | "q2" | null>(null);
   const [phaseInfo, setPhaseInfo] = useState<{ current: number; total: number }>({ current: 1, total: 1 });
+  const [activeCardIndex, setActiveCardIndex] = useState(0);
   const baseStateRef = useRef<StoredAssessmentState | null>(null);
 
   const activeRecordingKeyRef = useRef<"q1" | "q2" | null>(null);
@@ -162,6 +163,7 @@ const SupplementaryQuestions = () => {
 
         if (response.success && response.data) {
           setQuestions(response.data);
+          setActiveCardIndex(0);
         } else {
           throw new Error(response.message || "سوالات تکمیلی یافت نشدند.");
         }
@@ -253,6 +255,66 @@ const SupplementaryQuestions = () => {
     navigate("/dashboard");
   };
 
+  const cards = useMemo(
+    () =>
+      CARD_PRESETS.map((preset) => {
+        const question =
+          preset.key === "q1"
+            ? questions?.supplementary_question_1?.trim()
+            : questions?.supplementary_question_2?.trim();
+        if (!question) {
+          return null;
+        }
+        return {
+          ...preset,
+          question,
+          value: answers[preset.key],
+        };
+      }).filter(
+        (card): card is { key: "q1" | "q2"; label: string; question: string; value: string } =>
+          Boolean(card)
+      ),
+    [questions, answers]
+  );
+
+  useEffect(() => {
+    if (cards.length === 0) {
+      setActiveCardIndex(0);
+      return;
+    }
+    if (activeCardIndex >= cards.length) {
+      setActiveCardIndex(cards.length - 1);
+    }
+  }, [cards.length, activeCardIndex]);
+
+  const activeCard = cards[activeCardIndex] ?? null;
+  const isFirstCard = activeCardIndex === 0;
+  const isLastCard = activeCardIndex === cards.length - 1 && cards.length > 0;
+  const canSubmit = cards.length > 0 && cards.every((card) => answers[card.key].trim().length > 0);
+
+  const goToCard = (index: number) => {
+    if (index < 0 || index >= cards.length) return;
+    if (isRecording) {
+      stopSpeechRecording();
+    }
+    setRecordingTarget(null);
+    setActiveCardIndex(index);
+  };
+
+  const handleNextCard = () => {
+    if (!activeCard) return;
+    if (!answers[activeCard.key].trim()) {
+      toast.info("پیش از رفتن به سوال بعدی، پاسخ همین سوال را کامل کن.");
+      return;
+    }
+    goToCard(activeCardIndex + 1);
+  };
+
+  const handlePrevCard = () => {
+    if (isFirstCard) return;
+    goToCard(activeCardIndex - 1);
+  };
+
   if (isLoading) {
     return (
       <div
@@ -263,23 +325,6 @@ const SupplementaryQuestions = () => {
       </div>
     );
   }
-
-  const cards = CARD_PRESETS.map((preset) => {
-    const question =
-      preset.key === "q1"
-        ? questions?.supplementary_question_1?.trim()
-        : questions?.supplementary_question_2?.trim();
-    if (!question) {
-      return null;
-    }
-    return {
-      ...preset,
-      question,
-      value: answers[preset.key],
-    };
-  }).filter((card): card is { key: "q1" | "q2"; label: string; question: string; value: string } =>
-    Boolean(card)
-  );
 
   return (
     <div dir="rtl" className="min-h-screen bg-slate-950 text-white">
@@ -322,18 +367,15 @@ const SupplementaryQuestions = () => {
         </header>
 
         <main className="space-y-10">
-          <div className="grid gap-8 lg:grid-cols-2">
-            {cards.map((card) => (
-              <div
-                key={card.key}
-                className="space-y-4 rounded-[32px] border border-white/10 bg-white/5 p-5 backdrop-blur"
-              >
+          {activeCard ? (
+            <>
+              <div className="space-y-4 rounded-[32px] border border-white/10 bg-white/5 p-5 backdrop-blur">
                 <div className="space-y-3">
                   <span className="inline-flex items-center gap-2 self-end rounded-full bg-white/15 px-4 py-2 text-[0.7rem] font-semibold tracking-wide text-white/85">
-                    {card.label}
+                    {activeCard.label}
                   </span>
                   <div className="overflow-hidden rounded-[28px] border border-white/10 bg-white">
-                    <SupplementaryPromptImage text={card.question} />
+                    <SupplementaryPromptImage text={activeCard.question} />
                   </div>
                 </div>
                 <div className="relative">
@@ -341,9 +383,9 @@ const SupplementaryQuestions = () => {
                     dir="rtl"
                     rows={5}
                     spellCheck={false}
-                    value={card.value}
+                    value={activeCard.value}
                     onChange={(event) =>
-                      setAnswers((prev) => ({ ...prev, [card.key]: event.target.value }))
+                      setAnswers((prev) => ({ ...prev, [activeCard.key]: event.target.value }))
                     }
                     className="min-h-[140px] resize-none rounded-3xl border border-white/20 bg-white/15 pr-6 text-sm text-white placeholder:text-white/60 focus-visible:ring-2 focus-visible:ring-white/70"
                     placeholder="پاسخ خود را اینجا بنویس..."
@@ -352,10 +394,10 @@ const SupplementaryQuestions = () => {
                     type="button"
                     size="icon"
                     aria-label="ضبط صدا"
-                    onClick={() => handleToggleVoice(card.key)}
+                    onClick={() => handleToggleVoice(activeCard.key)}
                     className={cn(
                       "absolute bottom-4 left-4 h-11 w-11 rounded-full border border-white/25 bg-white/15 text-white transition hover:bg-white/25",
-                      activeRecordingKey === card.key && isRecording
+                      activeRecordingKey === activeCard.key && isRecording
                         ? "border-purple-300 bg-purple-500/70 text-white shadow-[0_10px_30px_-12px_rgba(168,85,247,0.8)]"
                         : "shadow-sm",
                       !isSpeechSupported && "cursor-not-allowed opacity-60 hover:bg-white/15"
@@ -364,23 +406,64 @@ const SupplementaryQuestions = () => {
                     <Mic className="h-4 w-4" />
                   </Button>
                 </div>
-                {activeRecordingKey === card.key && isRecording && (
+                {activeRecordingKey === activeCard.key && isRecording && (
                   <p className="text-[0.7rem] font-medium text-purple-200/90">
                     در حال ضبط صدا هستیم؛ پس از پایان جمله کمی مکث کن تا متن اضافه شود.
                   </p>
                 )}
               </div>
-            ))}
-          </div>
 
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="flex w-full items-center justify-center gap-2 rounded-3xl bg-purple-500 py-4 text-base font-semibold text-white transition hover:bg-purple-600 disabled:opacity-70"
-          >
-            {isSubmitting && <LoaderCircle className="h-5 w-5 animate-spin text-white" />}
-            {isSubmitting ? "در حال ارسال پاسخ‌ها..." : "ثبت پاسخ‌ها و مشاهده تحلیل نهایی"}
-          </Button>
+              <div className="space-y-4 rounded-3xl border border-white/10 bg-white/5 px-6 py-5 text-sm text-white/80 backdrop-blur">
+                <div className="flex flex-col gap-2 text-white/70 sm:flex-row sm:items-center sm:justify-between">
+                  <span>
+                    سوال {activeCardIndex + 1} از {cards.length}
+                  </span>
+                  <span>
+                    {isLastCard
+                      ? "پس از تکمیل این پاسخ، دکمه ثبت را بزن."
+                      : "پاسخ را بنویس و سپس به سوال بعدی برو."}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="flex w-full flex-col gap-3 sm:flex-row sm:w-auto">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handlePrevCard}
+                      disabled={isFirstCard}
+                      className="rounded-2xl border-white/20 text-white hover:bg-white/10 disabled:opacity-50"
+                    >
+                      سوال قبلی
+                    </Button>
+                    {!isLastCard && (
+                      <Button
+                        type="button"
+                        onClick={handleNextCard}
+                        disabled={!answers[activeCard.key].trim()}
+                        className="rounded-2xl bg-white/90 px-8 text-slate-900 hover:bg-white"
+                      >
+                        سوال بعدی
+                      </Button>
+                    )}
+                  </div>
+                  {isLastCard && (
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={isSubmitting || !canSubmit}
+                      className="flex w-full items-center justify-center gap-2 rounded-3xl bg-purple-500 px-8 py-4 text-base font-semibold text-white transition hover:bg-purple-600 disabled:opacity-70 md:w-auto"
+                    >
+                      {isSubmitting && <LoaderCircle className="h-5 w-5 animate-spin text-white" />}
+                      {isSubmitting ? "در حال ارسال پاسخ‌ها..." : "ثبت پاسخ‌ها و مشاهده تحلیل نهایی"}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="rounded-3xl border border-white/10 bg-white/5 px-6 py-12 text-center text-white/70">
+              سوالی برای نمایش موجود نیست. لطفاً به داشبورد برگرد و دوباره تلاش کن.
+            </div>
+          )}
         </main>
       </div>
 
