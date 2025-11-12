@@ -40,6 +40,16 @@ const avatars = [
   { src: avatarNarrator, name: "راوی", role: "narrator" },
 ];
 
+const DEFAULT_PERSONA_NAME = "راوی";
+const LEGACY_PERSONA_NAME = "مشاور";
+
+const normalizePersonaName = (value?: string | null) => {
+  if (!value) return DEFAULT_PERSONA_NAME;
+  const trimmed = value.trim();
+  if (!trimmed) return DEFAULT_PERSONA_NAME;
+  return trimmed.includes(LEGACY_PERSONA_NAME) ? DEFAULT_PERSONA_NAME : trimmed;
+};
+
 const AssessmentChat = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -58,6 +68,7 @@ const AssessmentChat = () => {
     setAssessmentState((prev) => {
       if (!prev) return prev;
       const nextState = { ...prev, ...updates };
+      nextState.personaName = normalizePersonaName(nextState.personaName);
       if (id) {
         sessionStorage.setItem(`assessmentState_${id}`, JSON.stringify(nextState));
       }
@@ -91,8 +102,11 @@ const AssessmentChat = () => {
       const storedState = sessionStorage.getItem(`assessmentState_${id}`);
       if (storedState) {
         const state: AssessmentState = JSON.parse(storedState);
-        setAssessmentState(state);
-
+        const normalizedState = { ...state, personaName: normalizePersonaName(state.personaName) };
+        setAssessmentState(normalizedState);
+        if (id) {
+          sessionStorage.setItem(`assessmentState_${id}`, JSON.stringify(normalizedState));
+        }
       } else throw new Error("Session state not found.");
     } catch (error) {
       toast.error("جلسه ارزیابی یافت نشد.");
@@ -144,7 +158,7 @@ const AssessmentChat = () => {
   const SPEAKER_PATTERNS = [
     { label: "مبصر", personaName: "مبصر" },
     { label: "راوی", personaName: "راوی" },
-    { label: "مشاور", personaName: "مشاور" },
+    { label: "مشاور", personaName: DEFAULT_PERSONA_NAME },
     { label: "آقای منصوری", personaName: "مبصر" },
   ] as const;
 
@@ -159,11 +173,12 @@ const AssessmentChat = () => {
     const segments: { personaName: string; text: string }[] = [];
     let currentPersona: string | null = null;
     let buffer: string[] = [];
+    const normalizedFallback = normalizePersonaName(fallbackPersonaName);
 
     const flush = () => {
       if (!buffer.length) return;
       segments.push({
-        personaName: currentPersona ?? fallbackPersonaName,
+        personaName: normalizePersonaName(currentPersona ?? normalizedFallback),
         text: buffer.join(" "),
       });
       buffer = [];
@@ -179,7 +194,7 @@ const AssessmentChat = () => {
       if (speaker) {
         flush();
         const content = line.replace(/^([^\s:：]+)\s*[:：]\s*/, "").trim();
-        currentPersona = speaker.personaName;
+        currentPersona = normalizePersonaName(speaker.personaName);
         if (content) buffer.push(content);
       } else {
         buffer.push(line);
@@ -210,7 +225,7 @@ const AssessmentChat = () => {
       if (!duplicateReply) {
         normalizedResponses.push({
           text: trimmedReply,
-          senderName: response.data?.personaName ?? assessmentState?.personaName ?? "مشاور",
+          senderName: normalizePersonaName(response.data?.personaName ?? assessmentState?.personaName),
         });
       }
     }
@@ -228,7 +243,7 @@ const AssessmentChat = () => {
     normalizedResponses
       .filter((item) => typeof item?.text === "string" && item.text.trim().length > 0)
       .forEach((item, index) => {
-        const fallbackPersonaName = item.senderName ?? assessmentState?.personaName ?? "مشاور";
+        const fallbackPersonaName = normalizePersonaName(item.senderName ?? assessmentState?.personaName);
         const segments = parseSpeakerTaggedSegments(item.text!.trim(), fallbackPersonaName);
 
         if (segments.length === 0) {
@@ -246,17 +261,18 @@ const AssessmentChat = () => {
             id: Date.now() + index * 10 + segIndex,
             text: segment.text,
             sender: "ai",
-            personaName: segment.personaName,
+            personaName: normalizePersonaName(segment.personaName),
           });
         });
       });
 
-    const directPersonaName =
+    const directPersonaName = normalizePersonaName(
       typeof response?.data?.personaName === "string" && response.data.personaName.trim().length > 0
-        ? response.data.personaName.trim()
+        ? response.data.personaName
         : typeof rawResponses === "object" && rawResponses !== null && "senderName" in rawResponses
-          ? ((rawResponses as { senderName?: string }).senderName ?? assessmentState?.personaName ?? "مشاور")
-          : assessmentState?.personaName ?? "مشاور";
+          ? (rawResponses as { senderName?: string }).senderName ?? assessmentState?.personaName
+          : assessmentState?.personaName
+    );
 
     const directText =
       typeof rawResponses === "string"
@@ -280,7 +296,7 @@ const AssessmentChat = () => {
             id: Date.now() + index,
             text: segment.text,
             sender: "ai",
-            personaName: segment.personaName,
+            personaName: normalizePersonaName(segment.personaName),
           });
         });
       }
@@ -306,7 +322,7 @@ const AssessmentChat = () => {
 
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
-    setActiveTyping("مشاور");
+    setActiveTyping(DEFAULT_PERSONA_NAME);
     setIsUserTyping(false);
     if (userTypingTimeoutRef.current) {
       clearTimeout(userTypingTimeoutRef.current);
@@ -404,7 +420,7 @@ const AssessmentChat = () => {
 
     setIsInitializing(true);
     setIsHistoryView(false);
-    setActiveTyping(assessmentState.personaName ?? "مشاور");
+    setActiveTyping(assessmentState.personaName ?? DEFAULT_PERSONA_NAME);
 
     try {
       const response = await apiFetch(`assessment/chat/${id}`, {
@@ -486,7 +502,7 @@ const AssessmentChat = () => {
       layout: "right",
     },
     ai: {
-      name: "مشاور",
+      name: DEFAULT_PERSONA_NAME,
       avatar: avatarNarrator,
       badge: "دستیار",
       accent: "from-indigo-400 to-purple-500",
@@ -678,7 +694,7 @@ const AssessmentChat = () => {
                         {isInitializing ? "در حال آماده‌سازی پیام آغازین..." : "آماده‌ای شروع کنیم؟"}
                       </span>
                       <p className="text-xs leading-6 text-slate-500 sm:text-sm">
-                        وقتی روی دکمه زیر بزنی، مشاور پیام ابتدایی را می‌فرستد و گفتگو آغاز می‌شود.
+                        وقتی روی دکمه زیر بزنی، راوی پیام ابتدایی را می‌فرستد و گفتگو آغاز می‌شود.
                       </p>
                       <Button
                         onClick={handleStartConversation}
