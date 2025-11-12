@@ -608,13 +608,13 @@ const AssessmentChat = () => {
                     <div
                       ref={messageScrollRef}
                       onScroll={handleMessagesScroll}
-                      className="relative z-10 flex flex-1 flex-col overflow-y-auto overscroll-contain px-6 pb-14 pt-10 text-center sm:px-10 sm:pt-14"
+                      className="relative z-10 flex h-full flex-col overflow-y-auto overscroll-contain px-6 pb-14 pt-10 text-center sm:px-10 sm:pt-14"
                       style={{ touchAction: "pan-y", WebkitOverflowScrolling: "touch" }}
                     >
                       {!isHistoryView && (
                         <div className="pointer-events-none absolute inset-x-4 top-0 z-30 h-24 bg-gradient-to-b from-white via-white/70 to-transparent sm:inset-x-6" />
                       )}
-                      <div className="flex min-h-full flex-col items-center justify-end gap-6">
+                      <div className="flex flex-col items-center justify-end gap-6">
                         {messages.map((msg, index) => {
                           const meta = resolvePersonaMeta(msg);
                           const isLatest = messages.length - 1 === index;
