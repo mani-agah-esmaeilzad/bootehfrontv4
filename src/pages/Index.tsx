@@ -42,34 +42,43 @@ const heroStats = [
 const capabilityCards = [
   {
     icon: BookOpen,
-    title: "گزارش های جامع",
+    title: "گزارش‌های جامع",
     description:
-      "گزارش های جامع با قابلیت شخصی سازی متناسب با نیازهای کاربران مختلف به همراه قابلیت فردی, گروهی و سازمانی",
+      "گزارش‌های جامع با قابلیت شخصی‌سازی، متناسب با نیاز کاربران مختلف و با خروجی‌های فردی، گروهی و سازمانی.",
   },
   {
     icon: PanelsTopLeft,
-    title: "شخصی و بومی سازی شده",
+    title: "شخصی و بومی‌سازی‌شده",
     description:
-      "ارزیابی های مبتنی بر واقعیت متناسب با شغل. جنسیت و سن افراد و نیازهای سازمان",
+      "ارزیابی‌های مبتنی بر واقعیت، متناسب با شغل، جنسیت، سن افراد و نیازهای سازمان.",
   },
   {
     icon: BarChart3,
     title: "تطبیق با نقشه شایستگی سازمان",
     description:
-      "شایستگی های مورد سنجش بر اساس نقشه شایستگی سازمان طراح و افراد بر اساس ملاک های سازمان مورد آزمون قرار می گیرند.",
+      "شایستگی‌های مورد سنجش بر اساس نقشه شایستگی سازمان طراحی شده‌اند و افراد طبق ملاک‌های همان سازمان آزمون می‌شوند.",
   },
 ];
 
 const pathMilestones = [
-  { title: "سنجش بر مبنای عملکرد", caption: "هر کاربر یک سفر منحصر به فرد و سفارشی را تجربه می کند. و بینش بی طرفانه ای را در مورد قابلیت های خود دریافت می کند." },
-  { title: "کارنامه عملکرد بدون سوگیری و منحصر به فرد", caption: "ارائه نتایج کامل عملکرد برای هر فرد در شایستگی های مدنظر, با برجسته کردن نقاط قوت و زمینه رشد او" },
-  { title: "حذف فشار زمانی و استرس آزمون", caption: "با فراهم سازی دسترسی ۲۴ ساعته, کاربر در زمان های مناسب میتواند شایستگی های مختلف خود را بیازماید" },
+  {
+    title: "سنجش بر مبنای عملکرد",
+    caption: "هر کاربر یک سفر منحصر‌به‌فرد و سفارشی را تجربه می‌کند و بینش بی‌طرفانه‌ای درباره قابلیت‌های خود می‌گیرد.",
+  },
+  {
+    title: "کارنامه عملکرد بدون سوگیری",
+    caption: "ارائه نتایج کامل عملکرد در شایستگی‌های مدنظر با برجسته‌سازی نقاط قوت و زمینه‌های رشد.",
+  },
+  {
+    title: "حذف فشار زمانی و استرس آزمون",
+    caption: "با دسترسی ۲۴ ساعته، کاربر می‌تواند در زمان مناسب شایستگی‌های مختلف خود را بیازماید.",
+  },
 ];
 
 const chartGallery = [
   {
     title: "مدیران",
-    description: "ارزیابی مداوم و دوره ای شایستگی ها در مسیر سفر سازمانی کارکنان",
+    description: "ارزیابی مداوم و دوره‌ای شایستگی‌ها در مسیر سفر سازمانی کارکنان.",
     accent: "from-purple-500/20 via-white to-white",
     chart: (
       <svg viewBox="0 0 220 120" className="h-32 w-full text-purple-600">
@@ -96,7 +105,7 @@ const chartGallery = [
   },
   {
     title: "استخدام کنندگان",
-    description: "تعریف شایستگی های مورد نیاز هر شغل و اطمینان از تطبیق آن با شایستگی های شاغل",
+    description: "تعریف شایستگی‌های موردنیاز هر شغل و اطمینان از تطبیق آن با شایستگی‌های شاغل.",
     accent: "from-slate-900/10 via-white to-purple-200/20",
     chart: (
       <svg viewBox="0 0 220 120" className="h-32 w-full text-slate-900">
@@ -122,7 +131,7 @@ const chartGallery = [
   },
   {
     title: "کارجویان",
-    description: "برای کسب شناخت از شایستگی های فعلی و میزان تناسب آنها با چشم انداز شغلی و برنامه ریزی برای تقویت شایستگی های مدنظر",
+    description: "کسب شناخت از شایستگی‌های فعلی و میزان تناسب آن‌ها با چشم‌انداز شغلی و برنامه‌ریزی برای تقویت شایستگی‌های مدنظر.",
     accent: "from-purple-600/15 via-white to-slate-900/10",
     chart: (
       <svg viewBox="0 0 220 120" className="h-32 w-full text-purple-600">
@@ -173,13 +182,18 @@ const insightStories = [
 
 const footerLinks = [
   {
-    title: "لینک های مرتبط",
+    title: "لینک‌های مرتبط",
     items: ["بلاگ", "کاربران ما", "اچ آر لرنیوم", "اچ آر 720"],
   },
 
   {
     title: "ارتباط با ما",
-    items: ["نشانی: تهران, چهارراه جهان کودک, بزرگراه حقانی, مرکز رشد دانشگاه علامه طباطبائی", "شماره تماس: ۰۲۱۷۱۰۵۸۷۲۰", "ایمیل: info@hrbooteh.com", "ما را در شکبه های اجتماعی دنبال کنید: "],
+    items: [
+      "نشانی: تهران، چهارراه جهان کودک، بزرگراه حقانی، مرکز رشد دانشگاه علامه طباطبایی",
+      "شماره تماس: ۰۲۱۷۱۰۵۸۷۲۰",
+      "ایمیل: info@hrbooteh.com",
+      "ما را در شبکه‌های اجتماعی دنبال کنید:",
+    ],
   },
 ];
 
@@ -351,17 +365,17 @@ const Index = () => {
             <div className="space-y-10 text-right">
               <span className="inline-flex items-center gap-2 rounded-full border border-purple-200/60 bg-white/60 px-4 py-2 text-xs font-medium text-purple-600 shadow-sm backdrop-blur">
                 <Sparkles className="h-4 w-4" />
-                نسل جدید ارزیابی شایستگی ها
+                نسل جدید ارزیابی شایستگی‌ها
               </span>
               <h1 className="text-4xl font-bold leading-[1.15!important] text-slate-900 md:text-5xl text-center">
-                ارزیابی شایستگی ها
+                ارزیابی شایستگی‌ها
                 <br />
                 <span className="text-slate-700 text-3xl">
                   سرعت،&nbsp;
                   <span className="text-purple-600">
                     دقت
                   </span>
-                  ،  کیفیت
+                  ، کیفیت
                 </span>
 
               </h1>
@@ -407,7 +421,7 @@ const Index = () => {
                 <div className="flex items-center justify-between">
                   <div className="space-y-1 text-right">
                     <p className="text-xs text-slate-500">جلسه فعال</p>
-                    <p className="text-2xl font-semibold text-slate-900">گفتگو های تعاملی</p>
+                    <p className="text-2xl font-semibold text-slate-900">گفتگوهای تعاملی</p>
                   </div>
                   <span className="rounded-full bg-purple-600 px-3 py-1 text-xs font-semibold text-white">آنلاین</span>
                 </div>
@@ -452,9 +466,9 @@ const Index = () => {
                   </svg>
                   <div className="absolute inset-x-0 -bottom-4 flex justify-around">
                     {[
-                      { title: "شخصی سازی شده", subtitle: "" },
-                      { title: "بومی سازی شده", subtitle: "" },
-                      { title: "گزارش های حرفه ای", subtitle: "" },
+                      { title: "شخصی‌سازی‌شده", subtitle: "" },
+                      { title: "بومی‌سازی‌شده", subtitle: "" },
+                      { title: "گزارش‌های حرفه‌ای", subtitle: "" },
                     ].map((item) => (
                       <div
                         key={item.title}
@@ -488,7 +502,7 @@ const Index = () => {
                   </span>
                   <span className="inline-flex items-center gap-2 rounded-full border border-purple-200/70 px-4 py-2">
                     <ShieldCheck className="h-4 w-4 text-purple-500" />
-                    سناریو محیط واقتی
+                    سناریوی محیط واقعی
                   </span>
                 </div>
               </div>
@@ -532,9 +546,9 @@ const Index = () => {
           </div>
           <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 md:px-6">
             <div className="space-y-4 text-right text-white">
-              <h2 className="text-3xl font-bold">بوته چگونه کار می کند?</h2>
+              <h2 className="text-3xl font-bold">بوته چگونه کار می‌کند؟</h2>
               <p className="max-w-2xl text-base leading-7 text-white/85">
-                بوته همانند روش های تصویربرداری پزشکی می تواند درک مناسبی از وضعیت شایستگی های کاربران ارائه دهد.
+                بوته همانند روش‌های تصویربرداری پزشکی می‌تواند درک دقیقی از وضعیت شایستگی‌های کاربران ارائه دهد.
               </p>
             </div>
             <div className="grid gap-6 md:grid-cols-3">
@@ -558,7 +572,7 @@ const Index = () => {
               <div className="max-w-xl space-y-4 text-right">
                 <h2 className="text-3xl font-bold text-slate-900">بوته برای چه کسانی مناسب است؟</h2>
                 <p className="text-base leading-7 text-slate-600">
-                  بوته برای طیف گسترده ای از مخاطبان طراحی شده است.
+                  بوته برای طیف گسترده‌ای از مخاطبان طراحی شده است.
                 </p>
               </div>
               <Button
@@ -663,7 +677,7 @@ const Index = () => {
             <div className="relative space-y-6 text-center">
               <h2 className="text-3xl font-bold">آماده ورود به بوته آزمون هستید؟</h2>
               <p className="mx-auto max-w-2xl text-base leading-7 text-slate-200">
-                تنها چند قدم تا کشف دقیق شایستگی های کارکنان شما باقی مانده! فقط کافیست با کارشناسان ما تماس بگیرید.
+                تنها چند قدم تا کشف دقیق شایستگی‌های کارکنان شما باقی مانده است؛ کافی است با کارشناسان ما تماس بگیرید.
               </p>
               <div className="flex flex-col justify-center gap-3 sm:flex-row">
                 <Button
@@ -690,7 +704,7 @@ const Index = () => {
           <div className="space-y-5 text-right">
             <Logo variant="large" />
             <p className="text-sm leading-6 text-slate-600">
-              سنجش , رشد , تعالی
+              سنجش، رشد، تعالی
             </p>
           </div>
 
