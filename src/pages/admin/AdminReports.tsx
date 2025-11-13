@@ -266,7 +266,7 @@ const AdminReports = () => {
                         <CardTitle>پراکندگی گزارش‌ها بر اساس پرسشنامه</CardTitle>
                         <CardDescription>حجم ارزیابی‌های تکمیل‌شده برای هر پرسشنامه فعال.</CardDescription>
                     </CardHeader>
-                    <CardContent className="h-80">
+                    <CardContent className="h-[440px]">
                         {questionnaireChartData.length === 0 ? (
                             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                                 داده‌ای برای نمایش وجود ندارد.
@@ -289,7 +289,7 @@ const AdminReports = () => {
                         <CardTitle>وضعیت گزارش‌ها</CardTitle>
                         <CardDescription>رصد سریع چرخهٔ ارزیابی‌ها در وضعیت‌های مختلف.</CardDescription>
                     </CardHeader>
-                    <CardContent className="h-80">
+                    <CardContent className="h-[440px]">
                         {statusChartData.length === 0 ? (
                             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                                 داده‌ای برای نمایش وجود ندارد.
