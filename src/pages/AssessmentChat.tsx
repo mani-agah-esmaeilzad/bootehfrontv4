@@ -1,5 +1,5 @@
 // src/pages/AssessmentChat.tsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,9 @@ import apiFetch from "@/services/apiService";
 import { cn } from "@/lib/utils";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
-import avatarUser from "@/assets/avatar1.jpg"; // کاربر
+import avatarUserMale from "@/assets/avatar1.jpg"; // کاربر (مرد)
+import avatarUserFemale from "@/assets/avatar4.jpg"; // کاربر (زن)
+import avatarUserNeutral from "@/assets/avatar5.jpg"; // کاربر (خنثی)
 import avatarProctor from "@/assets/avatar2.jpg"; // مبصر
 import avatarNarrator from "@/assets/avatar3.jpg"; // راوی
 
@@ -26,6 +28,7 @@ interface AssessmentState {
   initialMessage: string;
   settings: any;
   personaName: string;
+  userGender?: string | null;
   nextStage?: {
     type: string;
     slug?: string | null;
@@ -33,12 +36,6 @@ interface AssessmentState {
   currentPhase?: number;
   totalPhases?: number;
 }
-
-const avatars = [
-  { src: avatarUser, name: "شما", role: "user" },
-  { src: avatarProctor, name: "مبصر", role: "proctor" },
-  { src: avatarNarrator, name: "راوی", role: "narrator" },
-];
 
 const DEFAULT_PERSONA_NAME = "راوی";
 const LEGACY_PERSONA_NAME = "مشاور";
@@ -48,6 +45,23 @@ const normalizePersonaName = (value?: string | null) => {
   const trimmed = value.trim();
   if (!trimmed) return DEFAULT_PERSONA_NAME;
   return trimmed.includes(LEGACY_PERSONA_NAME) ? DEFAULT_PERSONA_NAME : trimmed;
+};
+
+const normalizeGenderValue = (value?: string | null) => {
+  if (value === undefined || value === null) return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const feminineTokens = ["female", "f", "خانم", "زن", "مونث", "زنانه", "دختر", "lady", "woman", "women"];
+const masculineTokens = ["male", "m", "آقا", "مرد", "مذکر", "پسر", "man", "men"];
+
+const resolveUserAvatarByGender = (gender?: string | null) => {
+  const normalized = normalizeGenderValue(gender)?.toLowerCase() ?? null;
+  if (!normalized) return avatarUserNeutral;
+  if (feminineTokens.some((token) => normalized.includes(token))) return avatarUserFemale;
+  if (masculineTokens.some((token) => normalized.includes(token))) return avatarUserMale;
+  return avatarUserNeutral;
 };
 
 const AssessmentChat = () => {
@@ -63,12 +77,25 @@ const AssessmentChat = () => {
   const [isHistoryView, setIsHistoryView] = useState(false);
   const [hasConversationStarted, setHasConversationStarted] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+  const userAvatarSrc = useMemo(
+    () => resolveUserAvatarByGender(assessmentState?.userGender),
+    [assessmentState?.userGender]
+  );
+  const avatars = useMemo(
+    () => [
+      { src: userAvatarSrc, name: "شما", role: "user" },
+      { src: avatarProctor, name: "مبصر", role: "proctor" },
+      { src: avatarNarrator, name: "راوی", role: "narrator" },
+    ],
+    [userAvatarSrc]
+  );
 
   const persistAssessmentState = (updates: Partial<AssessmentState>) => {
     setAssessmentState((prev) => {
       if (!prev) return prev;
       const nextState = { ...prev, ...updates };
       nextState.personaName = normalizePersonaName(nextState.personaName);
+      nextState.userGender = normalizeGenderValue(nextState.userGender);
       if (id) {
         sessionStorage.setItem(`assessmentState_${id}`, JSON.stringify(nextState));
       }
@@ -100,7 +127,11 @@ const AssessmentChat = () => {
       const storedState = sessionStorage.getItem(`assessmentState_${id}`);
       if (storedState) {
         const state: AssessmentState = JSON.parse(storedState);
-        const normalizedState = { ...state, personaName: normalizePersonaName(state.personaName) };
+        const normalizedState = {
+          ...state,
+          personaName: normalizePersonaName(state.personaName),
+          userGender: normalizeGenderValue(state.userGender),
+        };
         setAssessmentState(normalizedState);
         if (id) {
           sessionStorage.setItem(`assessmentState_${id}`, JSON.stringify(normalizedState));
@@ -477,44 +508,48 @@ const AssessmentChat = () => {
 
   // ----- بخش دوم (UI و رندرینگ) -----
 
-  const personaMeta = {
-    user: {
-      name: "شما",
-      avatar: avatarUser,
-      badge: "شرکت‌کننده",
-      accent: "from-sky-400 to-sky-500",
-      bubble: "bg-sky-50/90 text-sky-800 border-sky-100",
-      glow: "shadow-[0_10px_30px_-12px_rgba(56,189,248,0.65)]",
-      layout: "center",
-    },
-    narrator: {
-      name: "راوی",
-      avatar: avatarNarrator,
-      badge: "نقال سناریو",
-      accent: "from-emerald-400 to-teal-500",
-      bubble: "bg-emerald-50/90 text-emerald-800 border-emerald-100",
-      glow: "shadow-[0_10px_30px_-12px_rgba(16,185,129,0.65)]",
-      layout: "left",
-    },
-    proctor: {
-      name: "مبصر",
-      avatar: avatarProctor,
-      badge: "ناظر آزمون",
-      accent: "from-amber-400 to-orange-500",
-      bubble: "bg-amber-50/90 text-amber-900 border-amber-100",
-      glow: "shadow-[0_10px_30px_-12px_rgba(245,158,11,0.65)]",
-      layout: "right",
-    },
-    ai: {
-      name: DEFAULT_PERSONA_NAME,
-      avatar: avatarNarrator,
-      badge: "دستیار",
-      accent: "from-indigo-400 to-purple-500",
-      bubble: "bg-indigo-50/90 text-indigo-800 border-indigo-100",
-      glow: "shadow-[0_10px_30px_-12px_rgba(129,140,248,0.65)]",
-      layout: "left",
-    },
-  } as const;
+  const personaMeta = useMemo(
+    () =>
+      ({
+        user: {
+          name: "شما",
+          avatar: userAvatarSrc,
+          badge: "شرکت‌کننده",
+          accent: "from-sky-400 to-sky-500",
+          bubble: "bg-sky-50/90 text-sky-800 border-sky-100",
+          glow: "shadow-[0_10px_30px_-12px_rgba(56,189,248,0.65)]",
+          layout: "center",
+        },
+        narrator: {
+          name: "راوی",
+          avatar: avatarNarrator,
+          badge: "نقال سناریو",
+          accent: "from-emerald-400 to-teal-500",
+          bubble: "bg-emerald-50/90 text-emerald-800 border-emerald-100",
+          glow: "shadow-[0_10px_30px_-12px_rgba(16,185,129,0.65)]",
+          layout: "left",
+        },
+        proctor: {
+          name: "مبصر",
+          avatar: avatarProctor,
+          badge: "ناظر آزمون",
+          accent: "from-amber-400 to-orange-500",
+          bubble: "bg-amber-50/90 text-amber-900 border-amber-100",
+          glow: "shadow-[0_10px_30px_-12px_rgba(245,158,11,0.65)]",
+          layout: "right",
+        },
+        ai: {
+          name: DEFAULT_PERSONA_NAME,
+          avatar: avatarNarrator,
+          badge: "دستیار",
+          accent: "from-indigo-400 to-purple-500",
+          bubble: "bg-indigo-50/90 text-indigo-800 border-indigo-100",
+          glow: "shadow-[0_10px_30px_-12px_rgba(129,140,248,0.65)]",
+          layout: "left",
+        },
+      }) as const,
+    [userAvatarSrc]
+  );
 
   const resolvePersonaKey = (message: ChatMessage) => {
     if (message.sender === "user") return "user" as const;

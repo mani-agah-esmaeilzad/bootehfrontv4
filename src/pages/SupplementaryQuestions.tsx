@@ -23,6 +23,7 @@ interface StoredAssessmentState {
   initialMessage?: string;
   settings?: any;
   personaName?: string;
+  userGender?: string | null;
   nextStage?: {
     type: string;
     slug?: string | null;
