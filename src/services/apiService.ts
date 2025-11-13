@@ -35,6 +35,18 @@ const getToken = (endpoint: string): string | null => {
     return localStorage.getItem('authToken');
 };
 
+const AI_ENDPOINT_PREFIXES = [
+    "assessment/chat/",
+    "personality/chat/",
+];
+const MIN_AI_REQUEST_INTERVAL = 450; // milliseconds
+let lastAiRequestTime = 0;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const shouldThrottleAiEndpoint = (endpoint: string) =>
+    AI_ENDPOINT_PREFIXES.some((prefix) => endpoint.startsWith(prefix));
+
 const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     const token = getToken(endpoint);
     const isFormData = options.body instanceof FormData;
@@ -45,6 +57,16 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
+
+    if (shouldThrottleAiEndpoint(endpoint)) {
+        const now = Date.now();
+        const elapsed = now - lastAiRequestTime;
+        if (elapsed < MIN_AI_REQUEST_INTERVAL) {
+            await sleep(MIN_AI_REQUEST_INTERVAL - elapsed);
+        }
+        lastAiRequestTime = Date.now();
+    }
+
     const response = await fetch(`${API_BASE_URL}/${endpoint}`, { ...options, headers });
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: `خطای ${response.status} در ارتباط با سرور` }));
