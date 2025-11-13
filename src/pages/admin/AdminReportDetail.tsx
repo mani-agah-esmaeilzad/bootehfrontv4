@@ -50,6 +50,14 @@ import { ReportPDFLayout } from "@/components/pdf/ReportPDFLayout";
 import { withRtlFields } from "@/lib/reports";
 import { cn } from "@/lib/utils";
 
+interface PhaseBreakdownEntry {
+  phase?: number;
+  personaName?: string | null;
+  prompt?: string | null;
+  analysis?: Record<string, any> | null;
+  supplementary_answers?: Record<string, any> | null;
+}
+
 interface ReportDetail {
   id: number;
   username: string;
@@ -408,6 +416,9 @@ const AdminReportDetail = () => {
     );
 
   const { analysis } = report;
+  const phaseBreakdown: PhaseBreakdownEntry[] = Array.isArray(analysis?.phase_breakdown)
+    ? (analysis.phase_breakdown as PhaseBreakdownEntry[])
+    : [];
 
   const chartData =
     analysis.factor_scores?.map((i: any) => ({
@@ -703,6 +714,7 @@ const AdminReportDetail = () => {
     "total_score",
     "overall_score",
     "confidence_level",
+    "phase_breakdown",
   ]);
 
   const analysisKeyLabels: Record<string, string> = {
@@ -724,6 +736,31 @@ const AdminReportDetail = () => {
   };
 
   const analysisEntries = Object.entries(analysis).filter(([key, value]) => value !== undefined && !hiddenAnalysisKeys.has(key));
+
+  const formatSupplementaryLabel = (key: string, index: number) => {
+    const numericMatch = key.match(/\d+/);
+    const order = numericMatch ? Number(numericMatch[0]) : index + 1;
+    return `پاسخ سوال تکمیلی ${order}`;
+  };
+
+  const renderSupplementaryAnswers = (answers?: Record<string, any> | null) => {
+    if (!answers) return null;
+    const entries = Object.entries(answers);
+    if (entries.length === 0) return null;
+    return (
+      <div className="space-y-2 rounded-2xl border border-slate-200/70 bg-slate-50/80 p-4 text-sm text-slate-600">
+        <p className="font-semibold text-slate-700">پاسخ سوالات تکمیلی</p>
+        <ul className="space-y-2">
+          {entries.map(([key, value], idx) => (
+            <li key={key}>
+              <span className="font-medium text-slate-500">{formatSupplementaryLabel(key, idx)}:&nbsp;</span>
+              <span>{String(value ?? "—")}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
 
   return (
     <div dir="rtl" className="space-y-6">
@@ -750,6 +787,111 @@ const AdminReportDetail = () => {
           </Button>
         </div>
       </div>
+
+      {phaseBreakdown.length > 0 && (
+        <section className="space-y-4 rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-lg shadow-indigo-500/10">
+          <div className="flex flex-col gap-2 text-right">
+            <h2 className="text-xl font-bold text-slate-900">تحلیل تفکیکی پرسشنامه‌ها</h2>
+            <p className="text-sm text-slate-500">
+              هر پرسشنامه بر اساس پرامپت تحلیل اختصاصی خود ارزیابی شده است. در ادامه می‌توانید خروجی و پاسخ‌های تکمیلی هر مرحله را مشاهده کنید.
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {phaseBreakdown.map((phase, index) => {
+              const phaseScore =
+                phase.analysis && typeof phase.analysis.score !== "undefined"
+                  ? toNum(phase.analysis.score)
+                  : null;
+              const factorScores = Array.isArray(phase.analysis?.factor_scores)
+                ? phase.analysis.factor_scores
+                : [];
+              const strengthsList = Array.isArray(phase.analysis?.strengths)
+                ? phase.analysis?.strengths
+                : typeof phase.analysis?.strengths === "string"
+                  ? [phase.analysis.strengths]
+                  : [];
+              const recommendationsList = Array.isArray(phase.analysis?.recommendations)
+                ? phase.analysis?.recommendations
+                : typeof phase.analysis?.recommendations === "string"
+                  ? [phase.analysis.recommendations]
+                  : [];
+              const phaseReport =
+                typeof phase.analysis?.report === "string" ? phase.analysis.report : null;
+
+              return (
+                <Card key={`phase-breakdown-${phase.phase ?? index}`} dir="rtl">
+                  <CardHeader className="space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-right">
+                        <p className="text-xs text-slate-500">پرسشنامه {phase.phase ?? index + 1}</p>
+                        <CardTitle className="text-base">
+                          {phase.personaName || `مرحله ${phase.phase ?? index + 1}`}
+                        </CardTitle>
+                      </div>
+                      {phaseScore !== null && (
+                        <Badge variant="outline" className="rounded-full border-indigo-200 text-indigo-600">
+                          امتیاز: {phaseScore}
+                        </Badge>
+                      )}
+                    </div>
+                    {phase.prompt && (
+                      <CardDescription className="text-xs text-slate-500">
+                        تحلیل براساس پرامپت اختصاصی این مرحله
+                      </CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent className="space-y-4 text-sm text-slate-600">
+                    {phaseReport && (
+                      <div className="prose prose-sm max-w-none rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                        <ReactMarkdown>{phaseReport}</ReactMarkdown>
+                      </div>
+                    )}
+                    {factorScores.length > 0 && (
+                      <div className="space-y-2 rounded-2xl border border-slate-200 bg-white/80 p-4">
+                        <p className="text-xs font-semibold text-slate-500">مولفه‌های کلیدی</p>
+                        <ul className="space-y-1">
+                          {factorScores.map((factor: any, idx2: number) => (
+                            <li
+                              key={`${phase.phase}-factor-${idx2}`}
+                              className="flex items-center justify-between"
+                            >
+                              <span>{factor.factor || factor.label || `مولفه ${idx2 + 1}`}</span>
+                              <span className="font-semibold text-slate-900">
+                                {toNum(factor.score)} / {toNum(factor.maxScore ?? maxScore)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {strengthsList.length > 0 && (
+                      <div className="space-y-2 rounded-2xl border border-emerald-100 bg-emerald-50/80 p-4">
+                        <p className="text-xs font-semibold text-emerald-600">نقاط قوت</p>
+                        <ul className="list-disc space-y-1 pr-4 text-right text-xs text-emerald-700">
+                          {strengthsList.map((item, idx2) => (
+                            <li key={`strength-${phase.phase}-${idx2}`}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {recommendationsList.length > 0 && (
+                      <div className="space-y-2 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4">
+                        <p className="text-xs font-semibold text-indigo-600">توصیه‌های ویژه</p>
+                        <ul className="list-disc space-y-1 pr-4 text-right text-xs text-indigo-700">
+                          {recommendationsList.map((item, idx2) => (
+                            <li key={`recommendation-${phase.phase}-${idx2}`}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {renderSupplementaryAnswers(phase.supplementary_answers)}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card dir="rtl">
