@@ -260,8 +260,8 @@ const AdminReports = () => {
                 </Card>
             </section>
 
-            <section className="grid gap-6 lg:grid-cols-5">
-                <Card className="lg:col-span-3">
+            <section className="flex flex-col gap-6 lg:flex-row">
+                <Card className="lg:flex-[1.8]">
                     <CardHeader>
                         <CardTitle>پراکندگی گزارش‌ها بر اساس پرسشنامه</CardTitle>
                         <CardDescription>حجم ارزیابی‌های تکمیل‌شده برای هر پرسشنامه فعال.</CardDescription>
@@ -284,7 +284,7 @@ const AdminReports = () => {
                         )}
                     </CardContent>
                 </Card>
-                <Card className="lg:col-span-2">
+                <Card className="lg:flex-1">
                     <CardHeader>
                         <CardTitle>وضعیت گزارش‌ها</CardTitle>
                         <CardDescription>رصد سریع چرخهٔ ارزیابی‌ها در وضعیت‌های مختلف.</CardDescription>
