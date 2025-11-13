@@ -774,13 +774,15 @@ const AssessmentChat = () => {
                             <AvatarImage src={avatarSrc} alt={avatarName} />
                             <AvatarFallback>{avatarName[0]}</AvatarFallback>
                           </Avatar>
+                        </div>
+                        <div className="min-h-[18px] pt-1">
                           {persona.isTyping && (
-                            <span className="absolute -bottom-2 rounded-full bg-gradient-to-r from-violet-500 to-sky-500 px-2 py-0.5 text-[10px] font-bold text-white shadow">
+                            <span className="rounded-full bg-gradient-to-r from-violet-500 to-sky-500 px-2 py-0.5 text-[10px] font-bold text-white shadow">
                               در حال تایپ
                             </span>
                           )}
                           {!persona.isTyping && persona.isSpeaking && (
-                            <span className="absolute -bottom-2 rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-violet-500 shadow">
+                            <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-violet-500 shadow">
                               در نوبت
                             </span>
                           )}
