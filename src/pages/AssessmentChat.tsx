@@ -10,11 +10,11 @@ import apiFetch from "@/services/apiService";
 import { cn } from "@/lib/utils";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
-import avatarUserMale from "@/assets/avatar1.jpg"; // کاربر (مرد)
-import avatarUserFemale from "@/assets/avatar4.jpg"; // کاربر (زن)
-import avatarUserNeutral from "@/assets/avatar5.jpg"; // کاربر (خنثی)
-import avatarProctor from "@/assets/avatar2.jpg"; // مبصر
-import avatarNarrator from "@/assets/avatar3.jpg"; // راوی
+import avatarUserMale from "@/assets/male1.jpg"; // کاربر (مرد)
+import avatarUserFemale from "@/assets/female1.jpg"; // کاربر (زن)
+import avatarUserNeutral from "@/assets/male3.jpg"; // کاربر (خنثی)
+import avatarProctor from "@/assets/male2.jpg"; // مبصر
+import avatarNarrator from "@/assets/female2.jpg"; // راوی
 
 interface ChatMessage {
   id: number;
