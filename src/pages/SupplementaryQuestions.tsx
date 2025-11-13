@@ -78,6 +78,7 @@ const SupplementaryQuestions = () => {
   const baseStateRef = useRef<StoredAssessmentState | null>(null);
 
   const activeRecordingKeyRef = useRef<"q1" | "q2" | null>(null);
+  const micWarningShownRef = useRef(false);
 
   const {
     isSupported: isSpeechSupported,
@@ -107,9 +108,15 @@ const SupplementaryQuestions = () => {
     setActiveRecordingKey(target);
   };
 
+  const warnMicUnavailableOnce = () => {
+    if (micWarningShownRef.current) return;
+    toast.error("مرورگر شما از ضبط صدا پشتیبانی نمی‌کند.");
+    micWarningShownRef.current = true;
+  };
+
   const handleToggleVoice = (target: "q1" | "q2") => {
     if (!isSpeechSupported) {
-      toast.error("مرورگر شما از ضبط صدا پشتیبانی نمی‌کند.");
+      warnMicUnavailableOnce();
       return;
     }
 

@@ -39,6 +39,8 @@ export const useSpeechRecognition = (
   const finalHandlerRef = useRef(onFinalResult);
   const partialHandlerRef = useRef(onPartialResult);
   const errorHandlerRef = useRef(onError);
+  const unsupportedHandlerRef = useRef(onUnsupported);
+  const unsupportedNotifiedRef = useRef(false);
 
   useEffect(() => {
     finalHandlerRef.current = onFinalResult;
@@ -53,6 +55,10 @@ export const useSpeechRecognition = (
   }, [onError]);
 
   useEffect(() => {
+    unsupportedHandlerRef.current = onUnsupported;
+  }, [onUnsupported]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
 
     const SpeechRecognitionClass =
@@ -60,7 +66,7 @@ export const useSpeechRecognition = (
 
     if (!SpeechRecognitionClass) {
       setIsSupported(false);
-      onUnsupported?.();
+      recognitionRef.current = null;
       return;
     }
 
@@ -90,6 +96,7 @@ export const useSpeechRecognition = (
     };
 
     recognitionRef.current = recognition;
+    unsupportedNotifiedRef.current = false;
     setIsSupported(true);
 
     return () => {
@@ -105,7 +112,13 @@ export const useSpeechRecognition = (
 
   const start = useCallback(() => {
     const recognition = recognitionRef.current;
-    if (!recognition) return false;
+    if (!recognition) {
+      if (!unsupportedNotifiedRef.current) {
+        unsupportedHandlerRef.current?.();
+        unsupportedNotifiedRef.current = true;
+      }
+      return false;
+    }
     try {
       recognition.start();
       return true;

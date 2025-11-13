@@ -78,6 +78,7 @@ const AssessmentChat = () => {
 
   const messageScrollRef = useRef<HTMLDivElement | null>(null);
   const userTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const micWarningShownRef = useRef(false);
 
   const {
     isSupported: isSpeechSupported,
@@ -88,9 +89,6 @@ const AssessmentChat = () => {
     onFinalResult: (transcript) => {
       if (!transcript) return;
       setInputValue((prev) => prev + transcript);
-    },
-    onUnsupported: () => {
-      toast.error("مرورگر شما از Speech Recognition پشتیبانی نمی‌کند.");
     },
     onError: () => {
       toast.error("خطا در ضبط صدا. لطفاً دوباره تلاش کنید.");
@@ -387,10 +385,16 @@ const AssessmentChat = () => {
     }
   };
 
+  const warnMicUnavailableOnce = () => {
+    if (micWarningShownRef.current) return;
+    toast.error("مرورگر شما از ضبط صدا پشتیبانی نمی‌کند.");
+    micWarningShownRef.current = true;
+  };
+
   const toggleRecording = () => {
     if (!hasConversationStarted) return;
     if (!isSpeechSupported) {
-      toast.error("مرورگر شما از ضبط صدا پشتیبانی نمی‌کند.");
+      warnMicUnavailableOnce();
       return;
     }
     toggleSpeechRecording();
