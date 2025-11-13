@@ -258,7 +258,7 @@ const ChartFlipCard = ({ title, front, back, className, corner = "left" }: Chart
     <Card
       dir="rtl"
       className={cn(
-        "relative min-h-[520px] overflow-hidden border border-slate-200 bg-white text-slate-900 shadow-md [perspective:2000px] md:min-h-[600px] lg:min-h-[660px]",
+        "relative w-full min-h-[520px] overflow-hidden border border-slate-200 bg-white text-slate-900 shadow-md [perspective:2000px] md:min-h-[600px] lg:min-h-[660px] 2xl:col-span-2",
         className,
       )}
     >
@@ -1164,9 +1164,9 @@ const AdminReportDetail = () => {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+      <div className="flex flex-col gap-6 lg:flex-row">
         <ChartFlipCard
-          className="lg:col-span-2 min-h-[420px]"
+          className="min-h-[420px] lg:flex-[1.6]"
           title="نمودار شایستگی‌ها"
           front={
             <div className="h-[380px]" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
@@ -1193,7 +1193,7 @@ const AdminReportDetail = () => {
             </>
           }
         />
-        <Card dir="rtl" className="lg:col-span-3">
+        <Card dir="rtl" className="lg:flex-1">
           <CardHeader className="text-right">
             <CardTitle className="text-right">تحلیل کلی</CardTitle>
           </CardHeader>
@@ -1298,8 +1298,10 @@ const AdminReportDetail = () => {
         }
       />
 
-      <h2 className="pt-4 text-2xl font-bold text-right" style={{ fontFamily: rtlFontStack }}>تحلیل‌های تکمیلی</h2>
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <h2 className="pt-4 text-2xl font-bold text-right" style={{ fontFamily: rtlFontStack }}>
+        تحلیل‌های تکمیلی
+      </h2>
+      <div className="grid grid-cols-1 gap-8 2xl:grid-cols-2">
         <ChartFlipCard
           title="۱. تحلیل احساسات"
           front={
