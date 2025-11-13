@@ -272,7 +272,7 @@ const AdminReports = () => {
                                 داده‌ای برای نمایش وجود ندارد.
                             </div>
                         ) : (
-                            <ResponsiveContainer>
+                            <ResponsiveContainer className="chart-ltr">
                                 <BarChart data={questionnaireChartData}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                                     <XAxis dataKey="name" tick={{ fontSize: 12 }} interval={0} angle={-20} textAnchor="end" height={80} />
@@ -295,7 +295,7 @@ const AdminReports = () => {
                                 داده‌ای برای نمایش وجود ندارد.
                             </div>
                         ) : (
-                            <ResponsiveContainer>
+                            <ResponsiveContainer className="chart-ltr">
                                 <PieChart>
                                     <Pie data={statusChartData} dataKey="value" nameKey="name" innerRadius={60} outerRadius={100} paddingAngle={3}>
                                         {statusChartData.map((entry, index) => (

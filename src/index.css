@@ -169,6 +169,15 @@ body,
   .admin-page .card {
     @apply rounded-3xl border border-slate-100 bg-white/85 shadow-lg shadow-indigo-500/10;
   }
+
+  .chart-ltr {
+    direction: ltr;
+  }
+
+  .chart-ltr text,
+  .chart-ltr tspan {
+    font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
 }
 
 @layer utilities {

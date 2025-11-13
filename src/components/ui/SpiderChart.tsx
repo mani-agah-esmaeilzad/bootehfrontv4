@@ -52,7 +52,7 @@ export function SpiderChart({ data }: SpiderChartProps) {
       }}
       className="mx-auto h-full w-full max-h-[420px] rounded-2xl bg-[#0b0f19] p-4 shadow-lg"
     >
-      <ResponsiveContainer>
+      <ResponsiveContainer className="chart-ltr">
         <RadarChart data={data}>
           <PolarGrid gridType="polygon" stroke="#555" strokeDasharray="3 3" radialLines />
           <PolarAngleAxis

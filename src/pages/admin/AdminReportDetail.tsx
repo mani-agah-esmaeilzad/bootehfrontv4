@@ -994,7 +994,7 @@ const AdminReportDetail = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="h-60">
-              <ResponsiveContainer>
+              <ResponsiveContainer className="chart-ltr">
                 <RadialBarChart data={radialSummaryData} innerRadius="35%" outerRadius="80%" startAngle={180} endAngle={-180}>
                   <PolarAngleAxis
                     type="number"
@@ -1207,7 +1207,7 @@ const AdminReportDetail = () => {
             {hasPowerWheelData ? (
               <>
                 <div className="h-[420px]" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer className="chart-ltr" width="100%" height="100%">
                     <RadarChart data={powerWheelData} outerRadius="75%">
                       <PolarGrid strokeDasharray="3 6" />
                       <PolarAngleAxis
@@ -1301,7 +1301,7 @@ const AdminReportDetail = () => {
               {sentimentData.length === 0 ? (
                 noData()
               ) : (
-                <ResponsiveContainer>
+                <ResponsiveContainer className="chart-ltr">
                   <PieChart>
                     <defs>
                       <radialGradient id="sentimentGradient" cx="0.5" cy="0.5" r="0.75">
@@ -1376,7 +1376,7 @@ const AdminReportDetail = () => {
               {verbosityData.length === 0 ? (
                 noData("داده‌ای برای روند گفتگو وجود ندارد.")
               ) : (
-                <ResponsiveContainer>
+                <ResponsiveContainer className="chart-ltr">
                   <LineChart data={verbosityData}>
                     <defs>
                       <linearGradient id="verbosityGradient" x1="0" y1="0" x2="0" y2="1">
@@ -1426,7 +1426,7 @@ const AdminReportDetail = () => {
               {actionData.length === 0 ? (
                 noData("داده‌ای برای مقایسه واژگان کنشی موجود نیست.")
               ) : (
-                <ResponsiveContainer>
+                <ResponsiveContainer className="chart-ltr">
                   <BarChart data={actionData} barSize={32}>
                     <CartesianGrid stroke={chartGridColor} />
                     <XAxis dataKey="name" {...axisProps} />
@@ -1472,7 +1472,7 @@ const AdminReportDetail = () => {
               {problemSolvingData.length === 0 ? (
                 noData("داده‌ای از رویکرد حل مسئله ثبت نشده است.")
               ) : (
-                <ResponsiveContainer>
+                <ResponsiveContainer className="chart-ltr">
                   <PieChart>
                     <Pie
                       data={problemSolvingData}
@@ -1561,7 +1561,7 @@ const AdminReportDetail = () => {
               {commStyle.length === 0 ? (
                 noData("تحلیلی برای سبک ارتباطی موجود نیست.")
               ) : (
-                <ResponsiveContainer>
+                <ResponsiveContainer className="chart-ltr">
                   <BarChart data={commStyle} barCategoryGap={20}>
                     <CartesianGrid stroke={chartGridColor} vertical={false} />
                     <XAxis dataKey="name" {...axisProps} />
@@ -1597,7 +1597,7 @@ const AdminReportDetail = () => {
               {chartData.length === 0 ? (
                 noData("داده‌ای برای نمرات فاکتور‌ها موجود نیست.")
               ) : (
-                <ResponsiveContainer>
+                <ResponsiveContainer className="chart-ltr">
                   <AreaChart data={chartData}>
                     <defs>
                       <linearGradient id="scoreArea" x1="0" y1="0" x2="0" y2="1">
@@ -1640,7 +1640,7 @@ const AdminReportDetail = () => {
               {chartData.length === 0 ? (
                 noData()
               ) : (
-                <ResponsiveContainer>
+                <ResponsiveContainer className="chart-ltr">
                   <ScatterChart>
                     <CartesianGrid stroke={chartGridColor} />
                     <XAxis dataKey="score" name="امتیاز" {...axisProps} />
@@ -1679,7 +1679,7 @@ const AdminReportDetail = () => {
               {chartData.length === 0 ? (
                 noData()
               ) : (
-                <ResponsiveContainer>
+                <ResponsiveContainer className="chart-ltr">
                   <Treemap data={chartData} dataKey="score" nameKey="subject" stroke="#fff" fill="#6366f1" />
                 </ResponsiveContainer>
               )}
@@ -1703,7 +1703,7 @@ const AdminReportDetail = () => {
               {semanticRadar.every((entry) => !entry.value) ? (
                 noData("شاخص‌های زبانی محاسبه نشده‌اند.")
               ) : (
-                <ResponsiveContainer>
+                <ResponsiveContainer className="chart-ltr">
                   <RadarChart data={semanticRadar} outerRadius="75%">
                     <PolarGrid stroke={chartGridColor} />
                     <PolarAngleAxis dataKey="name" tick={{ fill: "#475569", fontSize: 11 }} />
@@ -1739,7 +1739,7 @@ const AdminReportDetail = () => {
               {pronouns.every((entry) => !entry.value) ? (
                 noData("تحلیلی از ضمایر یافت نشد.")
               ) : (
-                <ResponsiveContainer>
+                <ResponsiveContainer className="chart-ltr">
                   <PieChart>
                     <Pie
                       data={pronouns}
@@ -1784,7 +1784,7 @@ const AdminReportDetail = () => {
               {semanticFields.length === 0 ? (
                 noData("حوزه معنایی شناسایی نشد.")
               ) : (
-                <ResponsiveContainer>
+                <ResponsiveContainer className="chart-ltr">
                   <BarChart data={semanticFields} layout="vertical" barCategoryGap={20}>
                     <CartesianGrid stroke={chartGridColor} horizontal={false} />
                     <XAxis type="number" {...axisProps} />
@@ -1822,7 +1822,7 @@ const AdminReportDetail = () => {
               ) : (
                 <>
                   <div className="relative h-full">
-                    <ResponsiveContainer>
+                    <ResponsiveContainer className="chart-ltr">
                       <PieChart>
                         <defs>
                           <filter id="gaugeShadow" x="-20%" y="-20%" width="140%" height="140%">
@@ -1914,7 +1914,7 @@ const AdminReportDetail = () => {
               {scatterLineData.length === 0 ? (
                 noData("داده‌ای برای روند پیشرفت در دسترس نیست.")
               ) : (
-                <ResponsiveContainer>
+                <ResponsiveContainer className="chart-ltr">
                   <ComposedChart data={scatterLineData} margin={{ top: 10, right: 16, left: 0, bottom: 10 }}>
                     <defs>
                       <linearGradient id="trendArea" x1="0" x2="0" y1="0" y2="1">
