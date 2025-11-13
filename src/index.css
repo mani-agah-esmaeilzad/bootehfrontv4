@@ -173,14 +173,13 @@ body,
   .chart-ltr {
     direction: ltr;
     width: 100%;
-    min-height: 280px;
-    height: 320px;
+    height: 100%;
+    min-height: 320px;
   }
 
   @media (min-width: 768px) {
     .chart-ltr {
-      min-height: 340px;
-      height: 360px;
+      min-height: 380px;
     }
   }
 

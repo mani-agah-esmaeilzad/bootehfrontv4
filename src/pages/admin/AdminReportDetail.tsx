@@ -255,7 +255,13 @@ const ChartFlipCard = ({ title, front, back, className, corner = "left" }: Chart
   const cornerPosition = corner === "right" ? "right-2" : "left-2";
 
   return (
-    <Card dir="rtl" className={cn("relative min-h-[360px] overflow-hidden border border-slate-200 bg-white text-slate-900 shadow-md [perspective:2000px]", className)}>
+    <Card
+      dir="rtl"
+      className={cn(
+        "relative min-h-[420px] overflow-hidden border border-slate-200 bg-white text-slate-900 shadow-md [perspective:2000px] md:min-h-[480px] lg:min-h-[520px]",
+        className,
+      )}
+    >
       <button
         type="button"
         onClick={() => setFlipped((prev) => !prev)}
@@ -284,7 +290,7 @@ const ChartFlipCard = ({ title, front, back, className, corner = "left" }: Chart
           </CardHeader>
           <CardContent className="flex-1" style={{ direction: "rtl" }}>
             <div
-              className="relative h-full overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 p-4 shadow-inner"
+              className="relative h-full min-h-[360px] overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 p-4 shadow-inner"
               dir="rtl"
               style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}
             >
@@ -304,7 +310,7 @@ const ChartFlipCard = ({ title, front, back, className, corner = "left" }: Chart
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto" style={{ direction: "rtl" }}>
             <div
-              className="relative h-full space-y-3 rounded-3xl border border-slate-200 bg-white p-5 text-right text-sm leading-7 text-slate-700 shadow-inner"
+              className="relative h-full min-h-[360px] space-y-3 rounded-3xl border border-slate-200 bg-white p-5 text-right text-sm leading-7 text-slate-700 shadow-inner"
               dir="rtl"
               style={{ fontFamily: rtlFontStack, direction: "rtl", unicodeBidi: "plaintext" as const }}
             >
