@@ -998,8 +998,8 @@ const AdminReportDetail = () => {
               مقایسه امتیاز کلی گزارش و شاخص اطمینان در قالب نمودار حلقه‌ای.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="h-60">
+          <CardContent className="flex flex-col gap-6 lg:flex-row lg:items-center">
+            <div className="flex-1 min-h-[420px]">
               <ResponsiveContainer className="chart-ltr">
                 <RadialBarChart data={radialSummaryData} innerRadius="35%" outerRadius="80%" startAngle={180} endAngle={-180}>
                   <PolarAngleAxis
@@ -1023,13 +1023,19 @@ const AdminReportDetail = () => {
                 </RadialBarChart>
               </ResponsiveContainer>
             </div>
-            <div className="flex flex-col items-end gap-2 text-xs text-slate-600" style={{ fontFamily: rtlFontStack }}>
-              {radialSummaryData.map((entry) => (
-                <div key={`legend-${entry.name}`} className="flex items-center gap-2">
-                  <span className="inline-flex h-2.5 w-2.5 rounded-full" style={{ backgroundColor: entry.fill }} />
-                  <span>{`${entry.name} — ${entry.value.toFixed(1)}%`}</span>
-                </div>
-              ))}
+            <div className="w-full rounded-3xl border border-slate-200 bg-white/70 p-4 text-xs text-slate-600 shadow-inner lg:w-64" style={{ fontFamily: rtlFontStack }}>
+              <p className="mb-3 text-sm font-semibold text-slate-700">توضیح شاخص‌ها</p>
+              <div className="space-y-2">
+                {radialSummaryData.map((entry) => (
+                  <div key={`legend-${entry.name}`} className="flex items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-2">
+                      <span className="inline-flex h-2.5 w-2.5 rounded-full" style={{ backgroundColor: entry.fill }} />
+                      <span>{entry.name}</span>
+                    </span>
+                    <span className="font-semibold text-slate-900">{entry.value.toFixed(1)}%</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>
