@@ -1,7 +1,6 @@
 // src/pages/admin/AdminUsers.tsx
 import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LoaderCircle, ArrowLeft, Upload, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -113,75 +112,91 @@ const AdminUsers = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 p-8">
-            <div className="max-w-5xl mx-auto">
-                <header className="flex items-center justify-between gap-4 mb-8">
-                    <div className="flex items-center gap-4">
-                        <Button onClick={() => navigate('/admin/dashboard')} variant="outline" size="icon">
-                            <ArrowLeft className="h-4 w-4" />
-                        </Button>
-                        <h1 className="text-3xl font-bold">لیست کاربران سیستم</h1>
-                    </div>
+        <div className="admin-page">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="space-y-1">
+                    <h1 className="text-2xl font-bold text-white">کاربران سیستم</h1>
+                    <p className="text-sm text-white/70">مدیریت وضعیت دسترسی و مشاهده جزئیات پروفایل‌ها.</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                    <Button
+                        variant="outline"
+                        className="rounded-2xl border-white/30 bg-white/10 text-white hover:bg-white/20"
+                        onClick={() => navigate('/admin/dashboard')}
+                    >
+                        <ArrowLeft className="ml-2 h-4 w-4" />
+                        بازگشت
+                    </Button>
                     <div>
                         <Input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".xlsx, .xls" />
-                        <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+                        <Button
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isUploading}
+                            className="rounded-2xl bg-white text-slate-900 shadow-md shadow-indigo-500/10"
+                        >
                             <Upload className="ml-2 h-4 w-4" />
                             {isUploading ? 'در حال آپلود...' : 'آپلود گروهی'}
                         </Button>
                     </div>
-                </header>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>کاربران ثبت‌نام شده</CardTitle>
-                        <CardDescription>برای مشاهده جزئیات کامل، روی هر کاربر کلیک کنید.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {isLoading ? (
-                            <div className="text-center py-16">
-                                <LoaderCircle className="mx-auto h-12 w-12 animate-spin text-gray-400" />
-                            </div>
-                        ) : (
-                            <div className="border rounded-md">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>نام کامل</TableHead>
-                                            <TableHead>ایمیل</TableHead>
-                                            <TableHead className="text-center">وضعیت</TableHead>
-                                            <TableHead className="text-center">فعال/غیرفعال</TableHead>
-                                            <TableHead className="text-center">عملیات</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {users.map((user) => (
+                </div>
+            </div>
+
+            <section className="admin-surface space-y-6">
+                {isLoading ? (
+                    <div className="py-16 text-center">
+                        <LoaderCircle className="mx-auto h-12 w-12 animate-spin text-slate-400" />
+                        <p className="mt-4 text-sm text-slate-500">در حال بارگذاری کاربران...</p>
+                    </div>
+                ) : (
+                    <div className="overflow-hidden rounded-3xl border border-slate-100">
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-slate-50">
+                                        <TableHead>نام کامل</TableHead>
+                                        <TableHead>ایمیل</TableHead>
+                                        <TableHead className="text-center">وضعیت</TableHead>
+                                        <TableHead className="text-center">فعال/غیرفعال</TableHead>
+                                        <TableHead className="text-center">عملیات</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {users.map((user) => (
                                         <TableRow
                                             key={user.id}
-                                            className="cursor-pointer hover:bg-gray-50"
+                                            className="cursor-pointer transition hover:bg-indigo-50/60"
                                             onClick={() => navigate(`/admin/users/${user.id}`)}
                                         >
-                                                <TableCell>
-                                                    <div className="font-medium">{user.first_name} {user.last_name}</div>
-                                                    <div className="text-sm text-muted-foreground">{user.username}</div>
+                                            <TableCell>
+                                                <div className="font-semibold text-slate-900">
+                                                    {user.first_name} {user.last_name}
+                                                </div>
+                                                <div className="text-xs text-slate-500">@{user.username}</div>
                                             </TableCell>
-                                            <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                                            <TableCell className="text-slate-500">{user.email}</TableCell>
                                             <TableCell className="text-center">
                                                 <Badge variant={user.is_active ? "default" : "destructive"}>
                                                     {user.is_active ? "فعال" : "غیرفعال"}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                                                <Switch 
-                                                    checked={user.is_active} 
-                                                    onCheckedChange={() => handleToggleUserStatus(user.id, user.is_active)} 
+                                                <Switch
+                                                    checked={user.is_active}
+                                                    onCheckedChange={() => handleToggleUserStatus(user.id, user.is_active)}
                                                 />
                                             </TableCell>
                                             <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                                                 <Button
                                                     variant="destructive"
                                                     size="sm"
-                                                    className="gap-2"
+                                                    className="gap-2 rounded-full"
                                                     disabled={deletingUserId === user.id}
-                                                    onClick={() => handleDeleteUser(user.id, `${user.first_name} ${user.last_name}`.trim() || user.username)}
+                                                    onClick={() =>
+                                                        handleDeleteUser(
+                                                            user.id,
+                                                            `${user.first_name} ${user.last_name}`.trim() || user.username
+                                                        )
+                                                    }
                                                 >
                                                     {deletingUserId === user.id ? (
                                                         <LoaderCircle className="h-4 w-4 animate-spin" />
@@ -195,11 +210,10 @@ const AdminUsers = () => {
                                     ))}
                                 </TableBody>
                             </Table>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
+                        </div>
+                    </div>
+                )}
+            </section>
         </div>
     );
 };

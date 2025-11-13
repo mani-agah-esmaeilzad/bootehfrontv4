@@ -1,7 +1,6 @@
 // src/pages/admin/AdminOrganizations.tsx
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LoaderCircle, ArrowLeft, PlusCircle, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import {
@@ -191,65 +190,92 @@ const AdminOrganizations = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 p-8">
-            <div className="max-w-6xl mx-auto">
-                <header className="flex items-center justify-between gap-4 mb-8">
-                    <div className="flex items-center gap-4">
-                        <Button onClick={() => navigate('/admin/dashboard')} variant="outline" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
-                        <h1 className="text-3xl font-bold">مدیریت پنل‌های سازمانی</h1>
-                    </div>
-                    {/* استفاده از کامپوننت مودال */}
+        <div className="admin-page">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="space-y-1">
+                    <h1 className="text-2xl font-bold text-white">پنل‌های سازمانی</h1>
+                    <p className="text-sm text-white/70">مدیریت سازمان‌ها، دسترسی کاربران و انتساب پرسشنامه‌ها.</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                    <Button
+                        variant="outline"
+                        className="rounded-2xl border-white/30 bg-white/10 text-white hover:bg-white/20"
+                        onClick={() => navigate('/admin/dashboard')}
+                    >
+                        <ArrowLeft className="ml-2 h-4 w-4" />
+                        بازگشت
+                    </Button>
                     <NewOrganizationModal onOrganizationCreated={fetchOrganizations} />
-                </header>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>لیست سازمان‌ها</CardTitle>
-                        <CardDescription>تمام پنل‌های سازمانی ایجاد شده در این لیست نمایش داده می‌شوند.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {isLoading ? (
-                            <div className="text-center py-16"><LoaderCircle className="mx-auto h-12 w-12 animate-spin text-gray-400" /></div>
-                        ) : (
-                            <div className="border rounded-md">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>نام سازمان</TableHead>
-                                            <TableHead>آدرس یونیک (Slug)</TableHead>
-                                            <TableHead className="text-center">کاربران</TableHead>
-                                            <TableHead className="text-center">ارزیابی‌ها</TableHead>
-                                            <TableHead className="text-center">تاریخ ایجاد</TableHead>
-                                            <TableHead className="text-center">عملیات</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {organizations.length > 0 ? organizations.map((org) => (
-                                            <TableRow key={org.id}>
-                                                <TableCell className="font-medium">{org.name}</TableCell>
-                                                <TableCell className="text-muted-foreground text-left" dir="ltr">{org.slug}</TableCell>
+                </div>
+            </div>
+
+            <section className="admin-surface space-y-6">
+                {isLoading ? (
+                    <div className="py-16 text-center">
+                        <LoaderCircle className="mx-auto h-12 w-12 animate-spin text-slate-400" />
+                        <p className="mt-3 text-sm text-slate-500">در حال بارگذاری فهرست سازمان‌ها...</p>
+                    </div>
+                ) : (
+                    <div className="overflow-hidden rounded-3xl border border-slate-100">
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-slate-50">
+                                        <TableHead>نام سازمان</TableHead>
+                                        <TableHead>Slug</TableHead>
+                                        <TableHead className="text-center">کاربران</TableHead>
+                                        <TableHead className="text-center">پرسشنامه‌ها</TableHead>
+                                        <TableHead className="text-center">تاریخ ایجاد</TableHead>
+                                        <TableHead className="text-center">عملیات</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {organizations.length > 0 ? (
+                                        organizations.map((org) => (
+                                            <TableRow key={org.id} className="transition hover:bg-indigo-50/60">
+                                                <TableCell className="font-semibold text-slate-900">{org.name}</TableCell>
+                                                <TableCell className="text-left text-slate-500" dir="ltr">
+                                                    {org.slug}
+                                                </TableCell>
                                                 <TableCell className="text-center">{org.user_count}</TableCell>
                                                 <TableCell className="text-center">{org.questionnaire_count}</TableCell>
-                                                <TableCell className="text-center">{new Date(org.created_at).toLocaleDateString('fa-IR')}</TableCell>
+                                                <TableCell className="text-center">
+                                                    {new Date(org.created_at).toLocaleDateString('fa-IR')}
+                                                </TableCell>
                                                 <TableCell className="text-center">
                                                     <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild><Button variant="ghost" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" className="h-8 w-8 rounded-full p-0 text-slate-500 hover:text-slate-900">
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem onClick={() => navigate(`/admin/organizations/edit/${org.id}`)}><Pencil className="ml-2 h-4 w-4" /> ویرایش</DropdownMenuItem>
-                                                            <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(org.id)}><Trash2 className="ml-2 h-4 w-4" /> حذف</DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => navigate(`/admin/organizations/edit/${org.id}`)}>
+                                                                <Pencil className="ml-2 h-4 w-4" />
+                                                                ویرایش
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(org.id)}>
+                                                                <Trash2 className="ml-2 h-4 w-4" />
+                                                                حذف
+                                                            </DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
                                                 </TableCell>
                                             </TableRow>
-                                        )) : (
-                                            <TableRow><TableCell colSpan={6} className="text-center h-24">هیچ سازمانی یافت نشد. برای شروع، یک سازمان جدید ایجاد کنید.</TableCell></TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="h-24 text-center text-slate-500">
+                                                هیچ سازمانی یافت نشد. از دکمه ایجاد سازمان جدید استفاده کنید.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </div>
+                )}
+            </section>
         </div>
     );
 };

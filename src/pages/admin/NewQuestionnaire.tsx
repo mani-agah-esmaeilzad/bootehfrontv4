@@ -98,17 +98,25 @@ const NewQuestionnaire = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-4 mb-8">
-            <Button onClick={() => navigate('/admin/questionnaires')} variant="outline" size="icon">
-                <ArrowRight className="h-4 w-4" />
-            </Button>
-            <h1 className="text-3xl font-bold">ایجاد پرسشنامه جدید</h1>
+    <div className="admin-page">
+      <div className="mx-auto w-full max-w-4xl space-y-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-bold text-white">ایجاد پرسشنامه جدید</h1>
+            <p className="text-sm text-white/70">پیکربندی کامل پیام‌ها و شخصیت‌های گفتگو.</p>
+          </div>
+          <Button
+            onClick={() => navigate('/admin/questionnaires')}
+            variant="outline"
+            className="rounded-2xl border-white/30 bg-white/10 text-white hover:bg-white/20"
+          >
+            <ArrowRight className="ml-2 h-4 w-4" />
+            بازگشت
+          </Button>
         </div>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <Card>
+            <Card className="rounded-3xl border border-slate-100 bg-white/85 shadow-lg shadow-indigo-500/10">
               <CardHeader>
                 <CardTitle>اطلاعات اصلی پرسشنامه</CardTitle>
               </CardHeader>
@@ -138,7 +146,7 @@ const NewQuestionnaire = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="rounded-3xl border border-slate-100 bg-white/85 shadow-lg shadow-indigo-500/10">
               <CardHeader>
                 <CardTitle>شخصیت AI اصلی (مشاور)</CardTitle>
                 <CardDescription>این AI مکالمه اصلی را با کاربر پیش می‌برد.</CardDescription>
@@ -150,7 +158,7 @@ const NewQuestionnaire = () => {
             </Card>
 
             {/* ✅ بخش جدید برای AI دوم با ظاهر هماهنگ */}
-            <Card>
+            <Card className="rounded-3xl border border-slate-100 bg-white/85 shadow-lg shadow-indigo-500/10">
               <CardHeader>
                 <CardTitle>شخصیت AI دوم (ناظر - اختیاری)</CardTitle>
                 <CardDescription>این AI می‌تواند مکالمه را مشاهده و در صورت نیاز مداخله کند. اگر نام نقش خالی باشد، این AI غیرفعال خواهد بود.</CardDescription>
@@ -161,7 +169,7 @@ const NewQuestionnaire = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="rounded-3xl border border-slate-100 bg-white/85 shadow-lg shadow-indigo-500/10">
               <CardHeader>
                 <CardTitle>مرحله دوم (اختیاری)</CardTitle>
                 <CardDescription>اگر ارزیابی شما باید دو گفتگوی جدا (با سوالات تکمیلی مجزا) داشته باشد، این مرحله را فعال کنید.</CardDescription>
@@ -242,7 +250,7 @@ const NewQuestionnaire = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="rounded-3xl border border-slate-100 bg-white/85 shadow-lg shadow-indigo-500/10">
               <CardHeader>
                 <CardTitle>تنظیمات نهایی</CardTitle>
               </CardHeader>
@@ -256,9 +264,14 @@ const NewQuestionnaire = () => {
             </Card>
 
             <div className="flex justify-end">
-                <Button type="submit" disabled={form.formState.isSubmitting} size="lg">
-                  {form.formState.isSubmitting ? <LoaderCircle className="animate-spin" /> : "ایجاد پرسشنامه"}
-                </Button>
+              <Button
+                type="submit"
+                disabled={form.formState.isSubmitting}
+                size="lg"
+                className="w-full rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-500 px-8 py-6 font-semibold text-white shadow-xl shadow-indigo-500/20 hover:opacity-90 sm:w-auto"
+              >
+                {form.formState.isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : "ایجاد پرسشنامه"}
+              </Button>
             </div>
           </form>
         </Form>

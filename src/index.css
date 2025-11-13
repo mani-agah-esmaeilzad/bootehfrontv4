@@ -148,6 +148,29 @@ body,
     direction: rtl;
   }
 }
+
+@layer components {
+  .admin-page {
+    @apply flex flex-col gap-8;
+  }
+
+  .admin-surface {
+    @apply rounded-3xl border border-white/10 bg-white/80 p-6 shadow-xl shadow-indigo-500/10 backdrop-blur-lg;
+  }
+
+  .admin-surface-muted {
+    @apply rounded-3xl border border-white/5 bg-white/5 p-6 text-white/80 shadow-inner shadow-indigo-500/5;
+  }
+
+  .admin-section-title {
+    @apply text-sm font-semibold uppercase tracking-wide text-white/60;
+  }
+
+  .admin-page .card {
+    @apply rounded-3xl border border-slate-100 bg-white/85 shadow-lg shadow-indigo-500/10;
+  }
+}
+
 @layer utilities {
   @keyframes avatar-wiggle {
     0%,

@@ -61,24 +61,43 @@ const AdminUserDetail = () => {
     }, [id]);
 
     if (isLoading) {
-        return <div className="flex justify-center items-center h-screen"><LoaderCircle className="animate-spin h-12 w-12" /></div>;
+        return (
+            <div className="admin-page">
+                <div className="admin-surface text-center">
+                    <LoaderCircle className="mx-auto h-12 w-12 animate-spin text-slate-400" />
+                    <p className="mt-4 text-sm text-slate-500">در حال بارگذاری جزئیات کاربر...</p>
+                </div>
+            </div>
+        );
     }
 
     if (!user) {
-        return <div className="text-center py-16 text-red-600">اطلاعات این کاربر یافت نشد.</div>;
+        return (
+            <div className="admin-page">
+                <div className="admin-surface text-center text-red-500">اطلاعات این کاربر یافت نشد.</div>
+            </div>
+        );
     }
 
     return (
-        <div className="min-h-screen bg-gray-100 p-8">
-            <div className="max-w-4xl mx-auto">
-                <header className="flex items-center gap-4 mb-8">
-                    <Button onClick={() => navigate('/admin/users')} variant="outline" size="icon">
-                        <ArrowLeft className="h-4 w-4" />
+        <div className="admin-page">
+            <div className="mx-auto w-full max-w-4xl space-y-8">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="space-y-1">
+                        <h1 className="text-2xl font-bold text-white">جزئیات کاربر</h1>
+                        <p className="text-sm text-white/70">نمای کلی اطلاعات پروفایل و وضعیت حساب.</p>
+                    </div>
+                    <Button
+                        onClick={() => navigate('/admin/users')}
+                        variant="outline"
+                        className="rounded-2xl border-white/30 bg-white/10 text-white hover:bg-white/20"
+                    >
+                        <ArrowLeft className="ml-2 h-4 w-4" />
+                        بازگشت
                     </Button>
-                    <h1 className="text-3xl font-bold">جزئیات کاربر</h1>
-                </header>
+                </div>
 
-                <Card>
+                <Card className="rounded-3xl border border-slate-100 bg-white/85 shadow-lg shadow-indigo-500/10">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-2xl">
                             <User className="h-6 w-6" />
