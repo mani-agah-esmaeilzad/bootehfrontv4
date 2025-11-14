@@ -498,7 +498,7 @@ const Index = () => {
                   </span>
                   <span className="inline-flex items-center gap-2 rounded-full border border-purple-200/70 px-4 py-2">
                     <UsersRound className="h-4 w-4 text-purple-500" />
-                    گیمیفیکشن
+                    گیمیفیکیشن
                   </span>
                   <span className="inline-flex items-center gap-2 rounded-full border border-purple-200/70 px-4 py-2">
                     <ShieldCheck className="h-4 w-4 text-purple-500" />
