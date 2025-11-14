@@ -1,5 +1,5 @@
 // src/pages/AssessmentChat.tsx
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,6 +109,10 @@ const AssessmentChat = () => {
   const userTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const responseLockIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const micWarningShownRef = useRef(false);
+  const isResponseLocked = responseLockRemaining > 0;
+  const startResponseLock = useCallback(() => {
+    setResponseLockRemaining(RESPONSE_LOCK_DURATION_SECONDS);
+  }, []);
 
   const {
     isSupported: isSpeechSupported,
@@ -378,7 +382,6 @@ const AssessmentChat = () => {
 
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
-    setResponseLockRemaining(RESPONSE_LOCK_DURATION_SECONDS);
     setActiveTyping(DEFAULT_PERSONA_NAME);
     setIsUserTyping(false);
     if (userTypingTimeoutRef.current) {
@@ -404,6 +407,7 @@ const AssessmentChat = () => {
       const aiMessages = extractAiMessages(response);
       if (aiMessages.length > 0) {
         setMessages((prev) => [...prev, ...aiMessages]);
+        startResponseLock();
       }
 
       if (response.data?.isComplete) {
@@ -449,7 +453,6 @@ const AssessmentChat = () => {
     toast.error("مرورگر شما از ضبط صدا پشتیبانی نمی‌کند.");
     micWarningShownRef.current = true;
   };
-  const isResponseLocked = responseLockRemaining > 0;
 
   const toggleRecording = () => {
     if (!hasConversationStarted || isResponseLocked) return;
@@ -509,6 +512,7 @@ const AssessmentChat = () => {
       if (aiMessages.length > 0) {
         setMessages(aiMessages);
         setHasConversationStarted(true);
+        startResponseLock();
         requestAnimationFrame(() => {
           const container = messageScrollRef.current;
           if (container) {

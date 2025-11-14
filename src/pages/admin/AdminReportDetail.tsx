@@ -1366,7 +1366,7 @@ const AdminReportDetail = () => {
           }
         />
         <ChartFlipCard
-          title="۲. کلمات کلیدی"
+          title="۲.  ابر واژگان"
           front={
             <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               <KeywordWordCloud data={keywordData} />
