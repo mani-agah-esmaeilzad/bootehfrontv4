@@ -39,6 +39,7 @@ interface AssessmentState {
 
 const DEFAULT_PERSONA_NAME = "راوی";
 const LEGACY_PERSONA_NAME = "مشاور";
+const RESPONSE_LOCK_DURATION_SECONDS = 3;
 
 const normalizePersonaName = (value?: string | null) => {
   if (!value) return DEFAULT_PERSONA_NAME;
@@ -77,6 +78,7 @@ const AssessmentChat = () => {
   const [isHistoryView, setIsHistoryView] = useState(false);
   const [hasConversationStarted, setHasConversationStarted] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [responseLockRemaining, setResponseLockRemaining] = useState(0);
   const userAvatarSrc = useMemo(
     () => resolveUserAvatarByGender(assessmentState?.userGender),
     [assessmentState?.userGender]
@@ -105,6 +107,7 @@ const AssessmentChat = () => {
 
   const messageScrollRef = useRef<HTMLDivElement | null>(null);
   const userTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const responseLockIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const micWarningShownRef = useRef(false);
 
   const {
@@ -149,6 +152,30 @@ const AssessmentChat = () => {
     if (!container) return;
     container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
   }, [messages, isHistoryView]);
+
+  useEffect(() => {
+    if (responseLockRemaining <= 0) {
+      if (responseLockIntervalRef.current) {
+        clearInterval(responseLockIntervalRef.current);
+        responseLockIntervalRef.current = null;
+      }
+      return;
+    }
+    responseLockIntervalRef.current = setInterval(() => {
+      setResponseLockRemaining((prev) => {
+        if (prev <= 1) {
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (responseLockIntervalRef.current) {
+        clearInterval(responseLockIntervalRef.current);
+        responseLockIntervalRef.current = null;
+      }
+    };
+  }, [responseLockRemaining]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -340,7 +367,7 @@ const AssessmentChat = () => {
   };
 
   const handleSendMessage = async () => {
-    if (!hasConversationStarted || !inputValue.trim() || !assessmentState) return;
+    if (!hasConversationStarted || !inputValue.trim() || !assessmentState || isResponseLocked) return;
 
     const userMessage: ChatMessage = {
       id: Date.now(),
@@ -351,6 +378,7 @@ const AssessmentChat = () => {
 
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
+    setResponseLockRemaining(RESPONSE_LOCK_DURATION_SECONDS);
     setActiveTyping(DEFAULT_PERSONA_NAME);
     setIsUserTyping(false);
     if (userTypingTimeoutRef.current) {
@@ -421,9 +449,10 @@ const AssessmentChat = () => {
     toast.error("مرورگر شما از ضبط صدا پشتیبانی نمی‌کند.");
     micWarningShownRef.current = true;
   };
+  const isResponseLocked = responseLockRemaining > 0;
 
   const toggleRecording = () => {
-    if (!hasConversationStarted) return;
+    if (!hasConversationStarted || isResponseLocked) return;
     if (!isSpeechSupported) {
       warnMicUnavailableOnce();
       return;
@@ -807,38 +836,74 @@ const AssessmentChat = () => {
                 className={cn(
                   "h-11 w-11 rounded-full border border-slate-200 bg-slate-100 text-slate-600 transition-all duration-300 hover:scale-105 hover:bg-slate-200 sm:h-12 sm:w-12",
                   isRecording && "border-sky-300 bg-sky-50 text-sky-600 shadow-[0_10px_25px_-15px_rgba(56,189,248,1)]",
-                  !hasConversationStarted && "cursor-not-allowed opacity-60"
+                  (!hasConversationStarted || isResponseLocked) && "cursor-not-allowed opacity-60"
                 )}
-                disabled={!hasConversationStarted}
+                disabled={!hasConversationStarted || isResponseLocked}
               >
                 <Mic className="h-5 w-5" />
               </Button>
-              <Input
-                value={inputValue}
-                onChange={(e) => handleInputChange(e.target.value)}
-                onBlur={handleInputBlur}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSendMessage();
-                }}
-                placeholder={
-                  hasConversationStarted
-                    ? "اینجا بنویسید تا حلقه گفتگو ادامه یابد..."
-                    : "برای شروع گفتگو روی «شروع کنیم» بزنید"
-                }
-                className={cn(
-                  "h-11 flex-1 rounded-full border-none bg-transparent text-right text-sm text-slate-600 focus-visible:ring-0 sm:h-12",
-                  !hasConversationStarted && "cursor-not-allowed opacity-60"
+              <div className="relative flex-1">
+                <Input
+                  value={inputValue}
+                  onChange={(e) => handleInputChange(e.target.value)}
+                  onBlur={handleInputBlur}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSendMessage();
+                  }}
+                  placeholder={
+                    hasConversationStarted
+                      ? "اینجا بنویسید تا حلقه گفتگو ادامه یابد..."
+                      : "برای شروع گفتگو روی «شروع کنیم» بزنید"
+                  }
+                  className={cn(
+                    "h-11 w-full rounded-full border-none bg-transparent text-right text-sm text-slate-600 focus-visible:ring-0 sm:h-12",
+                    (!hasConversationStarted || isResponseLocked) && "cursor-not-allowed opacity-60"
+                  )}
+                  disabled={!hasConversationStarted || isResponseLocked}
+                />
+                {isResponseLocked && (
+                  <div className="absolute inset-y-0 left-2 flex items-center">
+                    <div className="relative h-9 w-9">
+                      <svg className="h-9 w-9 -rotate-90 text-slate-200" viewBox="0 0 36 36">
+                        <circle cx="18" cy="18" r="14" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="14"
+                          stroke="url(#responseLockGradient)"
+                          strokeWidth="4"
+                          strokeLinecap="round"
+                          fill="none"
+                          strokeDasharray={2 * Math.PI * 14}
+                          strokeDashoffset={
+                            ((RESPONSE_LOCK_DURATION_SECONDS - responseLockRemaining) / RESPONSE_LOCK_DURATION_SECONDS) *
+                            2 *
+                            Math.PI *
+                            14
+                          }
+                        />
+                        <defs>
+                          <linearGradient id="responseLockGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#7c3aed" />
+                            <stop offset="100%" stopColor="#38bdf8" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-slate-600">
+                        {responseLockRemaining}
+                      </div>
+                    </div>
+                  </div>
                 )}
-                disabled={!hasConversationStarted}
-              />
+              </div>
               <Button
                 onClick={handleSendMessage}
                 size="icon"
                 className={cn(
                   "h-11 w-11 rounded-full bg-gradient-to-br from-violet-500 to-sky-500 text-white shadow-lg transition-all duration-300 hover:scale-105 hover:from-violet-500 hover:to-sky-400 sm:h-12 sm:w-12",
-                  !hasConversationStarted && "cursor-not-allowed opacity-60 hover:scale-100"
+                  (!hasConversationStarted || isResponseLocked) && "cursor-not-allowed opacity-60 hover:scale-100"
                 )}
-                disabled={!hasConversationStarted}
+                disabled={!hasConversationStarted || isResponseLocked}
               >
                 <Send className="h-5 w-5" />
               </Button>
