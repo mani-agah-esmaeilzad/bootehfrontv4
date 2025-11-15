@@ -279,25 +279,23 @@ const hydrateAnalysis = (raw: any) => {
   const fixToArray = (fieldName: string) => {
     const val = base[fieldName];
     if (val && !Array.isArray(val) && typeof val === "object") {
-
       base[fieldName] = Object.entries(val).map(([key, value]) => {
         const score = toNum(value);
         const maxScore = 5;
-
         return {
           factor: key,
           name: key,
           subject: key,
           score,
           maxScore,
-          fullMark: score === 0 ? 1 : score,
+          fullMark: maxScore,  // 🔥 درست شد
           size: score,
           value: score,
         };
       });
-
     }
   };
+
 
   fixToArray("factor_scatter");
   fixToArray("factor_contribution");
@@ -326,23 +324,23 @@ const normalizeFactorEntries = (input: unknown): any[] => {
 
         const score = toNum(
           record.score ??
-          record.value ??
-          record.actual ??
-          record.current ??
-          record.raw ??
-          record.scoreValue
+            record.value ??
+            record.actual ??
+            record.current ??
+            record.raw ??
+            record.scoreValue
         );
 
-        const fullMark =
-          toNum(record.maxScore ?? record.fullMark ?? record.target ?? record.max ?? 5) || 5;
+        // ❗ نسخه صحیح — همیشه ۵ یا maxScore ثابت
+        const fullMark = toNum(record.maxScore ?? 5) || 5;
 
         return {
           name,
           subject: name,
           score,
           fullMark,
-          size: score,   // Treemap نیاز دارد
-          value: score,  // fallback مورد نیاز
+          size: score,
+          value: score,
         };
       }
 
@@ -358,6 +356,7 @@ const normalizeFactorEntries = (input: unknown): any[] => {
     })
     .filter((item) => Number.isFinite(item.score));
 };
+
 
 const rtlFontStack = "'Vazirmatn', 'IRANSans', 'Tahoma', sans-serif";
 
