@@ -71,7 +71,31 @@ interface ReportDetail {
 }
 
 const COLORS = ["#0ea5e9", "#22c55e", "#f97316", "#6366f1", "#facc15", "#ec4899"];
-const toNum = (val: any): number => Number(val) || 0;
+
+const persianDigitMap: Record<string, string> = {
+  "۰": "0",
+  "۱": "1",
+  "۲": "2",
+  "۳": "3",
+  "۴": "4",
+  "۵": "5",
+  "۶": "6",
+  "۷": "7",
+  "۸": "8",
+  "۹": "9",
+};
+
+const toNum = (val: any): number => {
+  if (typeof val === "number" && Number.isFinite(val)) return val;
+  if (val === null || val === undefined) return 0;
+  let str = String(val).trim();
+  if (!str) return 0;
+  str = str.replace(/[۰-۹]/g, (digit) => persianDigitMap[digit] ?? digit);
+  str = str.replace(/,/g, "").replace(/%/g, "");
+  str = str.replace(/[^\d.-]/g, "");
+  const parsed = Number(str);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
 
 const rtlFontStack = "'Vazirmatn', 'IRANSans', 'Tahoma', sans-serif";
 

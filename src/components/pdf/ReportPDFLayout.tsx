@@ -47,7 +47,31 @@ interface PDFLayoutProps {
 }
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#A020F0", "#FF69B4"];
-const toNum = (val: any): number => Number(val) || 0;
+
+const persianDigitMap: Record<string, string> = {
+  "۰": "0",
+  "۱": "1",
+  "۲": "2",
+  "۳": "3",
+  "۴": "4",
+  "۵": "5",
+  "۶": "6",
+  "۷": "7",
+  "۸": "8",
+  "۹": "9",
+};
+
+const toNum = (val: any): number => {
+  if (typeof val === "number" && Number.isFinite(val)) return val;
+  if (val === null || val === undefined) return 0;
+  let str = String(val).trim();
+  if (!str) return 0;
+  str = str.replace(/[۰-۹]/g, (digit) => persianDigitMap[digit] ?? digit);
+  str = str.replace(/,/g, "").replace(/%/g, "");
+  str = str.replace(/[^\d.-]/g, "");
+  const parsed = Number(str);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
 const chartFontFamily = "Vazirmatn, Tahoma, sans-serif";
 const baseAxisTick = { fill: "#1f2937", fontFamily: chartFontFamily, fontSize: 12 };
 const lightAxisTick = { fill: "#4b5563", fontFamily: chartFontFamily, fontSize: 12 };
