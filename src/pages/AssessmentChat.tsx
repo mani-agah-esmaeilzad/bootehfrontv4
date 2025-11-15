@@ -1,6 +1,5 @@
 // src/pages/AssessmentChat.tsx
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import * as THREE from "three";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,7 @@ import { toast } from "sonner";
 import apiFetch from "@/services/apiService";
 import { cn } from "@/lib/utils";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { SceneCanvas } from "@/components/SceneCanvas";
 
 import avatarUserMale from "@/assets/male1.jpg"; // کاربر (مرد)
 import avatarUserFemale from "@/assets/female1.jpg"; // کاربر (زن)
@@ -64,117 +64,6 @@ const resolveUserAvatarByGender = (gender?: string | null) => {
   if (feminineTokens.some((token) => normalized.includes(token))) return avatarUserFemale;
   if (masculineTokens.some((token) => normalized.includes(token))) return avatarUserMale;
   return avatarUserNeutral;
-};
-
-interface NeonRibbonCanvasProps {
-  className?: string;
-  hueShift?: number;
-}
-
-const NeonRibbonCanvas = ({ className, hueShift = 0 }: NeonRibbonCanvasProps) => {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 50);
-    camera.position.set(0, 0, 5.2);
-
-    const baseColor = new THREE.Color();
-    baseColor.setHSL((0.62 + hueShift) % 1, 0.6, 0.55);
-
-    const geometry = new THREE.TorusKnotGeometry(1.05, 0.3, 180, 32, 1, 3);
-    const material = new THREE.MeshPhysicalMaterial({
-      color: baseColor,
-      emissive: baseColor.clone().multiplyScalar(0.35),
-      metalness: 0.35,
-      roughness: 0.15,
-      transmission: 0.45,
-      thickness: 0.8,
-      transparent: true,
-      opacity: 0.95,
-      side: THREE.DoubleSide,
-    });
-    const mesh = new THREE.Mesh(geometry, material);
-    scene.add(mesh);
-
-    const wireGeometry = new THREE.TorusKnotGeometry(1.05, 0.32, 180, 32, 2, 5);
-    const wireMaterial = new THREE.MeshBasicMaterial({
-      color: baseColor.clone().offsetHSL(0.06, 0, 0.1),
-      wireframe: true,
-      transparent: true,
-      opacity: 0.18,
-    });
-    const wireMesh = new THREE.Mesh(wireGeometry, wireMaterial);
-    scene.add(wireMesh);
-
-    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambient);
-    const rimColor = baseColor.clone();
-    rimColor.offsetHSL(0.1, 0, 0.15);
-    const rimLight = new THREE.PointLight(rimColor, 1.5);
-    rimLight.position.set(-2, 1.5, 3);
-    scene.add(rimLight);
-    const fillLight = new THREE.PointLight(0xffffff, 0.6);
-    fillLight.position.set(3, -2, 2);
-    scene.add(fillLight);
-
-    const clock = new THREE.Clock();
-    const handleResize = () => {
-      const { width, height } = canvas.getBoundingClientRect();
-      if (width === 0 || height === 0) return;
-      renderer.setSize(width, height, false);
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-    };
-    handleResize();
-    let resizeObserver: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== "undefined") {
-      resizeObserver = new ResizeObserver(handleResize);
-      resizeObserver.observe(canvas);
-    } else {
-      window.addEventListener("resize", handleResize);
-    }
-
-    let frameId: number;
-    const animate = () => {
-      const elapsed = clock.getElapsedTime();
-      mesh.rotation.x = 0.2 + elapsed * 0.18;
-      mesh.rotation.y = elapsed * 0.32;
-      wireMesh.rotation.x = elapsed * 0.22;
-      wireMesh.rotation.y = 0.2 + elapsed * 0.18;
-      renderer.render(scene, camera);
-      frameId = requestAnimationFrame(animate);
-    };
-    animate();
-
-    return () => {
-      cancelAnimationFrame(frameId);
-      if (resizeObserver) {
-        resizeObserver.disconnect();
-      } else {
-        window.removeEventListener("resize", handleResize);
-      }
-      geometry.dispose();
-      material.dispose();
-      wireGeometry.dispose();
-      wireMaterial.dispose();
-      renderer.dispose();
-    };
-  }, [hueShift]);
-
-  return (
-    <div className={cn("relative", className)}>
-      <canvas ref={canvasRef} className="h-full w-full" />
-      <div className="pointer-events-none absolute inset-0 rounded-[42%] border border-white/10 opacity-60" />
-      <div className="pointer-events-none absolute inset-6 rounded-[40%] border border-white/5 opacity-30" />
-    </div>
-  );
 };
 
 const AssessmentChat = () => {
@@ -726,11 +615,9 @@ const AssessmentChat = () => {
   });
 
   return (
-    <div className="relative flex min-h-screen w-full justify-center overflow-hidden bg-gradient-to-b from-[#dcd5ff] via-[#ede9ff] to-[#f8f7ff] px-4 py-6 text-slate-900 sm:px-6 sm:py-8 lg:px-10">
-      <div className="pointer-events-none absolute -left-36 top-16 h-80 w-80 rounded-full bg-violet-300/35 blur-3xl" />
-      <div className="pointer-events-none absolute -right-28 -bottom-40 h-[420px] w-[420px] rounded-full bg-sky-200/40 blur-3xl" />
-      <div className="pointer-events-none absolute left-1/2 top-10 h-40 w-[78%] -translate-x-1/2 rounded-full bg-white/70 blur-2xl" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(124,58,237,0.18),transparent_60%)]" />
+    <div className="relative flex min-h-screen w-full justify-center overflow-hidden bg-slate-950 text-slate-900 px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
+      <SceneCanvas />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/80 via-white/40 to-white/20 backdrop-blur-[2px]" />
 
       <div className="relative z-10 flex w-full max-w-6xl flex-1 min-h-0 flex-col items-center gap-8 sm:gap-10">
         <header className="flex flex-col items-center gap-3 text-center sm:gap-4">
@@ -742,30 +629,14 @@ const AssessmentChat = () => {
         </header>
 
         <section className="relative flex w-full flex-1 min-h-0 flex-col items-center">
-          <NeonRibbonCanvas
-            hueShift={0.02}
-            className="pointer-events-none absolute left-[-110px] top-1/2 hidden xl:block h-[320px] w-[320px] -translate-y-1/2 opacity-80 mix-blend-screen"
-          />
-          <NeonRibbonCanvas
-            hueShift={0.18}
-            className="pointer-events-none absolute right-[-90px] top-1/3 hidden lg:block h-[260px] w-[260px] opacity-70 mix-blend-screen"
-          />
-          <div className="pointer-events-none absolute inset-y-16 left-1/2 hidden xl:block w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-white/60 to-transparent opacity-70" />
-          <div className="pointer-events-none absolute inset-x-12 top-12 hidden lg:block h-32 rounded-full bg-gradient-to-b from-white/20 via-white/5 to-transparent blur-3xl" />
-          <div className="pointer-events-none absolute bottom-16 left-1/2 hidden lg:block w-[60%] -translate-x-1/2 border-t border-dashed border-white/30">
-            <div className="mt-2 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.4em] text-white/50">
+          <div className="pointer-events-none absolute inset-0 hidden lg:block">
+            <div className="absolute inset-y-16 left-1/2 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-white/70 to-transparent opacity-60" />
+            <div className="absolute inset-x-10 top-12 h-28 rounded-3xl bg-white/30 blur-3xl" />
+            <div className="absolute bottom-16 left-1/2 flex w-2/3 -translate-x-1/2 items-center justify-between border-t border-white/40 px-4 text-[10px] uppercase tracking-[0.4em] text-white/60">
+              <span>ORBIT</span>
+              <span>FIELD</span>
               <span>SYNC</span>
-              <span>NEBULA</span>
-              <span>STUDIO</span>
             </div>
-          </div>
-          <div className="pointer-events-none absolute left-10 top-12 hidden lg:flex flex-col gap-1 text-[10px] uppercase tracking-[0.45em] text-white/55 mix-blend-overlay">
-            <span>FRAME</span>
-            <span>ORBIT</span>
-          </div>
-          <div className="pointer-events-none absolute right-10 bottom-12 hidden lg:flex flex-col items-end gap-1 text-[10px] uppercase tracking-[0.4em] text-white/55 mix-blend-overlay">
-            <span>HYPER</span>
-            <span>FIELD</span>
           </div>
 
           {assessmentState?.totalPhases && assessmentState.totalPhases > 1 && (
