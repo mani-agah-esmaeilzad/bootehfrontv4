@@ -290,7 +290,7 @@ const hydrateAnalysis = (raw: any) => {
           subject: key,
           score,
           maxScore,
-          fullMark: maxScore,
+          fullMark: score === 0 ? 1 : score,
           size: score,
           value: score,
         };
