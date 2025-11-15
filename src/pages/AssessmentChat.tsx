@@ -47,7 +47,7 @@ interface AssessmentState {
 
 const DEFAULT_PERSONA_NAME = "راوی";
 const LEGACY_PERSONA_NAME = "مشاور";
-const RESPONSE_LOCK_DURATION_SECONDS = 3;
+const RESPONSE_LOCK_DURATION_SECONDS = 5;
 
 // توابع کمکی نرمال‌سازی داده
 const normalizePersonaName = (value?: string | null) => {
