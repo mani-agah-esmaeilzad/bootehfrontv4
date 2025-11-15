@@ -183,15 +183,16 @@ const parseLooseAnalysisString = (raw: string) => {
   }
   return result;
 };
+
 const hydrateAnalysis = (raw: any) => {
   let base: Record<string, any> =
     typeof raw === "string"
       ? parseLooseAnalysisString(raw)
       : raw && typeof raw === "object"
-      ? { ...raw }
-      : {};
+        ? { ...raw }
+        : {};
 
-  // 👇 این بخش برچسب‌های Embedded را وارد می‌کند
+  // ۱) اگر additional_details به صورت رشته‌ی شل اومده، پارسش کن و merge کن
   const additional = base?.additional_details;
   if (typeof additional === "string") {
     const parsed = parseLooseAnalysisString(additional);
@@ -202,67 +203,127 @@ const hydrateAnalysis = (raw: any) => {
     });
   }
 
-  for (const [key, value] of Object.entries(base)) {
+  // ۲) هر کلید عجیب مدل رو normalize کن و بندازش روی کلیدهای استاندارد
+  Object.entries(base).forEach(([key, value]) => {
     const normalized = normalizeKey(key);
 
-    if (normalized.includes("factorscatter") && !base.factor_scatter) {
+    if (!base.factor_scatter && normalized.includes("factorscatter")) {
       base.factor_scatter = value;
     }
 
-    if (normalized.includes("factorcontribution") && !base.factor_contribution) {
+    if (!base.factor_contribution && normalized.includes("factorcontribution")) {
       base.factor_contribution = value;
     }
 
-    if (normalized.includes("keywordanalysis") && !base.keyword_analysis) {
+    if (!base.factor_scores && normalized.includes("factorscores")) {
+      base.factor_scores = value;
+    }
+
+    if (!base.keyword_analysis && normalized.includes("keywordanalysis")) {
       base.keyword_analysis = value;
     }
 
-    if (normalized.includes("verbositytrend") && !base.verbosity_trend) {
+    if (!base.verbosity_trend && normalized.includes("verbositytrend")) {
       base.verbosity_trend = value;
     }
 
-    if (normalized.includes("problemSolving") && !base.problem_solving_approach) {
+    if (!base.action_orientation && normalized.includes("actionorientation")) {
+      base.action_orientation = value;
+    }
+
+    if (!base.problem_solving_approach && normalized.includes("problemsolving")) {
       base.problem_solving_approach = value;
     }
 
-    if (normalized.includes("communicationstyle") && !base.communication_style) {
+    if (!base.communication_style && normalized.includes("communicationstyle")) {
       base.communication_style = value;
     }
 
-    if (normalized.includes("linguisticsemanticanalysis") && !base.linguistic_semantic_analysis) {
+    if (!base.linguistic_semantic_analysis && normalized.includes("linguisticsemanticanalysis")) {
       base.linguistic_semantic_analysis = value;
     }
+  });
+
+  // ❗❗ ۳ خط مهم — اینجا، خارج از حلقه
+  if (!base.factor_scatter) {
+    base.factor_scatter =
+      base.factorScores ||
+      base.factor_scores ||
+      base["factor scatter"] ||
+      base["scatter"] ||
+      base.scatterData ||
+      base.factorCorrelation;
   }
 
+  if (!base.factor_contribution) {
+    base.factor_contribution =
+      base.factorContribution ||
+      base["factor contribution"] ||
+      base.factor_share ||
+      base["factor share"] ||
+      base.share ||
+      base.contribution;
+  }
+
+  if (!base.factor_scores) {
+    base.factor_scores =
+      base.factorScore ||
+      base["factor scores"] ||
+      base.scores ||
+      base.factors ||
+      base.factorData;
+  }
+  
   return base;
 };
 
 
-const normalizeFactorEntries = (input: unknown): Array<{ subject: string; score: number; fullMark: number }> => {
+const normalizeFactorEntries = (input: unknown): any[] => {
   const candidateArray = parseArrayLike(input);
   if (!Array.isArray(candidateArray)) return [];
+
   return candidateArray
     .map((entry, index) => {
       if (entry && typeof entry === "object") {
         const record = entry as Record<string, unknown>;
-        const subject =
-          (record.factor as string) ||
+
+        const name =
           (record.subject as string) ||
+          (record.factor as string) ||
           (record.name as string) ||
           (record.label as string) ||
-          `شاخص ${index + 1}`;
+          `فاکتور ${index + 1}`;
+
         const score = toNum(
-          record.score ?? record.value ?? record.actual ?? record.current ?? record.raw ?? record.scoreValue
+          record.score ??
+          record.value ??
+          record.actual ??
+          record.current ??
+          record.raw ??
+          record.scoreValue
         );
-        const fullMark = toNum(record.maxScore ?? record.fullMark ?? record.target ?? record.max ?? 5) || 5;
-        return { subject, score, fullMark };
+
+        const fullMark =
+          toNum(record.maxScore ?? record.fullMark ?? record.target ?? record.max ?? 5) || 5;
+
+        return {
+          name,
+          subject: name,
+          score,
+          fullMark,
+          size: score,   // Treemap نیاز دارد
+          value: score,  // fallback مورد نیاز
+        };
       }
 
       const scoreValue = toNum(entry);
       return {
-        subject: `شاخص ${index + 1}`,
+        name: `فاکتور ${index + 1}`,
+        subject: `فاکتور ${index + 1}`,
         score: scoreValue,
         fullMark: 5,
+        size: scoreValue,
+        value: scoreValue,
       };
     })
     .filter((item) => Number.isFinite(item.score));
@@ -631,16 +692,32 @@ const AdminReportDetail = () => {
     "scatter",
     "factor scatter",
   ]);
-  const scatterData = normalizeFactorEntries(scatterRaw) || [];
+  const scatterData = normalizeFactorEntries(scatterRaw);
+
   const treemapRaw = resolveAnalysisField(analysis, [
     "factor_contribution",
     "factor_share",
     "factor_treemap",
     "factor contribution",
   ]);
-  const treemapData = normalizeFactorEntries(treemapRaw) || [];
-  const scatterSeries = scatterData.length > 0 ? scatterData : chartData;
-  const treemapSeries = treemapData.length > 0 ? treemapData : chartData;
+  const treemapData = normalizeFactorEntries(treemapRaw);
+
+  // اگر دیتا برای این دو تا نیامده بود، از chartData (factor_scores) استفاده کن
+  const fallbackFactorSeries = chartData;
+
+  // ✅ سری نهایی برای Scatter (همبستگی فاکتورها)
+  const scatterSeries = (scatterData.length > 0 ? scatterData : fallbackFactorSeries).map((item, index) => ({
+    ...item,
+    name: item.subject || `فاکتور ${index + 1}`,
+  }));
+
+  // ✅ سری نهایی برای Treemap (سهم فاکتورها)
+  const treemapSeries = (treemapData.length > 0 ? treemapData : fallbackFactorSeries).map((item, index) => ({
+    name: item.subject || `فاکتور ${index + 1}`,
+    size: item.score,
+    value: item.score,
+  }));
+
   const sentimentData = analysis.sentiment_analysis
     ? Object.entries(analysis.sentiment_analysis).map(([name, value]) => ({
       name,
@@ -737,35 +814,35 @@ const AdminReportDetail = () => {
 
   const rawWheelEntries: WheelEntry[] = Array.isArray(analysis.power_wheel?.dimensions)
     ? (analysis.power_wheel.dimensions as any[]).map((entry: any, index: number) => {
-        const dimensionLabel = (entry?.dimension ?? `بعد ${index + 1}`).toString();
-        const categoryLabel = (entry?.category ?? dimensionLabel ?? `دسته ${index + 1}`).toString();
-        const categoryKey =
-          categoryLabel.trim().length > 0
-            ? categoryLabel.trim().toLowerCase().replace(/\s+/g, "-")
-            : `category-${index + 1}`;
-        return {
-          dimension: dimensionLabel,
-          categoryKey,
-          categoryLabel,
-          score: clamp(toNum(entry?.score), 0, 100),
-        };
-      })
+      const dimensionLabel = (entry?.dimension ?? `بعد ${index + 1}`).toString();
+      const categoryLabel = (entry?.category ?? dimensionLabel ?? `دسته ${index + 1}`).toString();
+      const categoryKey =
+        categoryLabel.trim().length > 0
+          ? categoryLabel.trim().toLowerCase().replace(/\s+/g, "-")
+          : `category-${index + 1}`;
+      return {
+        dimension: dimensionLabel,
+        categoryKey,
+        categoryLabel,
+        score: clamp(toNum(entry?.score), 0, 100),
+      };
+    })
     : (analysis.factor_scores?.map((entry: any, index: number) => {
-        const dimensionLabel = (entry?.factor ?? `شاخص ${index + 1}`).toString();
-        const categoryLabel = (entry?.category ?? dimensionLabel ?? `شاخص ${index + 1}`).toString();
-        const categoryKey =
-          categoryLabel.trim().length > 0
-            ? categoryLabel.trim().toLowerCase().replace(/\s+/g, "-")
-            : `category-${index + 1}`;
-        const max = Math.max(toNum(entry?.maxScore) || 5, 1);
-        const normalizedScore = (toNum(entry?.score) / max) * 100;
-        return {
-          dimension: dimensionLabel,
-          categoryKey,
-          categoryLabel,
-          score: clamp(normalizedScore, 0, 100),
-        };
-      })) || [];
+      const dimensionLabel = (entry?.factor ?? `شاخص ${index + 1}`).toString();
+      const categoryLabel = (entry?.category ?? dimensionLabel ?? `شاخص ${index + 1}`).toString();
+      const categoryKey =
+        categoryLabel.trim().length > 0
+          ? categoryLabel.trim().toLowerCase().replace(/\s+/g, "-")
+          : `category-${index + 1}`;
+      const max = Math.max(toNum(entry?.maxScore) || 5, 1);
+      const normalizedScore = (toNum(entry?.score) / max) * 100;
+      return {
+        dimension: dimensionLabel,
+        categoryKey,
+        categoryLabel,
+        score: clamp(normalizedScore, 0, 100),
+      };
+    })) || [];
 
   const wheelColorPalette = ["#f97316", "#22c55e", "#0ea5e9", "#facc15", "#ec4899", "#6366f1", "#14b8a6", "#8b5cf6"];
   const wheelCategoryMap = new Map<string, { key: string; label: string; color: string }>();
@@ -810,13 +887,13 @@ const AdminReportDetail = () => {
 
   const progressTimelineRaw = Array.isArray((analysis as any).progress_timeline)
     ? ((analysis as any).progress_timeline as any[]).map((entry: any, index: number) => ({
-        iteration: toNum(entry?.iteration ?? entry?.turn ?? index + 1),
-        performance: toNum(entry?.score ?? entry?.value ?? entry?.performance ?? 0),
-      }))
+      iteration: toNum(entry?.iteration ?? entry?.turn ?? index + 1),
+      performance: toNum(entry?.score ?? entry?.value ?? entry?.performance ?? 0),
+    }))
     : verbosityData.map((entry, index) => ({
-        iteration: toNum(entry.turn ?? index + 1),
-        performance: toNum(entry.word_count),
-      }));
+      iteration: toNum(entry.turn ?? index + 1),
+      performance: toNum(entry.word_count),
+    }));
 
   const scatterLineData = progressTimelineRaw
     .filter((item) => Number.isFinite(item.performance))
@@ -901,17 +978,17 @@ const AdminReportDetail = () => {
   const averageFactorScore =
     factorScores.length > 0
       ? Math.round(
-          (factorScores.reduce((sum, item) => sum + (item.score / (item.maxScore || 1)) * 100, 0) / factorScores.length) *
-            10,
-        ) / 10
+        (factorScores.reduce((sum, item) => sum + (item.score / (item.maxScore || 1)) * 100, 0) / factorScores.length) *
+        10,
+      ) / 10
       : null;
 
   const dominantSentiment =
     sentimentData.length > 0
       ? sentimentData.reduce(
-          (best, current) => (current.value > best.value ? current : best),
-          sentimentData[0],
-        )
+        (best, current) => (current.value > best.value ? current : best),
+        sentimentData[0],
+      )
       : null;
 
   const hiddenAnalysisKeys = new Set([
@@ -1903,7 +1980,14 @@ const AdminReportDetail = () => {
                 noData("سهمی برای فاکتورها ارسال نشده است.")
               ) : (
                 <ResponsiveContainer className="chart-ltr">
-                  <Treemap data={treemapSeries} dataKey="score" nameKey="subject" stroke="#fff" fill="#6366f1" />
+                  <Treemap
+                    data={treemapSeries}
+                    dataKey="size"
+                    nameKey="name"
+                    stroke="#fff"
+                    fill="#6366f1"
+                  />
+
                 </ResponsiveContainer>
               )}
             </div>
