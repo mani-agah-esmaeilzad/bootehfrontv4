@@ -630,6 +630,80 @@ const AssessmentChat = () => {
         </header>
 
         <section className="relative flex w-full flex-1 min-h-0 flex-col items-center">
+          <div className="pointer-events-none absolute inset-y-8 left-0 hidden lg:flex w-48 flex-col gap-4 text-right xl:-left-12">
+            <div className="rounded-[28px] border border-white/60 bg-white/80 px-5 py-4 shadow-2xl shadow-purple-200/40 backdrop-blur">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500">
+                <span>شاخص اعتماد</span>
+                <span className="rounded-full bg-gradient-to-r from-violet-500 to-sky-500 px-2 py-0.5 text-[10px] text-white">
+                  +۴٪
+                </span>
+              </div>
+              <p className="mt-2 text-3xl font-black text-slate-900">۹۸٪</p>
+              <p className="text-[11px] leading-6 text-slate-500">
+                لحن گفتگو در اوج هماهنگی است و تنش خاصی در پیام‌ها دیده نمی‌شود.
+              </p>
+            </div>
+            <div className="rounded-[26px] border border-white/50 bg-gradient-to-br from-slate-50/90 via-white/80 to-purple-50/70 px-5 py-4 text-[11px] leading-6 text-slate-500 shadow-xl shadow-sky-100/60 backdrop-blur">
+              <p className="text-xs font-semibold text-slate-600">میانگین مکث پاسخ</p>
+              <p className="mt-1 text-2xl font-bold text-slate-900">۳.۴ ثانیه</p>
+              <p>ریتم گفتگو پیوسته است؛ اگر احساس مکث کردی، یک سؤال ساده بپرس.</p>
+            </div>
+            <div className="flex flex-col gap-3 rounded-[22px] border border-dashed border-white/60 bg-white/70 px-4 py-4 text-[11px] text-slate-500 shadow-lg backdrop-blur">
+              <p className="text-xs font-semibold text-slate-600">حالت گفتگو</p>
+              <div className="flex flex-col gap-1 text-slate-600">
+                <span className="flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-1 font-semibold text-slate-700">
+                  <span>آرام</span>
+                  <span className="text-sm text-violet-500">۷۲٪</span>
+                </span>
+                <span className="flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-1 font-semibold text-slate-600">
+                  <span>تحلیلی</span>
+                  <span className="text-sm text-sky-500">۲۸٪</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="pointer-events-none absolute inset-y-8 right-0 hidden lg:flex w-52 flex-col gap-4 text-left xl:-right-12">
+            <div className="rounded-[30px] border border-white/60 bg-white/85 px-6 py-5 shadow-2xl shadow-slate-300/50 backdrop-blur">
+              <div className="text-[11px] font-semibold text-slate-500">کیفیت خروجی</div>
+              <p className="mt-1 text-3xl font-black text-slate-900">+۹.۳</p>
+              <p className="text-[11px] leading-6 text-slate-500">
+                پاسخ‌های اخیر ساختار منطقی و جزئیات کاربردی دارند.
+              </p>
+              <div className="mt-3 flex items-center gap-2 text-[10px] font-semibold">
+                <span className="rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 px-2 py-0.5 text-white">
+                  طبیعی
+                </span>
+                <span className="rounded-full bg-gradient-to-r from-sky-400 to-violet-500 px-2 py-0.5 text-white">
+                  صمیمی
+                </span>
+              </div>
+            </div>
+            <div className="rounded-[24px] border border-white/55 bg-gradient-to-br from-violet-500/15 via-sky-500/10 to-white px-6 py-4 shadow-lg shadow-violet-200/70 backdrop-blur">
+              <p className="text-xs font-semibold text-slate-600">ذخیره انرژی کاربر</p>
+              <div className="mt-2 flex items-center gap-3">
+                <div className="relative h-2 w-full overflow-hidden rounded-full bg-white/70">
+                  <div className="absolute inset-y-0 right-0 w-[68%] rounded-full bg-gradient-to-l from-violet-500 to-sky-400" />
+                </div>
+                <span className="text-sm font-bold text-slate-800">۶۸٪</span>
+              </div>
+              <p className="mt-2 text-[11px] leading-6 text-slate-500">
+                برای حفظ تمرکز می‌توانی هر چند پیام یک جمع‌بندی کوتاه بگیری.
+              </p>
+            </div>
+            <div className="rounded-[22px] border border-dashed border-white/60 bg-white/70 px-5 py-4 text-[11px] text-slate-500 shadow-lg backdrop-blur">
+              <p className="text-xs font-semibold text-slate-600">یادآورها</p>
+              <ul className="mt-2 space-y-2 text-[11px] leading-5">
+                <li>— در صورت نیاز از دکمه میکروفن استفاده کن.</li>
+                <li>— پیامی مبهم بود؟ درخواست مثال بکن.</li>
+                <li>— تاریخچه را با «مشاهده پیام جدید» دنبال کن.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="pointer-events-none absolute left-12 top-8 hidden lg:block h-24 w-24 -rotate-12 rounded-[36px] border border-white/60 bg-white/40 shadow-lg shadow-violet-200/50 backdrop-blur" />
+          <div className="pointer-events-none absolute right-16 bottom-12 hidden lg:block h-28 w-28 rotate-6 rounded-[36px] border border-white/60 bg-gradient-to-br from-sky-50/80 via-white/70 to-white/40 shadow-xl shadow-sky-200/60 backdrop-blur" />
+
           {assessmentState?.totalPhases && assessmentState.totalPhases > 1 && (
             <div className="mb-4 rounded-full border border-white/60 bg-white/70 px-5 py-1 text-xs font-semibold text-slate-600 shadow">
               مرحله {assessmentState.currentPhase ?? 1} از {assessmentState.totalPhases}
