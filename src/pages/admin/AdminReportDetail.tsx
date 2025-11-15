@@ -184,6 +184,26 @@ const parseLooseAnalysisString = (raw: string) => {
   return result;
 };
 
+const hydrateAnalysis = (raw: any) => {
+  let base: Record<string, any> =
+    typeof raw === "string"
+      ? parseLooseAnalysisString(raw)
+      : raw && typeof raw === "object"
+        ? { ...raw }
+        : {};
+
+  const additional = base?.additional_details;
+  if (typeof additional === "string") {
+    const parsed = parseLooseAnalysisString(additional);
+    Object.entries(parsed).forEach(([key, value]) => {
+      if (base[key] === undefined) {
+        base[key] = value;
+      }
+    });
+  }
+  return base;
+};
+
 const normalizeFactorEntries = (input: unknown): Array<{ subject: string; score: number; fullMark: number }> => {
   const candidateArray = parseArrayLike(input);
   if (!Array.isArray(candidateArray)) return [];
@@ -562,9 +582,7 @@ const AdminReportDetail = () => {
       </div>
     );
 
-  const analysisRaw = report.analysis;
-  const analysis =
-    (typeof analysisRaw === "string" ? parseLooseAnalysisString(analysisRaw) : analysisRaw) ?? {};
+  const analysis = hydrateAnalysis(report.analysis);
   const phaseBreakdown: PhaseBreakdownEntry[] = Array.isArray(analysis?.phase_breakdown)
     ? (analysis.phase_breakdown as PhaseBreakdownEntry[])
     : [];
