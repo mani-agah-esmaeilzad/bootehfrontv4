@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { getBlogPosts, resolveApiAssetUrl } from "@/services/apiService";
 import type { BlogPostSummary } from "@/types/blog";
+import { SceneCanvas } from "@/components/SceneCanvas";
 
 const formatPersianDate = (value: string | null | undefined) => {
   if (!value) return "در انتظار انتشار";
@@ -341,27 +342,9 @@ const Index = () => {
           id="hero"
           className="relative overflow-hidden border-b border-purple-100/60 bg-gradient-to-bl from-purple-50 via-white to-white"
         >
-          <div className="absolute inset-0">
-            <svg className="h-full w-full" viewBox="0 0 1440 800" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M0 640C120 560 280 520 440 540C600 560 720 640 900 660C1080 680 1260 640 1440 560V800H0V640Z"
-                fill="url(#heroBackground)"
-              />
-              <path
-                d="M0 520C160 440 320 420 480 460C640 500 820 620 980 620C1140 620 1290 520 1440 480"
-                stroke="rgba(124,58,237,0.18)"
-                strokeWidth="3"
-                strokeLinecap="round"
-              />
-              <defs>
-                <linearGradient id="heroBackground" x1="0" y1="400" x2="1440" y2="800" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="rgba(124,58,237,0.12)" />
-                  <stop offset="1" stopColor="rgba(79,70,229,0.05)" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-          <div className="relative mx-auto grid w-full max-w-6xl gap-16 px-4 py-20 md:grid-cols-[1.1fr_0.9fr] md:items-center md:px-6">
+          <SceneCanvas className="pointer-events-none absolute inset-0" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-bl from-white via-white/70 to-white/30" />
+          <div className="relative z-10 mx-auto grid w-full max-w-6xl gap-16 px-4 py-20 md:grid-cols-[1.1fr_0.9fr] md:items-center md:px-6">
             <div className="space-y-10 text-right">
               <span className="inline-flex items-center gap-2 rounded-full border border-purple-200/60 bg-white/60 px-4 py-2 text-xs font-medium text-purple-600 shadow-sm backdrop-blur">
                 <Sparkles className="h-4 w-4" />
