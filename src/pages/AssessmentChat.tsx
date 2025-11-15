@@ -74,7 +74,6 @@ const AssessmentChat = () => {
   const [inputValue, setInputValue] = useState("");
   const [activeTyping, setActiveTyping] = useState<string | null>(null);
   const [isUserTyping, setIsUserTyping] = useState(false);
-  const [viewport, setViewport] = useState<"mobile" | "tablet" | "desktop">("desktop");
   const [isHistoryView, setIsHistoryView] = useState(false);
   const [hasConversationStarted, setHasConversationStarted] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
@@ -180,28 +179,6 @@ const AssessmentChat = () => {
       }
     };
   }, [responseLockRemaining]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const resolveViewport = () => {
-      const width = window.innerWidth;
-      if (width < 640) return "mobile" as const;
-      if (width < 1024) return "tablet" as const;
-      return "desktop" as const;
-    };
-
-    const updateViewport = () => {
-      setViewport((current) => {
-        const next = resolveViewport();
-        return current === next ? current : next;
-      });
-    };
-
-    updateViewport();
-    window.addEventListener("resize", updateViewport);
-    return () => window.removeEventListener("resize", updateViewport);
-  }, []);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -601,40 +578,38 @@ const AssessmentChat = () => {
     return null;
   };
 
-  const orbitMap = {
-    narrator: { angle: -20, radius: { mobile: 72, tablet: 76, desktop: 80 } },
-    proctor: { angle: 215, radius: { mobile: 74, tablet: 78, desktop: 82 } },
-    user: { angle: 125, radius: { mobile: 76, tablet: 80, desktop: 84 } },
+  const squareAvatarSlots = {
+    narrator: {
+      position: "left-1/2 top-0 -translate-x-1/2 -translate-y-1/2",
+      align: "items-center text-center",
+    },
+    proctor: {
+      position: "right-0 top-1/2 translate-x-1/2 -translate-y-1/2",
+      align: "items-end text-right",
+    },
+    user: {
+      position: "left-0 top-1/2 -translate-x-1/2 -translate-y-1/2",
+      align: "items-start text-left",
+    },
   } as const;
 
   const lastPersonaKey = lastMessage ? resolvePersonaKey(lastMessage) : null;
   const typingPersonaKey = resolveTypingPersonaKey(activeTyping);
   const typingMeta = typingPersonaKey ? personaMeta[typingPersonaKey] : null;
 
-  const isMobileViewport = viewport === "mobile";
-  const orbitShellStyle = {
-    width: isMobileViewport ? "175%" : "150%",
-    maxWidth: isMobileViewport ? undefined : "940px",
-  };
-  const orbitMembers = (Object.keys(orbitMap) as Array<keyof typeof orbitMap>).map((key) => {
+  const squareAvatarMembers = (Object.keys(squareAvatarSlots) as Array<keyof typeof squareAvatarSlots>).map((key) => {
     const meta = personaMeta[key];
     const avatar = avatars.find((item) => item.role === (key === "user" ? "user" : key));
-    const config = orbitMap[key];
     const isSpeaking = lastPersonaKey === key;
     const isTyping = (typingPersonaKey ?? (isUserTyping ? "user" : null)) === key;
-    const radiusSet = config.radius;
-    const radiusValue = radiusSet[viewport] ?? radiusSet.desktop;
-    const orbitDistance = radiusValue + (isMobileViewport ? 130 : 160);
-    const transform = `translate(-50%, -50%) rotate(${config.angle}deg) translate(${orbitDistance}%) rotate(${-config.angle}deg)`;
 
     return {
       key,
       meta,
       avatar,
-      config,
       isSpeaking,
       isTyping,
-      transform,
+      placement: squareAvatarSlots[key],
     };
   });
 
@@ -647,10 +622,10 @@ const AssessmentChat = () => {
 
       <div className="relative z-10 flex w-full max-w-6xl flex-1 min-h-0 flex-col items-center gap-8 sm:gap-10">
         <header className="flex flex-col items-center gap-3 text-center sm:gap-4">
-          <h1 className="text-2xl font-extrabold text-slate-900 sm:text-3xl">حلقه گفتگو با الهام از مسیرهای خمیده</h1>
+          <h1 className="text-2xl font-extrabold text-slate-900 sm:text-3xl">میدان گفتگو با قاب مربعی</h1>
           <p className="max-w-2xl text-sm leading-7 text-slate-500 sm:text-base">
-            پیام‌های شما در مرکز حلقه قرار می‌گیرند و نقش هر شخصیت با مدار اختصاصی مشخص است؛ وقتی هرکدام صحبت یا تایپ
-            می‌کند، آواتار او با موج ملایم می‌لرزد.
+            پیام‌های شما داخل یک قاب مربعی بزرگ و خواناتر ارائه می‌شوند و آواتار هر نقش روی اضلاع این قاب قرار گرفته تا
+            حضورش را نشان دهد.
           </p>
         </header>
 
@@ -686,10 +661,10 @@ const AssessmentChat = () => {
                   </linearGradient>
                 </defs>
               </svg>
-              <div className="absolute left-1/2 top-1/2 z-40 flex aspect-square w-[88%] min-w-[260px] max-w-[520px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-full border border-white/70 bg-white/90 shadow-[0_25px_60px_-35px_rgba(15,23,42,0.55)] backdrop-blur sm:w-[80%]">
-                <div className="pointer-events-none absolute inset-[10%] rounded-full border border-dashed border-violet-100/80" />
-                <div className="pointer-events-none absolute inset-[18%] rounded-full border border-white/50" />
-                <div className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white via-white/60 to-white/30 opacity-80" />
+              <div className="absolute left-1/2 top-1/2 z-40 flex aspect-square w-[92%] min-w-[260px] max-w-[520px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[42px] border border-white/70 bg-white/95 shadow-[0_25px_60px_-35px_rgba(15,23,42,0.55)] backdrop-blur sm:w-[80%]">
+                <div className="pointer-events-none absolute inset-[8%] rounded-[32px] border border-dashed border-violet-100/80" />
+                <div className="pointer-events-none absolute inset-[16%] rounded-[28px] border border-white/50" />
+                <div className="pointer-events-none absolute inset-0 rounded-[42px] bg-gradient-to-b from-white via-white/70 to-white/40 opacity-80" />
 
                 {hasConversationStarted ? (
                   <>
@@ -710,7 +685,7 @@ const AssessmentChat = () => {
                             <div
                               key={msg.id}
                               className={cn(
-                                "relative mx-auto flex w-full max-w-[82%] flex-col items-center gap-3 rounded-[28px] border px-6 py-5 text-sm leading-7 shadow-sm transition-all sm:max-w-[68%] sm:px-7 sm:py-6",
+                                "relative mx-auto flex w-full max-w-[90%] flex-col items-center gap-4 rounded-[32px] border-2 px-7 py-6 text-base leading-8 shadow-md transition-all sm:max-w-[76%] sm:px-9 sm:py-8",
                                 meta.bubble,
                                 isLatest && "scale-[1.01] border-white/80 shadow-lg"
                               )}
@@ -726,7 +701,7 @@ const AssessmentChat = () => {
                                   {meta.name}
                                 </span>
                               </div>
-                              <p className="whitespace-pre-line text-[13px] leading-relaxed text-slate-700 sm:text-sm">
+                              <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700 sm:text-base sm:leading-8">
                                 {msg.text}
                               </p>
                             </div>
@@ -781,17 +756,20 @@ const AssessmentChat = () => {
               </div>
             </div>
 
-            <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center overflow-hidden">
-              <div className="relative aspect-square" style={orbitShellStyle}>
-                {orbitMembers.map((persona) => {
+            <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center">
+              <div className="relative aspect-square w-full max-w-[640px] sm:max-w-[560px] md:max-w-[600px]">
+                {squareAvatarMembers.map((persona) => {
                   const avatarSrc = persona.avatar?.src ?? persona.meta.avatar;
                   const avatarName = persona.avatar?.name ?? persona.meta.name;
                   return (
-                    <div key={persona.key} className="pointer-events-none absolute top-1/2 left-1/2">
+                    <div
+                      key={persona.key}
+                      className={cn("pointer-events-none absolute", persona.placement.position)}
+                    >
                       <div
-                        style={{ transform: persona.transform }}
                         className={cn(
-                          "flex w-[78px] flex-col items-center gap-2 text-center text-[10px] font-medium transition-all duration-500 sm:w-[108px] sm:text-xs",
+                          "flex w-[92px] flex-col gap-2 text-[10px] font-medium transition-all duration-500 sm:w-[118px] sm:text-xs",
+                          persona.placement.align,
                           persona.isSpeaking ? "text-slate-700" : "text-slate-500"
                         )}
                       >
