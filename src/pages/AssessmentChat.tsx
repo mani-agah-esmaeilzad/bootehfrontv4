@@ -1,5 +1,6 @@
 // src/pages/AssessmentChat.tsx
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import * as THREE from "three";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +64,117 @@ const resolveUserAvatarByGender = (gender?: string | null) => {
   if (feminineTokens.some((token) => normalized.includes(token))) return avatarUserFemale;
   if (masculineTokens.some((token) => normalized.includes(token))) return avatarUserMale;
   return avatarUserNeutral;
+};
+
+interface NeonRibbonCanvasProps {
+  className?: string;
+  hueShift?: number;
+}
+
+const NeonRibbonCanvas = ({ className, hueShift = 0 }: NeonRibbonCanvasProps) => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 50);
+    camera.position.set(0, 0, 5.2);
+
+    const baseColor = new THREE.Color();
+    baseColor.setHSL((0.62 + hueShift) % 1, 0.6, 0.55);
+
+    const geometry = new THREE.TorusKnotGeometry(1.05, 0.3, 180, 32, 1, 3);
+    const material = new THREE.MeshPhysicalMaterial({
+      color: baseColor,
+      emissive: baseColor.clone().multiplyScalar(0.35),
+      metalness: 0.35,
+      roughness: 0.15,
+      transmission: 0.45,
+      thickness: 0.8,
+      transparent: true,
+      opacity: 0.95,
+      side: THREE.DoubleSide,
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
+
+    const wireGeometry = new THREE.TorusKnotGeometry(1.05, 0.32, 180, 32, 2, 5);
+    const wireMaterial = new THREE.MeshBasicMaterial({
+      color: baseColor.clone().offsetHSL(0.06, 0, 0.1),
+      wireframe: true,
+      transparent: true,
+      opacity: 0.18,
+    });
+    const wireMesh = new THREE.Mesh(wireGeometry, wireMaterial);
+    scene.add(wireMesh);
+
+    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambient);
+    const rimColor = baseColor.clone();
+    rimColor.offsetHSL(0.1, 0, 0.15);
+    const rimLight = new THREE.PointLight(rimColor, 1.5);
+    rimLight.position.set(-2, 1.5, 3);
+    scene.add(rimLight);
+    const fillLight = new THREE.PointLight(0xffffff, 0.6);
+    fillLight.position.set(3, -2, 2);
+    scene.add(fillLight);
+
+    const clock = new THREE.Clock();
+    const handleResize = () => {
+      const { width, height } = canvas.getBoundingClientRect();
+      if (width === 0 || height === 0) return;
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    };
+    handleResize();
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(handleResize);
+      resizeObserver.observe(canvas);
+    } else {
+      window.addEventListener("resize", handleResize);
+    }
+
+    let frameId: number;
+    const animate = () => {
+      const elapsed = clock.getElapsedTime();
+      mesh.rotation.x = 0.2 + elapsed * 0.18;
+      mesh.rotation.y = elapsed * 0.32;
+      wireMesh.rotation.x = elapsed * 0.22;
+      wireMesh.rotation.y = 0.2 + elapsed * 0.18;
+      renderer.render(scene, camera);
+      frameId = requestAnimationFrame(animate);
+    };
+    animate();
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      } else {
+        window.removeEventListener("resize", handleResize);
+      }
+      geometry.dispose();
+      material.dispose();
+      wireGeometry.dispose();
+      wireMaterial.dispose();
+      renderer.dispose();
+    };
+  }, [hueShift]);
+
+  return (
+    <div className={cn("relative", className)}>
+      <canvas ref={canvasRef} className="h-full w-full" />
+      <div className="pointer-events-none absolute inset-0 rounded-[42%] border border-white/10 opacity-60" />
+      <div className="pointer-events-none absolute inset-6 rounded-[40%] border border-white/5 opacity-30" />
+    </div>
+  );
 };
 
 const AssessmentChat = () => {
@@ -630,64 +742,31 @@ const AssessmentChat = () => {
         </header>
 
         <section className="relative flex w-full flex-1 min-h-0 flex-col items-center">
-          <div className="pointer-events-none absolute inset-y-10 left-0 hidden lg:flex w-48 flex-col gap-5 text-right xl:-left-16">
-            <div className="rounded-[34px] border border-white/35 bg-gradient-to-b from-white/55 via-white/15 to-transparent px-5 py-6 text-[11px] text-slate-600 shadow-[0_25px_80px_-35px_rgba(15,23,42,0.6)] backdrop-blur-xl">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-slate-400">INSIGHT</p>
-              <div className="mt-4 space-y-5">
-                <div>
-                  <p className="text-[10px] text-slate-400">ریتم پاسخ</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-2xl font-black text-slate-900">۳.۴ ثانیه</span>
-                    <span className="text-xs font-semibold text-violet-500">پایدار</span>
-                  </div>
-                  <div className="mt-2 h-px bg-gradient-to-l from-violet-500/40 via-slate-200 to-transparent" />
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-400">حالت گفتار</p>
-                  <div className="mt-2 flex items-center gap-2">
-                    <span className="rounded-2xl border border-white/60 bg-white/60 px-3 py-1 text-[10px] font-semibold text-slate-600">
-                      آرام
-                    </span>
-                    <span className="rounded-2xl border border-white/40 bg-white/30 px-3 py-1 text-[10px] font-semibold text-slate-500">
-                      تحلیلی
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="rounded-[30px] border border-white/30 bg-gradient-to-br from-slate-900/15 via-white/40 to-white/10 px-5 py-4 text-[11px] text-slate-500 shadow-[0_20px_60px_-35px_rgba(30,41,59,0.55)] backdrop-blur-xl">
-              <p className="text-xs font-semibold text-slate-600">وضعیت جلسه</p>
-              <p className="mt-1 text-lg font-bold text-slate-900">پایدار و حرفه‌ای</p>
-              <p className="mt-2 leading-6 text-slate-500">
-                برای ثبت بهترین خروجی، متن را کوتاه و شفاف نگه دار.
-              </p>
+          <NeonRibbonCanvas
+            hueShift={0.02}
+            className="pointer-events-none absolute left-[-110px] top-1/2 hidden xl:block h-[320px] w-[320px] -translate-y-1/2 opacity-80 mix-blend-screen"
+          />
+          <NeonRibbonCanvas
+            hueShift={0.18}
+            className="pointer-events-none absolute right-[-90px] top-1/3 hidden lg:block h-[260px] w-[260px] opacity-70 mix-blend-screen"
+          />
+          <div className="pointer-events-none absolute inset-y-16 left-1/2 hidden xl:block w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-white/60 to-transparent opacity-70" />
+          <div className="pointer-events-none absolute inset-x-12 top-12 hidden lg:block h-32 rounded-full bg-gradient-to-b from-white/20 via-white/5 to-transparent blur-3xl" />
+          <div className="pointer-events-none absolute bottom-16 left-1/2 hidden lg:block w-[60%] -translate-x-1/2 border-t border-dashed border-white/30">
+            <div className="mt-2 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.4em] text-white/50">
+              <span>SYNC</span>
+              <span>NEBULA</span>
+              <span>STUDIO</span>
             </div>
           </div>
-
-          <div className="pointer-events-none absolute inset-y-12 right-0 hidden lg:flex w-56 flex-col gap-5 text-left xl:-right-16">
-            <div className="rounded-[38px] border border-white/35 bg-gradient-to-b from-white/45 via-white/15 to-transparent px-6 py-5 text-[11px] text-slate-500 shadow-[0_25px_80px_-35px_rgba(79,70,229,0.45)] backdrop-blur-xl">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-slate-400">PALETTE</p>
-              <div className="mt-4 grid grid-cols-4 gap-2">
-                <span className="h-9 rounded-2xl bg-[#0f172a] shadow-inner shadow-slate-900/40" />
-                <span className="h-9 rounded-2xl bg-gradient-to-b from-[#3b82f6] to-[#7c3aed]" />
-                <span className="h-9 rounded-2xl bg-[#cbd5f5]" />
-                <span className="h-9 rounded-2xl bg-white" />
-              </div>
-              <p className="mt-3 leading-6">
-                پالت جدید کنتراست بالا، هاله‌های شیشه‌ای و تمرکز مخاطب را همزمان حفظ می‌کند.
-              </p>
-            </div>
-            <div className="rounded-[28px] border border-white/35 bg-white/65 px-5 py-4 text-[11px] text-slate-500 shadow-[0_20px_60px_-25px_rgba(15,23,42,0.45)] backdrop-blur">
-              <p className="text-xs font-semibold text-slate-600">راهنمای محیط</p>
-              <ul className="mt-2 space-y-2 text-[11px] leading-5">
-                <li>— فضای خالی اطراف قاب‌ها حفظ شده تا توجه روی پیام‌ها بماند.</li>
-                <li>— گرادیان‌های خنثی و خطوط ظریف حس استودیو حرفه‌ای ایجاد می‌کنند.</li>
-              </ul>
-            </div>
+          <div className="pointer-events-none absolute left-10 top-12 hidden lg:flex flex-col gap-1 text-[10px] uppercase tracking-[0.45em] text-white/55 mix-blend-overlay">
+            <span>FRAME</span>
+            <span>ORBIT</span>
           </div>
-
-          <div className="pointer-events-none absolute left-14 top-10 hidden lg:block h-28 w-1.5 rounded-full bg-gradient-to-b from-white/70 via-violet-200/50 to-transparent shadow-lg shadow-violet-200/40" />
-          <div className="pointer-events-none absolute right-16 bottom-10 hidden lg:block h-1.5 w-32 rounded-full bg-gradient-to-r from-transparent via-white/70 to-transparent shadow-lg shadow-slate-200/60" />
+          <div className="pointer-events-none absolute right-10 bottom-12 hidden lg:flex flex-col items-end gap-1 text-[10px] uppercase tracking-[0.4em] text-white/55 mix-blend-overlay">
+            <span>HYPER</span>
+            <span>FIELD</span>
+          </div>
 
           {assessmentState?.totalPhases && assessmentState.totalPhases > 1 && (
             <div className="mb-4 rounded-full border border-white/60 bg-white/70 px-5 py-1 text-xs font-semibold text-slate-600 shadow">
