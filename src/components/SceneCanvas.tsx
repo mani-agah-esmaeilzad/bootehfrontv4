@@ -3,7 +3,10 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
-export function SceneCanvas() {
+interface SceneCanvasProps {
+  className?: string;
+}
+export function SceneCanvas({ className }: SceneCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -138,5 +141,11 @@ export function SceneCanvas() {
     };
   }, []);
 
-  return <div ref={containerRef} aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10" />;
+  return (
+    <div
+      ref={containerRef}
+      aria-hidden="true"
+      className={`pointer-events-none absolute inset-0 -z-10 ${className}`} // className را اینجا اضافه کنید
+    />
+  );
 }
