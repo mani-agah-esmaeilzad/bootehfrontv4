@@ -507,7 +507,7 @@ const AssessmentChat = () => {
           avatar: userAvatarSrc,
           badge: "شرکت‌کننده",
           accent: "from-sky-400 to-sky-500",
-          bubble: "bg-sky-50/55 text-sky-800 border-sky-100/40",
+          bubble: "bg-white/40 text-slate-800 border-white/25 backdrop-blur",
           glow: "shadow-[0_10px_30px_-12px_rgba(56,189,248,0.65)]",
           layout: "center",
         },
@@ -516,7 +516,7 @@ const AssessmentChat = () => {
           avatar: avatarNarrator,
           badge: "نقال سناریو",
           accent: "from-emerald-400 to-teal-500",
-          bubble: "bg-emerald-50/55 text-emerald-800 border-emerald-100/40",
+          bubble: "bg-white/40 text-slate-800 border-white/25 backdrop-blur",
           glow: "shadow-[0_10px_30px_-12px_rgba(16,185,129,0.65)]",
           layout: "left",
         },
@@ -525,7 +525,7 @@ const AssessmentChat = () => {
           avatar: avatarProctor,
           badge: "ناظر آزمون",
           accent: "from-amber-400 to-orange-500",
-          bubble: "bg-amber-50/60 text-amber-900 border-amber-100/45",
+          bubble: "bg-white/40 text-slate-800 border-white/25 backdrop-blur",
           glow: "shadow-[0_10px_30px_-12px_rgba(245,158,11,0.65)]",
           layout: "right",
         },
@@ -534,7 +534,7 @@ const AssessmentChat = () => {
           avatar: avatarNarrator,
           badge: "دستیار",
           accent: "from-indigo-400 to-purple-500",
-          bubble: "bg-indigo-50/55 text-indigo-800 border-indigo-100/40",
+          bubble: "bg-white/40 text-slate-800 border-white/25 backdrop-blur",
           glow: "shadow-[0_10px_30px_-12px_rgba(129,140,248,0.65)]",
           layout: "left",
         },
@@ -602,7 +602,7 @@ const AssessmentChat = () => {
   return (
     <div className="relative flex min-h-screen w-full justify-center overflow-hidden bg-slate-950 text-slate-900 px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
       <SceneCanvas className="absolute inset-0" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-950/30" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-950/20" />
 
       <div className="relative z-10 flex w-full max-w-6xl flex-1 min-h-0 flex-col items-center gap-8 sm:gap-10">
         <header className="flex flex-col items-center gap-3 text-center sm:gap-4">
@@ -615,9 +615,9 @@ const AssessmentChat = () => {
 
         <section className="relative flex w-full flex-1 min-h-0 flex-col items-center">
             <div className="pointer-events-none absolute inset-0 hidden lg:block">
-              <div className="absolute inset-y-16 left-1/2 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-white/50 to-transparent opacity-50" />
-              <div className="absolute inset-x-10 top-12 h-28 rounded-3xl bg-white/15 blur-3xl" />
-            <div className="absolute bottom-16 left-1/2 flex w-2/3 -translate-x-1/2 items-center justify-between border-t border-white/25 px-4 text-[10px] uppercase tracking-[0.4em] text-white/55">
+              <div className="absolute inset-y-16 left-1/2 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-white/35 to-transparent opacity-60" />
+              <div className="absolute inset-x-10 top-12 h-28 rounded-3xl bg-white/10 blur-3xl" />
+            <div className="absolute bottom-16 left-1/2 flex w-2/3 -translate-x-1/2 items-center justify-between border-t border-white/20 px-4 text-[10px] uppercase tracking-[0.4em] text-white/55">
               <span>ORBIT</span>
               <span>FIELD</span>
               <span>SYNC</span>
@@ -625,17 +625,17 @@ const AssessmentChat = () => {
           </div>
 
           {assessmentState?.totalPhases && assessmentState.totalPhases > 1 && (
-            <div className="mb-4 rounded-full border border-white/40 bg-white/55 px-5 py-1 text-xs font-semibold text-slate-600 shadow">
+            <div className="mb-4 rounded-full border border-white/20 bg-white/35 px-5 py-1 text-xs font-semibold text-slate-600 shadow backdrop-blur">
               مرحله {assessmentState.currentPhase ?? 1} از {assessmentState.totalPhases}
             </div>
           )}
           <div className="relative flex w-full flex-1 min-h-[440px] items-center justify-center">
             <div className="relative h-[60vh] w-full max-w-[640px] sm:max-w-[560px] md:max-w-[600px]">
               {/* قاب مربعی اصلی با افکت شیشه‌ای */}
-              <div className="absolute inset-0 rounded-[48px] bg-gradient-to-br from-white/15 via-white/0 to-transparent shadow-[0_25px_80px_-40px_rgba(79,70,229,0.35)]" />
+              <div className="absolute inset-0 rounded-[48px] bg-gradient-to-br from-white/12 via-transparent to-transparent shadow-[0_25px_80px_-40px_rgba(79,70,229,0.3)] backdrop-blur-[2px]" />
               <div className="pointer-events-none absolute inset-[6%] rounded-[48px] border border-dashed border-white/60" />
               <div className="pointer-events-none absolute inset-[12%] rounded-[48px] border border-white/40" />
-              <div className="pointer-events-none absolute inset-[18%] rounded-[48px] bg-gradient-to-b from-white/25 via-transparent to-transparent" />
+              <div className="pointer-events-none absolute inset-[18%] rounded-[48px] bg-gradient-to-b from-white/18 via-transparent to-transparent" />
               
               {/* مسیر متحرک SVG */}
               <svg
@@ -659,10 +659,10 @@ const AssessmentChat = () => {
                 </defs>
               </svg>
               {/* کادر داخلی چت */}
-              <div className="absolute left-1/2 top-1/2 z-40 flex aspect-square w-[92%] min-w-[260px] max-w-[520px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[42px] border border-white/30 bg-white/60 shadow-[0_25px_60px_-35px_rgba(15,23,42,0.35)] sm:w-[80%]">
+              <div className="absolute left-1/2 top-1/2 z-40 flex aspect-square w-[92%] min-w-[260px] max-w-[520px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[42px] border border-white/20 bg-white/30 shadow-[0_25px_60px_-35px_rgba(15,23,42,0.25)] backdrop-blur-[1.5px] sm:w-[80%]">
                 <div className="pointer-events-none absolute inset-[8%] rounded-[32px] border border-dashed border-violet-100/80" />
                 <div className="pointer-events-none absolute inset-[16%] rounded-[28px] border border-white/50" />
-                <div className="pointer-events-none absolute inset-0 rounded-[42px] bg-gradient-to-b from-white/80 via-white/40 to-white/25 opacity-80" />
+                <div className="pointer-events-none absolute inset-0 rounded-[42px] bg-gradient-to-b from-white/40 via-white/15 to-white/8 opacity-80" />
 
                 {hasConversationStarted ? (
                   <>
@@ -683,7 +683,7 @@ const AssessmentChat = () => {
                             <div
                               key={msg.id}
                               className={cn(
-                                "relative mx-auto flex w-full max-w-[90%] flex-col items-center gap-4 rounded-[32px] border-2 px-7 py-6 text-base leading-8 shadow-md transition-all sm:max-w-[76%] sm:px-9 sm:py-8",
+                                "relative mx-auto flex w-full max-w-[90%] flex-col items-center gap-4 rounded-[32px] border border-white/25 bg-white/25 px-7 py-6 text-base leading-8 shadow-sm backdrop-blur-[2px] transition-all sm:max-w-[76%] sm:px-9 sm:py-8",
                                 meta.bubble,
                                 isLatest && "scale-[1.01] border-white/80 shadow-lg"
                               )}
@@ -695,7 +695,7 @@ const AssessmentChat = () => {
                                 )}
                               />
                               <div className="flex items-center gap-3 text-xs font-semibold text-slate-500 sm:text-sm">
-                                <span className="inline-flex items-center justify-center rounded-full bg-white/70 px-3 py-1 shadow-sm">
+                                <span className="inline-flex items-center justify-center rounded-full bg-white/45 px-3 py-1 shadow-sm">
                                   {meta.name}
                                 </span>
                               </div>
@@ -706,7 +706,7 @@ const AssessmentChat = () => {
                           );
                         })}
                         {activeTyping && typingMeta && (
-                          <div className="mx-auto flex items-center justify-center gap-3 rounded-full border border-dashed border-white/50 bg-white/60 px-5 py-2 text-xs text-slate-500 shadow-sm backdrop-blur-[2px]">
+                          <div className="mx-auto flex items-center justify-center gap-3 rounded-full border border-dashed border-white/35 bg-white/40 px-5 py-2 text-xs text-slate-500 shadow-sm backdrop-blur">
                             <span className="inline-flex items-center gap-2 font-semibold text-slate-500">
                               <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-r from-violet-500 to-purple-500" />
                               {activeTyping} در حال پاسخ…
@@ -734,7 +734,7 @@ const AssessmentChat = () => {
                   </>
                 ) : (
                   <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 text-center sm:px-10">
-                    <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-3xl border border-white/40 bg-white/70 p-6 shadow-lg backdrop-blur-[2px]">
+                    <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-3xl border border-white/20 bg-white/40 p-6 shadow-lg backdrop-blur">
                       <span className="text-sm font-semibold text-slate-600">
                         {isInitializing ? "در حال آماده‌سازی پیام آغازین..." : "آماده‌ای شروع کنیم؟"}
                       </span>
@@ -775,13 +775,13 @@ const AssessmentChat = () => {
                       >
                         <div
                           className={cn(
-                            "relative flex h-14 w-14 items-center justify-center rounded-2xl border border-white/70 bg-white/95 shadow-md backdrop-blur sm:h-16 sm:w-16",
+                            "relative flex h-14 w-14 items-center justify-center rounded-2xl border border-white/40 bg-white/45 shadow-md backdrop-blur-[2px] sm:h-16 sm:w-16",
                             persona.meta.glow,
                             persona.isTyping && "animate-avatar-wiggle",
                             persona.isSpeaking && "ring-2 ring-violet-300 ring-offset-2 ring-offset-white"
                           )}
                         >
-                          <Avatar className="h-12 w-12 border border-white/70 shadow-sm sm:h-14 sm:w-14">
+                          <Avatar className="h-12 w-12 border border-white/50 bg-white/40 shadow-sm sm:h-14 sm:w-14">
                             <AvatarImage src={avatarSrc} alt={avatarName} />
                             <AvatarFallback>{avatarName[0]}</AvatarFallback>
                           </Avatar>
@@ -793,7 +793,7 @@ const AssessmentChat = () => {
                             </span>
                           )}
                           {!persona.isTyping && persona.isSpeaking && (
-                            <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-violet-500 shadow">
+                            <span className="rounded-full bg-white/50 px-2 py-0.5 text-[10px] font-bold text-violet-500 shadow">
                               در نوبت
                             </span>
                           )}
@@ -811,7 +811,7 @@ const AssessmentChat = () => {
 
         {/* نوار ورودی و فوتر */}
         <footer className="sticky bottom-0 z-10 mt-auto w-full max-w-3xl sm:bottom-3 md:bottom-6">
-          <div className="rounded-3xl border border-white/40 bg-white/70 p-2.5 shadow-2xl backdrop-blur-sm sm:rounded-full sm:p-3">
+          <div className="rounded-3xl border border-white/30 bg-white/50 p-2.5 shadow-2xl backdrop-blur-sm sm:rounded-full sm:p-3">
             <div className="flex items-center gap-2.5 sm:gap-3">
               <Button
                 onClick={toggleRecording}
