@@ -6,6 +6,7 @@ import * as THREE from "three";
 interface SceneCanvasProps {
   className?: string;
 }
+
 export function SceneCanvas({ className }: SceneCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -25,13 +26,23 @@ export function SceneCanvas({ className }: SceneCanvasProps) {
 
     const icosahedronGeometry = new THREE.IcosahedronGeometry(5, 1);
     const icosahedronMaterial = new THREE.MeshStandardMaterial({
-      color: "#6366f1",
-      wireframe: true,
+      color: "#7f74ff",
+      wireframe: false,
       transparent: true,
-      opacity: 0.3,
+      opacity: 0.2,
+      metalness: 0.35,
+      roughness: 0.4,
     });
     const icosahedronMesh = new THREE.Mesh(icosahedronGeometry, icosahedronMaterial);
     scene.add(icosahedronMesh);
+
+    const wireMaterial = new THREE.LineBasicMaterial({
+      color: "#c4b5fd",
+      transparent: true,
+      opacity: 0.75,
+    });
+    const wireframe = new THREE.LineSegments(new THREE.WireframeGeometry(icosahedronGeometry), wireMaterial);
+    scene.add(wireframe);
 
     const smallScreenQuery = window.matchMedia("(max-width: 768px)");
     const particleCount = smallScreenQuery.matches ? 300 : 800;
@@ -49,15 +60,36 @@ export function SceneCanvas({ className }: SceneCanvasProps) {
     particleGeometry.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
 
     const particlesMaterial = new THREE.PointsMaterial({
-      color: "#a855f7",
-      size: 0.05,
+      color: "#d8b4fe",
+      size: 0.08,
       transparent: true,
-      opacity: 0.8,
+      opacity: 0.9,
       sizeAttenuation: true,
       depthWrite: false,
     });
     const particles = new THREE.Points(particleGeometry, particlesMaterial);
     scene.add(particles);
+
+    const connectorGeometry = new THREE.BufferGeometry();
+    const connectorPairs = smallScreenQuery.matches ? 120 : 220;
+    const connectorPositions = new Float32Array(connectorPairs * 6);
+    for (let i = 0; i < connectorPairs; i++) {
+      const phi = Math.acos(2 * Math.random() - 1);
+      const theta = Math.random() * Math.PI * 2;
+      const radius = 8 + Math.random() * 3.5;
+      const px = radius * Math.sin(phi) * Math.cos(theta);
+      const py = radius * Math.sin(phi) * Math.sin(theta);
+      const pz = radius * Math.cos(phi);
+      connectorPositions.set([0, 0, 0, px, py, pz], i * 6);
+    }
+    connectorGeometry.setAttribute("position", new THREE.BufferAttribute(connectorPositions, 3));
+    const connectorMaterial = new THREE.LineBasicMaterial({
+      color: "#7dd3fc",
+      transparent: true,
+      opacity: 0.25,
+    });
+    const connectors = new THREE.LineSegments(connectorGeometry, connectorMaterial);
+    scene.add(connectors);
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
@@ -84,8 +116,10 @@ export function SceneCanvas({ className }: SceneCanvasProps) {
       const baseSpeed = prefersReducedMotion ? 0.0002 : 0.0008;
       icosahedronMesh.rotation.x += baseSpeed;
       icosahedronMesh.rotation.y += baseSpeed;
+      wireframe.rotation.copy(icosahedronMesh.rotation);
       particles.rotation.y -= baseSpeed * 0.75;
       particles.rotation.x -= baseSpeed * 0.75;
+      connectors.rotation.y += baseSpeed * 0.5;
       renderer.render(scene, camera);
       frameId = requestAnimationFrame(animate);
     };
@@ -131,9 +165,12 @@ export function SceneCanvas({ className }: SceneCanvasProps) {
         prefersReducedMotionQuery.removeListener(handleMotionChange);
       }
       renderer.dispose();
+      connectorGeometry.dispose();
+      connectorMaterial.dispose();
       icosahedronGeometry.dispose();
       particleGeometry.dispose();
       particlesMaterial.dispose();
+      wireMaterial.dispose();
       icosahedronMaterial.dispose();
       if (renderer.domElement && container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
@@ -145,7 +182,7 @@ export function SceneCanvas({ className }: SceneCanvasProps) {
     <div
       ref={containerRef}
       aria-hidden="true"
-      className={`pointer-events-none absolute inset-0 -z-10 ${className}`} // className را اینجا اضافه کنید
+      className={`pointer-events-none absolute inset-0 -z-10 ${className ?? ""}`}
     />
   );
 }
