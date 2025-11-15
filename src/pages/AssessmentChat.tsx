@@ -616,9 +616,8 @@ const AssessmentChat = () => {
 
   return (
     <div className="relative flex min-h-screen w-full justify-center overflow-hidden bg-slate-950 text-slate-900 px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
-      <div className="absolute inset-0 -z-10">
-        <SceneCanvas />
-      </div>
+      <SceneCanvas />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/20 via-white/5 to-transparent backdrop-blur-[1px]" />
 
       <div className="relative z-10 flex w-full max-w-6xl flex-1 min-h-0 flex-col items-center gap-8 sm:gap-10">
         <header className="flex flex-col items-center gap-3 text-center sm:gap-4">
@@ -646,7 +645,7 @@ const AssessmentChat = () => {
             </div>
           )}
           <div className="relative flex w-full flex-1 min-h-[440px] items-center justify-center">
-            <div className="relative aspect-square w-full max-w-[640px] sm:max-w-[560px] md:max-w-[600px]">
+            <div className="relative h-[60vh] w-full max-w-[640px] sm:max-w-[560px] md:max-w-[600px]">
               <div className="absolute inset-0 rounded-[48px] bg-gradient-to-br from-white/55 via-white/10 to-transparent shadow-[0_25px_80px_-40px_rgba(79,70,229,0.45)] backdrop-blur-lg" />
               <div className="pointer-events-none absolute inset-[6%] rounded-[48px] border border-dashed border-white/60" />
               <div className="pointer-events-none absolute inset-[12%] rounded-[48px] border border-white/40" />
@@ -767,7 +766,8 @@ const AssessmentChat = () => {
             </div>
 
             <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center">
-              <div className="relative aspect-square w-full max-w-[640px] sm:max-w-[560px] md:max-w-[600px]">
+              <div className="relative h-[60vh] w-full max-w-[640px] sm:max-w-[560px] md:max-w-[600px]">
+
                 {squareAvatarMembers.map((persona) => {
                   const avatarSrc = persona.avatar?.src ?? persona.meta.avatar;
                   const avatarName = persona.avatar?.name ?? persona.meta.name;
