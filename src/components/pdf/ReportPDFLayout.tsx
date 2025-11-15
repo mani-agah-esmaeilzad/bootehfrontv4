@@ -89,7 +89,7 @@ const parseArrayLike = (input: unknown): unknown[] => {
   if (Array.isArray(input)) return input;
   if (typeof input === "string") {
     const trimmed = input.trim();
-    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+    if ((trimmed.startsWith("[") && trimmed.endsWith("]")) || (trimmed.startsWith("{") && trimmed.endsWith("}"))) {
       try {
         const parsed = JSON.parse(trimmed);
         if (Array.isArray(parsed)) return parsed;
@@ -99,6 +99,65 @@ const parseArrayLike = (input: unknown): unknown[] => {
     }
   }
   return [];
+};
+
+const extractLooseJsonBlock = (source: string, label: string) => {
+  const idx = source.toLowerCase().indexOf(label.toLowerCase());
+  if (idx === -1) return undefined;
+  const afterLabel = source.slice(idx + label.length);
+  const bracketIndex = afterLabel.indexOf("[");
+  const braceIndex = afterLabel.indexOf("{");
+  const hasBracket = bracketIndex !== -1;
+  const hasBrace = braceIndex !== -1;
+  let startOffset = -1;
+  let openChar: "[" | "{" | null = null;
+  if (hasBracket && (!hasBrace || bracketIndex < braceIndex)) {
+    startOffset = bracketIndex;
+    openChar = "[";
+  } else if (hasBrace) {
+    startOffset = braceIndex;
+    openChar = "{";
+  }
+  if (startOffset === -1 || !openChar) return undefined;
+  const closeChar = openChar === "[" ? "]" : "}";
+  let depth = 0;
+  for (let i = idx + label.length + startOffset; i < source.length; i += 1) {
+    const char = source[i];
+    if (char === openChar) depth += 1;
+    else if (char === closeChar) depth -= 1;
+    if (depth === 0) {
+      const block = source.slice(idx + label.length + startOffset, i + 1);
+      try {
+        return JSON.parse(block);
+      } catch {
+        return undefined;
+      }
+    }
+  }
+  return undefined;
+};
+
+const parseLooseAnalysisString = (raw: string) => {
+  const blocks: Record<string, string> = {
+    keyword_analysis: "Keyword Analysis",
+    verbosity_trend: "Verbosity Trend",
+    action_orientation: "Action Orientation",
+    problem_solving_approach: "Problem Solving Approach",
+    communication_style: "Communication Style",
+    linguistic_semantic_analysis: "Linguistic Semantic Analysis",
+    factor_scatter: "Factor Scatter",
+    factor_contribution: "Factor Contribution",
+    factor_scores: "Factor Scores",
+    sentiment_analysis: "Sentiment Analysis",
+  };
+  const result: Record<string, unknown> = {};
+  for (const [key, label] of Object.entries(blocks)) {
+    const parsed = extractLooseJsonBlock(raw, label);
+    if (parsed !== undefined) {
+      result[key] = parsed;
+    }
+  }
+  return result;
 };
 
 const normalizeFactorEntries = (input: unknown): Array<{ subject: string; score: number; fullMark: number }> => {
@@ -141,7 +200,9 @@ const legendStyle: React.CSSProperties = {
 
 export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
   ({ report }, ref) => {
-    const { analysis } = report;
+    const analysisRaw = report.analysis;
+    const analysis =
+      (typeof analysisRaw === "string" ? parseLooseAnalysisString(analysisRaw) : analysisRaw) ?? {};
 
     const factorScoreRaw = resolveAnalysisField(analysis, ["factor_scores", "factor score", "factor-score"]);
     const normalizedFactors = normalizeFactorEntries(factorScoreRaw);
