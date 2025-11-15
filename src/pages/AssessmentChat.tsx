@@ -507,7 +507,7 @@ const AssessmentChat = () => {
           avatar: userAvatarSrc,
           badge: "شرکت‌کننده",
           accent: "from-sky-400 to-sky-500",
-          bubble: "bg-sky-50/90 text-sky-800 border-sky-100",
+          bubble: "bg-sky-50/70 text-sky-800 border-sky-100/70",
           glow: "shadow-[0_10px_30px_-12px_rgba(56,189,248,0.65)]",
           layout: "center",
         },
@@ -516,7 +516,7 @@ const AssessmentChat = () => {
           avatar: avatarNarrator,
           badge: "نقال سناریو",
           accent: "from-emerald-400 to-teal-500",
-          bubble: "bg-emerald-50/90 text-emerald-800 border-emerald-100",
+          bubble: "bg-emerald-50/70 text-emerald-800 border-emerald-100/70",
           glow: "shadow-[0_10px_30px_-12px_rgba(16,185,129,0.65)]",
           layout: "left",
         },
@@ -525,7 +525,7 @@ const AssessmentChat = () => {
           avatar: avatarProctor,
           badge: "ناظر آزمون",
           accent: "from-amber-400 to-orange-500",
-          bubble: "bg-amber-50/90 text-amber-900 border-amber-100",
+          bubble: "bg-amber-50/75 text-amber-900 border-amber-100/70",
           glow: "shadow-[0_10px_30px_-12px_rgba(245,158,11,0.65)]",
           layout: "right",
         },
@@ -534,7 +534,7 @@ const AssessmentChat = () => {
           avatar: avatarNarrator,
           badge: "دستیار",
           accent: "from-indigo-400 to-purple-500",
-          bubble: "bg-indigo-50/90 text-indigo-800 border-indigo-100",
+          bubble: "bg-indigo-50/70 text-indigo-800 border-indigo-100/70",
           glow: "shadow-[0_10px_30px_-12px_rgba(129,140,248,0.65)]",
           layout: "left",
         },
@@ -602,7 +602,7 @@ const AssessmentChat = () => {
   return (
     <div className="relative flex min-h-screen w-full justify-center overflow-hidden bg-slate-950 text-slate-900 px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
       <SceneCanvas className="absolute inset-0" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/12 via-white/4 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/6 via-white/2 to-transparent" />
 
       <div className="relative z-10 flex w-full max-w-6xl flex-1 min-h-0 flex-col items-center gap-8 sm:gap-10">
         <header className="flex flex-col items-center gap-3 text-center sm:gap-4">
@@ -632,7 +632,7 @@ const AssessmentChat = () => {
           <div className="relative flex w-full flex-1 min-h-[440px] items-center justify-center">
             <div className="relative h-[60vh] w-full max-w-[640px] sm:max-w-[560px] md:max-w-[600px]">
               {/* قاب مربعی اصلی با افکت شیشه‌ای */}
-              <div className="absolute inset-0 rounded-[48px] bg-gradient-to-br from-white/35 via-white/6 to-transparent shadow-[0_25px_80px_-40px_rgba(79,70,229,0.45)] backdrop-blur-md" />
+              <div className="absolute inset-0 rounded-[48px] bg-gradient-to-br from-white/25 via-white/4 to-transparent shadow-[0_25px_80px_-40px_rgba(79,70,229,0.45)] backdrop-blur-sm" />
               <div className="pointer-events-none absolute inset-[6%] rounded-[48px] border border-dashed border-white/60" />
               <div className="pointer-events-none absolute inset-[12%] rounded-[48px] border border-white/40" />
               <div className="pointer-events-none absolute inset-[18%] rounded-[48px] bg-gradient-to-b from-white/40 via-transparent to-transparent" />
@@ -659,7 +659,7 @@ const AssessmentChat = () => {
                 </defs>
               </svg>
               {/* کادر داخلی چت */}
-              <div className="absolute left-1/2 top-1/2 z-40 flex aspect-square w-[92%] min-w-[260px] max-w-[520px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[42px] border border-white/50 bg-white/85 shadow-[0_25px_60px_-35px_rgba(15,23,42,0.45)] backdrop-blur-sm sm:w-[80%]">
+              <div className="absolute left-1/2 top-1/2 z-40 flex aspect-square w-[92%] min-w-[260px] max-w-[520px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[42px] border border-white/40 bg-white/80 shadow-[0_25px_60px_-35px_rgba(15,23,42,0.4)] backdrop-blur-sm sm:w-[80%]">
                 <div className="pointer-events-none absolute inset-[8%] rounded-[32px] border border-dashed border-violet-100/80" />
                 <div className="pointer-events-none absolute inset-[16%] rounded-[28px] border border-white/50" />
                 <div className="pointer-events-none absolute inset-0 rounded-[42px] bg-gradient-to-b from-white via-white/70 to-white/40 opacity-80" />
