@@ -109,9 +109,26 @@ const resolveAnalysisField = (source: Record<string, any>, candidates: string[])
   return undefined;
 };
 
+const parseArrayLike = (input: unknown): unknown[] => {
+  if (Array.isArray(input)) return input;
+  if (typeof input === "string") {
+    const trimmed = input.trim();
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        return [];
+      }
+    }
+  }
+  return [];
+};
+
 const normalizeFactorEntries = (input: unknown): Array<{ subject: string; score: number; fullMark: number }> => {
-  if (!Array.isArray(input)) return [];
-  return input
+  const candidateArray = parseArrayLike(input);
+  if (!Array.isArray(candidateArray)) return [];
+  return candidateArray
     .map((entry, index) => {
       if (entry && typeof entry === "object") {
         const record = entry as Record<string, unknown>;
