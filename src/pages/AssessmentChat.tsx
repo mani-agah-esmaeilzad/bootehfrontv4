@@ -616,8 +616,9 @@ const AssessmentChat = () => {
 
   return (
     <div className="relative flex min-h-screen w-full justify-center overflow-hidden bg-slate-950 text-slate-900 px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
-      <SceneCanvas />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/45 via-white/15 to-white/5 backdrop-blur-[1px]" />
+      <div className="absolute inset-0 -z-10">
+        <SceneCanvas />
+      </div>
 
       <div className="relative z-10 flex w-full max-w-6xl flex-1 min-h-0 flex-col items-center gap-8 sm:gap-10">
         <header className="flex flex-col items-center gap-3 text-center sm:gap-4">
