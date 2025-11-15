@@ -50,30 +50,61 @@ export function SceneCanvas({ className }: SceneCanvasProps) {
     group.add(glowMesh);
 
     const particleGeometry = new THREE.BufferGeometry();
-    const particleCount = 700;
-    const positions = new Float32Array(particleCount * 3);
+    const particleCount = 620;
+    const particlePositions = new Float32Array(particleCount * 3);
     for (let i = 0; i < particleCount; i++) {
-      const radius = 2.8 + Math.random() * 2.2;
+      const radius = 2.6 + Math.random() * 2.6;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
       const x = radius * Math.sin(phi) * Math.cos(theta);
       const y = radius * Math.sin(phi) * Math.sin(theta);
       const z = radius * Math.cos(phi);
-      positions[i * 3] = x;
-      positions[i * 3 + 1] = y;
-      positions[i * 3 + 2] = z;
+      particlePositions[i * 3] = x;
+      particlePositions[i * 3 + 1] = y;
+      particlePositions[i * 3 + 2] = z;
     }
-    particleGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    particleGeometry.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
     const particlesMaterial = new THREE.PointsMaterial({
-      color: new THREE.Color("#c4b5fd"),
-      size: 0.05,
+      color: new THREE.Color("#d8b4fe"),
+      size: 0.04,
       sizeAttenuation: true,
       transparent: true,
-      opacity: 0.8,
+      opacity: 0.9,
       depthWrite: false,
     });
     const particles = new THREE.Points(particleGeometry, particlesMaterial);
     scene.add(particles);
+
+    const icoPositions = icoGeometry.attributes.position.array as Float32Array;
+    const vertexCount = icoPositions.length / 3;
+    const connectorCount = 180;
+    const connectorPositions = new Float32Array(connectorCount * 6);
+    for (let i = 0; i < connectorCount; i++) {
+      const vertexIndex = Math.floor(Math.random() * vertexCount);
+      const particleIndex = Math.floor(Math.random() * particleCount);
+      const vx = icoPositions[vertexIndex * 3];
+      const vy = icoPositions[vertexIndex * 3 + 1];
+      const vz = icoPositions[vertexIndex * 3 + 2];
+      const px = particlePositions[particleIndex * 3];
+      const py = particlePositions[particleIndex * 3 + 1];
+      const pz = particlePositions[particleIndex * 3 + 2];
+      connectorPositions[i * 6] = vx;
+      connectorPositions[i * 6 + 1] = vy;
+      connectorPositions[i * 6 + 2] = vz;
+      connectorPositions[i * 6 + 3] = px;
+      connectorPositions[i * 6 + 4] = py;
+      connectorPositions[i * 6 + 5] = pz;
+    }
+    const connectorsGeometry = new THREE.BufferGeometry();
+    connectorsGeometry.setAttribute("position", new THREE.BufferAttribute(connectorPositions, 3));
+    const connectorsMaterial = new THREE.LineBasicMaterial({
+      color: new THREE.Color("#c4b5fd"),
+      transparent: true,
+      opacity: 0.22,
+      linewidth: 0.5,
+    });
+    const connectors = new THREE.LineSegments(connectorsGeometry, connectorsMaterial);
+    scene.add(connectors);
 
     scene.add(new THREE.AmbientLight(0xffffff, 0.6));
     const keyLight = new THREE.PointLight(0x93c5fd, 0.9);
@@ -108,6 +139,7 @@ export function SceneCanvas({ className }: SceneCanvasProps) {
       group.rotation.y = elapsed * 0.18;
       particles.rotation.y = elapsed * 0.06;
       particles.rotation.x = Math.sin(elapsed * 0.2) * 0.1;
+      connectors.rotation.copy(particles.rotation);
       renderer.render(scene, camera);
       frameId = requestAnimationFrame(animate);
     };
@@ -126,6 +158,8 @@ export function SceneCanvas({ className }: SceneCanvasProps) {
       glowMaterial.dispose();
       particleGeometry.dispose();
       particlesMaterial.dispose();
+      connectorsGeometry.dispose();
+      connectorsMaterial.dispose();
       renderer.dispose();
     };
   }, []);
@@ -133,7 +167,7 @@ export function SceneCanvas({ className }: SceneCanvasProps) {
   return (
     <div ref={containerRef} className={cn("absolute inset-0", className)}>
       <canvas ref={canvasRef} className="h-full w-full" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/20 via-white/10 to-white/60" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-white/40" />
     </div>
   );
 }
