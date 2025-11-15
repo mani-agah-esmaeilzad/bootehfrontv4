@@ -1,173 +1,142 @@
+"use client";
+
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { cn } from "@/lib/utils";
 
-interface SceneCanvasProps {
-  className?: string;
-}
-
-export function SceneCanvas({ className }: SceneCanvasProps) {
+export function SceneCanvas() {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const canvas = canvasRef.current;
     const container = containerRef.current;
-    if (!canvas || !container) return;
+    if (!container) return;
 
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio ?? 1, 2));
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio ?? 1, 1.5));
     renderer.setClearColor(0x000000, 0);
+    container.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-    camera.position.set(0, 0, 6);
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+    camera.position.z = 12;
 
-    const group = new THREE.Group();
-    scene.add(group);
-
-    const icoGeometry = new THREE.IcosahedronGeometry(1.8, 1);
-    const wireGeometry = new THREE.WireframeGeometry(icoGeometry);
-    const wireMaterial = new THREE.LineBasicMaterial({
-      color: new THREE.Color("#7c3aed"),
+    const icosahedronGeometry = new THREE.IcosahedronGeometry(5, 1);
+    const icosahedronMaterial = new THREE.MeshStandardMaterial({
+      color: "#6366f1",
+      wireframe: true,
       transparent: true,
-      opacity: 0.55,
-      linewidth: 1,
+      opacity: 0.3,
     });
-    const wireframe = new THREE.LineSegments(wireGeometry, wireMaterial);
-    group.add(wireframe);
+    const icosahedronMesh = new THREE.Mesh(icosahedronGeometry, icosahedronMaterial);
+    scene.add(icosahedronMesh);
 
-    const glowMaterial = new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color("#a78bfa"),
-      transparent: true,
-      opacity: 0.08,
-      metalness: 0.2,
-      roughness: 0.35,
-      side: THREE.DoubleSide,
-    });
-    const glowMesh = new THREE.Mesh(icoGeometry.clone(), glowMaterial);
-    group.add(glowMesh);
-
+    const smallScreenQuery = window.matchMedia("(max-width: 768px)");
+    const particleCount = smallScreenQuery.matches ? 300 : 800;
     const particleGeometry = new THREE.BufferGeometry();
-    const particleCount = 620;
     const particlePositions = new Float32Array(particleCount * 3);
     for (let i = 0; i < particleCount; i++) {
-      const radius = 2.6 + Math.random() * 2.6;
+      const radius = 12 * Math.cbrt(Math.random());
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
       const x = radius * Math.sin(phi) * Math.cos(theta);
       const y = radius * Math.sin(phi) * Math.sin(theta);
       const z = radius * Math.cos(phi);
-      particlePositions[i * 3] = x;
-      particlePositions[i * 3 + 1] = y;
-      particlePositions[i * 3 + 2] = z;
+      particlePositions.set([x, y, z], i * 3);
     }
     particleGeometry.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
+
     const particlesMaterial = new THREE.PointsMaterial({
-      color: new THREE.Color("#d8b4fe"),
-      size: 0.04,
-      sizeAttenuation: true,
+      color: "#a855f7",
+      size: 0.05,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.8,
+      sizeAttenuation: true,
       depthWrite: false,
     });
     const particles = new THREE.Points(particleGeometry, particlesMaterial);
     scene.add(particles);
 
-    const icoPositions = icoGeometry.attributes.position.array as Float32Array;
-    const vertexCount = icoPositions.length / 3;
-    const connectorCount = 180;
-    const connectorPositions = new Float32Array(connectorCount * 6);
-    for (let i = 0; i < connectorCount; i++) {
-      const vertexIndex = Math.floor(Math.random() * vertexCount);
-      const particleIndex = Math.floor(Math.random() * particleCount);
-      const vx = icoPositions[vertexIndex * 3];
-      const vy = icoPositions[vertexIndex * 3 + 1];
-      const vz = icoPositions[vertexIndex * 3 + 2];
-      const px = particlePositions[particleIndex * 3];
-      const py = particlePositions[particleIndex * 3 + 1];
-      const pz = particlePositions[particleIndex * 3 + 2];
-      connectorPositions[i * 6] = vx;
-      connectorPositions[i * 6 + 1] = vy;
-      connectorPositions[i * 6 + 2] = vz;
-      connectorPositions[i * 6 + 3] = px;
-      connectorPositions[i * 6 + 4] = py;
-      connectorPositions[i * 6 + 5] = pz;
-    }
-    const connectorsGeometry = new THREE.BufferGeometry();
-    connectorsGeometry.setAttribute("position", new THREE.BufferAttribute(connectorPositions, 3));
-    const connectorsMaterial = new THREE.LineBasicMaterial({
-      color: new THREE.Color("#c4b5fd"),
-      transparent: true,
-      opacity: 0.22,
-      linewidth: 0.5,
-    });
-    const connectors = new THREE.LineSegments(connectorsGeometry, connectorsMaterial);
-    scene.add(connectors);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-    const keyLight = new THREE.PointLight(0x93c5fd, 0.9);
-    keyLight.position.set(2, 2, 4);
-    scene.add(keyLight);
-    const rimLight = new THREE.PointLight(0xf472b6, 0.6);
-    rimLight.position.set(-3, -1, 3);
-    scene.add(rimLight);
+    const directionalLight = new THREE.DirectionalLight("#a78bfa", 1.2);
+    directionalLight.position.set(5, 5, 10);
+    scene.add(directionalLight);
 
-    const clock = new THREE.Clock();
-    const resizeRenderer = () => {
+    const handleResize = () => {
+      if (!container) return;
       const { width, height } = container.getBoundingClientRect();
-      if (!width || !height) return;
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
     };
-    resizeRenderer();
+    handleResize();
 
-    let resizeObserver: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== "undefined") {
-      resizeObserver = new ResizeObserver(resizeRenderer);
-      resizeObserver.observe(container);
-    } else {
-      window.addEventListener("resize", resizeRenderer);
-    }
+    const prefersReducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let prefersReducedMotion = prefersReducedMotionQuery.matches;
 
-    let frameId: number;
+    let frameId: number | null = null;
+
     const animate = () => {
-      const elapsed = clock.getElapsedTime();
-      group.rotation.x = 0.35 + elapsed * 0.25;
-      group.rotation.y = elapsed * 0.18;
-      particles.rotation.y = elapsed * 0.06;
-      particles.rotation.x = Math.sin(elapsed * 0.2) * 0.1;
-      connectors.rotation.copy(particles.rotation);
+      const baseSpeed = prefersReducedMotion ? 0.0002 : 0.0008;
+      icosahedronMesh.rotation.x += baseSpeed;
+      icosahedronMesh.rotation.y += baseSpeed;
+      particles.rotation.y -= baseSpeed * 0.75;
+      particles.rotation.x -= baseSpeed * 0.75;
       renderer.render(scene, camera);
       frameId = requestAnimationFrame(animate);
     };
-    animate();
+
+    const startAnimation = () => {
+      if (frameId === null) {
+        frameId = requestAnimationFrame(animate);
+      }
+    };
+
+    const stopAnimation = () => {
+      if (frameId !== null) {
+        cancelAnimationFrame(frameId);
+        frameId = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) stopAnimation();
+      else startAnimation();
+    };
+
+    const handleMotionChange = (event: MediaQueryListEvent) => {
+      prefersReducedMotion = event.matches;
+    };
+    window.addEventListener("resize", handleResize);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    if (prefersReducedMotionQuery.addEventListener) {
+      prefersReducedMotionQuery.addEventListener("change", handleMotionChange);
+    } else {
+      prefersReducedMotionQuery.addListener(handleMotionChange);
+    }
+
+    startAnimation();
 
     return () => {
-      cancelAnimationFrame(frameId);
-      if (resizeObserver) {
-        resizeObserver.disconnect();
+      stopAnimation();
+      window.removeEventListener("resize", handleResize);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (prefersReducedMotionQuery.removeEventListener) {
+        prefersReducedMotionQuery.removeEventListener("change", handleMotionChange);
       } else {
-        window.removeEventListener("resize", resizeRenderer);
+        prefersReducedMotionQuery.removeListener(handleMotionChange);
       }
-      icoGeometry.dispose();
-      wireGeometry.dispose();
-      wireMaterial.dispose();
-      glowMaterial.dispose();
+      renderer.dispose();
+      icosahedronGeometry.dispose();
       particleGeometry.dispose();
       particlesMaterial.dispose();
-      connectorsGeometry.dispose();
-      connectorsMaterial.dispose();
-      renderer.dispose();
+      icosahedronMaterial.dispose();
+      if (renderer.domElement && container.contains(renderer.domElement)) {
+        container.removeChild(renderer.domElement);
+      }
     };
   }, []);
 
-  return (
-    <div ref={containerRef} className={cn("absolute inset-0", className)}>
-      <canvas ref={canvasRef} className="h-full w-full" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-white/40" />
-    </div>
-  );
+  return <div ref={containerRef} aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10" />;
 }
