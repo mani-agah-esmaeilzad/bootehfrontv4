@@ -600,13 +600,13 @@ const AssessmentChat = () => {
   // =========================================================================
 
   return (
-    <div className="relative flex min-h-screen w-full justify-center overflow-hidden bg-slate-950 text-slate-900 px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
+    <div className="relative flex min-h-screen w-full justify-center overflow-hidden bg-slate-950 text-white px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
       <SceneCanvas className="absolute inset-0" />
 
       <div className="relative z-10 flex w-full max-w-6xl flex-1 min-h-0 flex-col items-center gap-8 sm:gap-10">
         <header className="flex flex-col items-center gap-3 text-center sm:gap-4">
-          <h1 className="text-2xl font-extrabold text-slate-900 sm:text-3xl">میدان گفتگو با قاب مربعی</h1>
-          <p className="max-w-2xl text-sm leading-7 text-slate-500 sm:text-base">
+          <h1 className="text-2xl font-extrabold text-white sm:text-3xl">میدان گفتگو با قاب مربعی</h1>
+          <p className="max-w-2xl text-sm leading-7 text-slate-200 sm:text-base">
             پیام‌های شما داخل یک قاب مربعی بزرگ و خواناتر ارائه می‌شوند و آواتار هر نقش روی اضلاع این قاب قرار گرفته تا
             حضورش را نشان دهد.
           </p>
@@ -624,7 +624,7 @@ const AssessmentChat = () => {
           </div>
 
           {assessmentState?.totalPhases && assessmentState.totalPhases > 1 && (
-            <div className="mb-4 rounded-full border border-white/12 bg-white/15 px-5 py-1 text-xs font-semibold text-slate-600 shadow backdrop-blur-sm">
+            <div className="mb-4 rounded-full border border-white/12 bg-white/15 px-5 py-1 text-xs font-semibold text-slate-100 shadow backdrop-blur-sm">
               مرحله {assessmentState.currentPhase ?? 1} از {assessmentState.totalPhases}
             </div>
           )}
@@ -693,7 +693,7 @@ const AssessmentChat = () => {
                                   meta.accent
                                 )}
                               />
-                              <div className="flex items-center gap-3 text-xs font-semibold text-slate-500 sm:text-sm">
+                              <div className="flex items-center gap-3 text-xs font-semibold text-slate-100 sm:text-sm">
                                 <span className="inline-flex items-center justify-center rounded-full bg-white/30 px-3 py-1 shadow-sm">
                                   {meta.name}
                                 </span>
@@ -705,8 +705,8 @@ const AssessmentChat = () => {
                           );
                         })}
                         {activeTyping && typingMeta && (
-                          <div className="mx-auto flex items-center justify-center gap-3 rounded-full border border-dashed border-white/20 bg-white/20 px-5 py-2 text-xs text-slate-500 shadow-sm backdrop-blur">
-                            <span className="inline-flex items-center gap-2 font-semibold text-slate-500">
+                          <div className="mx-auto flex items-center justify-center gap-3 rounded-full border border-dashed border-white/20 bg-white/20 px-5 py-2 text-xs text-slate-100 shadow-sm backdrop-blur">
+                            <span className="inline-flex items-center gap-2 font-semibold text-slate-50">
                               <span className="h-2.5 w-2.5 rounded-full bg-gradient-to-r from-violet-500 to-purple-500" />
                               {activeTyping} در حال پاسخ…
                             </span>
@@ -734,10 +734,10 @@ const AssessmentChat = () => {
                 ) : (
                   <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 text-center sm:px-10">
                     <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-3xl border border-white/15 bg-white/25 p-6 shadow-lg backdrop-blur">
-                      <span className="text-sm font-semibold text-slate-600">
+                      <span className="text-sm font-semibold text-slate-100">
                         {isInitializing ? "در حال آماده‌سازی پیام آغازین..." : "آماده‌ای شروع کنیم؟"}
                       </span>
-                      <p className="text-xs leading-6 text-slate-500 sm:text-sm">
+                      <p className="text-xs leading-6 text-slate-200 sm:text-sm">
                         وقتی روی دکمه زیر بزنی، راوی پیام ابتدایی را می‌فرستد و گفتگو آغاز می‌شود.
                       </p>
                       <Button
@@ -769,7 +769,7 @@ const AssessmentChat = () => {
                         className={cn(
                           "flex w-[92px] flex-col gap-2 text-[10px] font-medium transition-all duration-500 sm:w-[118px] sm:text-xs",
                           persona.placement.align,
-                          persona.isSpeaking ? "text-slate-700" : "text-slate-500"
+                          persona.isSpeaking ? "text-white" : "text-white/70"
                         )}
                       >
                         <div
@@ -797,8 +797,8 @@ const AssessmentChat = () => {
                             </span>
                           )}
                         </div>
-                        <span className="text-sm font-bold text-slate-700 sm:text-base">{persona.meta.name}</span>
-                        <span className="text-[10px] text-slate-400 sm:text-xs">{persona.meta.badge}</span>
+                        <span className="text-sm font-bold text-white sm:text-base">{persona.meta.name}</span>
+                        <span className="text-[10px] text-white/70 sm:text-xs">{persona.meta.badge}</span>
                       </div>
                     </div>
                   );
@@ -816,7 +816,7 @@ const AssessmentChat = () => {
                 onClick={toggleRecording}
                 size="icon"
                 className={cn(
-                  "h-11 w-11 rounded-full border border-slate-200 bg-slate-100 text-slate-600 transition-all duration-300 hover:scale-105 hover:bg-slate-200 sm:h-12 sm:w-12",
+                    "h-11 w-11 rounded-full border border-white/30 bg-white/20 text-white transition-all duration-300 hover:scale-105 hover:bg-white/30 sm:h-12 sm:w-12",
                   isRecording && "border-sky-300 bg-sky-50 text-sky-600 shadow-[0_10px_25px_-15px_rgba(56,189,248,1)]",
                   (!hasConversationStarted || isResponseLocked) && "cursor-not-allowed opacity-60"
                 )}
@@ -838,7 +838,7 @@ const AssessmentChat = () => {
                       : "برای شروع گفتگو روی «شروع کنیم» بزنید"
                   }
                   className={cn(
-                    "h-11 w-full rounded-full border-none bg-transparent text-right text-sm text-slate-600 focus-visible:ring-0 sm:h-12",
+                    "h-11 w-full rounded-full border-none bg-transparent text-right text-sm text-white focus-visible:ring-0 sm:h-12 placeholder:text-white/50",
                     (!hasConversationStarted || isResponseLocked) && "cursor-not-allowed opacity-60"
                   )}
                   disabled={!hasConversationStarted || isResponseLocked}
@@ -871,7 +871,7 @@ const AssessmentChat = () => {
                           </linearGradient>
                         </defs>
                       </svg>
-                      <div className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-slate-600">
+                      <div className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-white/80">
                         {responseLockRemaining}
                       </div>
                     </div>
