@@ -273,7 +273,37 @@ const hydrateAnalysis = (raw: any) => {
       base.factors ||
       base.factorData;
   }
-  
+
+  // 🔥 تبدیل ساختار شیء → آرایه برای charts
+  // 🔥 تبدیل ساختار شیء → آرایه برای charts
+  const fixToArray = (fieldName: string) => {
+    const val = base[fieldName];
+    if (val && !Array.isArray(val) && typeof val === "object") {
+
+      base[fieldName] = Object.entries(val).map(([key, value]) => {
+        const score = toNum(value);
+        const maxScore = 5;
+
+        return {
+          factor: key,
+          name: key,
+          subject: key,
+          score,
+          maxScore,
+          fullMark: maxScore,
+          size: score,
+          value: score,
+        };
+      });
+
+    }
+  };
+
+  fixToArray("factor_scatter");
+  fixToArray("factor_contribution");
+  fixToArray("factor_scores");
+
+
   return base;
 };
 
