@@ -97,6 +97,18 @@ const toNum = (val: any): number => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const normalizeKey = (key: string) => key.toLowerCase().replace(/[\s_-]+/g, "");
+const resolveAnalysisField = (source: Record<string, any>, candidates: string[]) => {
+  if (!source || typeof source !== "object") return undefined;
+  const normalizedMap = new Map<string, string>();
+  Object.keys(source).forEach((key) => normalizedMap.set(normalizeKey(key), key));
+  for (const candidate of candidates) {
+    const normalized = normalizeKey(candidate);
+    if (normalizedMap.has(normalized)) return source[normalizedMap.get(normalized)!];
+  }
+  return undefined;
+};
+
 const normalizeFactorEntries = (input: unknown): Array<{ subject: string; score: number; fullMark: number }> => {
   if (!Array.isArray(input)) return [];
   return input
@@ -479,22 +491,24 @@ const AdminReportDetail = () => {
     ? (analysis.phase_breakdown as PhaseBreakdownEntry[])
     : [];
 
-  const baseFactorData = normalizeFactorEntries(analysis.factor_scores);
+  const factorScoreRaw = resolveAnalysisField(analysis, ["factor_scores", "factor score", "factor-score"]);
+  const baseFactorData = normalizeFactorEntries(factorScoreRaw);
   const chartData = baseFactorData.length > 0 ? baseFactorData : [];
-  const scatterData =
-    normalizeFactorEntries(
-      analysis.factor_scatter ||
-        analysis.scatter_data ||
-        analysis.factor_correlation ||
-        analysis.factor_scores
-    ) || [];
-  const treemapData =
-    normalizeFactorEntries(
-      analysis.factor_contribution ||
-        analysis.factor_share ||
-        analysis.factor_treemap ||
-        analysis.factor_scores
-    ) || [];
+  const scatterRaw = resolveAnalysisField(analysis, [
+    "factor_scatter",
+    "scatter_data",
+    "factor_correlation",
+    "scatter",
+    "factor scatter",
+  ]);
+  const scatterData = normalizeFactorEntries(scatterRaw) || [];
+  const treemapRaw = resolveAnalysisField(analysis, [
+    "factor_contribution",
+    "factor_share",
+    "factor_treemap",
+    "factor contribution",
+  ]);
+  const treemapData = normalizeFactorEntries(treemapRaw) || [];
   const scatterSeries = scatterData.length > 0 ? scatterData : chartData;
   const treemapSeries = treemapData.length > 0 ? treemapData : chartData;
   const sentimentData = analysis.sentiment_analysis
