@@ -183,15 +183,15 @@ const parseLooseAnalysisString = (raw: string) => {
   }
   return result;
 };
-
 const hydrateAnalysis = (raw: any) => {
   let base: Record<string, any> =
     typeof raw === "string"
       ? parseLooseAnalysisString(raw)
       : raw && typeof raw === "object"
-        ? { ...raw }
-        : {};
+      ? { ...raw }
+      : {};
 
+  // 👇 این بخش برچسب‌های Embedded را وارد می‌کند
   const additional = base?.additional_details;
   if (typeof additional === "string") {
     const parsed = parseLooseAnalysisString(additional);
@@ -201,8 +201,42 @@ const hydrateAnalysis = (raw: any) => {
       }
     });
   }
+
+  for (const [key, value] of Object.entries(base)) {
+    const normalized = normalizeKey(key);
+
+    if (normalized.includes("factorscatter") && !base.factor_scatter) {
+      base.factor_scatter = value;
+    }
+
+    if (normalized.includes("factorcontribution") && !base.factor_contribution) {
+      base.factor_contribution = value;
+    }
+
+    if (normalized.includes("keywordanalysis") && !base.keyword_analysis) {
+      base.keyword_analysis = value;
+    }
+
+    if (normalized.includes("verbositytrend") && !base.verbosity_trend) {
+      base.verbosity_trend = value;
+    }
+
+    if (normalized.includes("problemSolving") && !base.problem_solving_approach) {
+      base.problem_solving_approach = value;
+    }
+
+    if (normalized.includes("communicationstyle") && !base.communication_style) {
+      base.communication_style = value;
+    }
+
+    if (normalized.includes("linguisticsemanticanalysis") && !base.linguistic_semantic_analysis) {
+      base.linguistic_semantic_analysis = value;
+    }
+  }
+
   return base;
 };
+
 
 const normalizeFactorEntries = (input: unknown): Array<{ subject: string; score: number; fullMark: number }> => {
   const candidateArray = parseArrayLike(input);
