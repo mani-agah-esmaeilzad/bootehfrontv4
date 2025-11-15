@@ -72,6 +72,35 @@ const toNum = (val: any): number => {
   const parsed = Number(str);
   return Number.isFinite(parsed) ? parsed : 0;
 };
+
+const normalizeFactorEntries = (input: unknown): Array<{ subject: string; score: number; fullMark: number }> => {
+  if (!Array.isArray(input)) return [];
+  return input
+    .map((entry, index) => {
+      if (entry && typeof entry === "object") {
+        const record = entry as Record<string, unknown>;
+        const subject =
+          (record.factor as string) ||
+          (record.subject as string) ||
+          (record.name as string) ||
+          (record.label as string) ||
+          `شاخص ${index + 1}`;
+        const score = toNum(
+          record.score ?? record.value ?? record.actual ?? record.current ?? record.raw ?? record.scoreValue
+        );
+        const fullMark = toNum(record.maxScore ?? record.fullMark ?? record.target ?? record.max ?? 5) || 5;
+        return { subject, score, fullMark };
+      }
+
+      const scoreValue = toNum(entry);
+      return {
+        subject: `شاخص ${index + 1}`,
+        score: scoreValue,
+        fullMark: 5,
+      };
+    })
+    .filter((item) => Number.isFinite(item.score));
+};
 const chartFontFamily = "Vazirmatn, Tahoma, sans-serif";
 const baseAxisTick = { fill: "#1f2937", fontFamily: chartFontFamily, fontSize: 12 };
 const lightAxisTick = { fill: "#4b5563", fontFamily: chartFontFamily, fontSize: 12 };
@@ -85,14 +114,16 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
   ({ report }, ref) => {
     const { analysis } = report;
 
-    const chartData =
-      analysis.factor_scores?.map((item: any) =>
-        withRtlFields({
-          subject: item.factor,
-          score: toNum(item.score),
-          fullMark: toNum(item.maxScore),
-        })
-      ) || [];
+    const normalizedFactors = normalizeFactorEntries(analysis.factor_scores);
+    const chartData = normalizedFactors;
+    const scatterSeries = normalizeFactorEntries(
+      analysis.factor_scatter || analysis.scatter_data || analysis.factor_scores
+    );
+    const treemapSeries = normalizeFactorEntries(
+      analysis.factor_contribution || analysis.factor_share || analysis.factor_scores
+    );
+    const scatterChartData = scatterSeries.length > 0 ? scatterSeries : chartData;
+    const treemapChartData = treemapSeries.length > 0 ? treemapSeries : chartData;
 
     const sentimentData =
       analysis.sentiment_analysis
@@ -311,12 +342,12 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             {/* ۹. Scatter */}
             <Card><CardHeader><CardTitle>همبستگی فاکتورها</CardTitle></CardHeader><CardContent className="h-72">
               <ResponsiveContainer className="chart-ltr"><ScatterChart><XAxis dataKey="score" tick={baseAxisTick}/><YAxis dataKey="fullMark" tick={baseAxisTick}/><Tooltip/>
-              <Scatter data={chartData} fill="#FF8042"/></ScatterChart></ResponsiveContainer>
+              <Scatter data={scatterChartData} fill="#FF8042"/></ScatterChart></ResponsiveContainer>
             </CardContent></Card>
 
             {/* ۱۰. Treemap */}
             <Card><CardHeader><CardTitle>سهم فاکتورها</CardTitle></CardHeader><CardContent className="h-72">
-              <ResponsiveContainer className="chart-ltr"><Treemap data={chartData} dataKey="score" nameKey="subject" stroke="#fff" fill="#8884d8"/></ResponsiveContainer>
+              <ResponsiveContainer className="chart-ltr"><Treemap data={treemapChartData} dataKey="score" nameKey="subject" stroke="#fff" fill="#8884d8"/></ResponsiveContainer>
             </CardContent></Card>
 
             {/* ۱۱. شاخص‌های زبانی */}

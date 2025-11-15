@@ -97,6 +97,35 @@ const toNum = (val: any): number => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const normalizeFactorEntries = (input: unknown): Array<{ subject: string; score: number; fullMark: number }> => {
+  if (!Array.isArray(input)) return [];
+  return input
+    .map((entry, index) => {
+      if (entry && typeof entry === "object") {
+        const record = entry as Record<string, unknown>;
+        const subject =
+          (record.factor as string) ||
+          (record.subject as string) ||
+          (record.name as string) ||
+          (record.label as string) ||
+          `شاخص ${index + 1}`;
+        const score = toNum(
+          record.score ?? record.value ?? record.actual ?? record.current ?? record.raw ?? record.scoreValue
+        );
+        const fullMark = toNum(record.maxScore ?? record.fullMark ?? record.target ?? record.max ?? 5) || 5;
+        return { subject, score, fullMark };
+      }
+
+      const scoreValue = toNum(entry);
+      return {
+        subject: `شاخص ${index + 1}`,
+        score: scoreValue,
+        fullMark: 5,
+      };
+    })
+    .filter((item) => Number.isFinite(item.score));
+};
+
 const rtlFontStack = "'Vazirmatn', 'IRANSans', 'Tahoma', sans-serif";
 
 const tooltipStyle = {
@@ -450,12 +479,24 @@ const AdminReportDetail = () => {
     ? (analysis.phase_breakdown as PhaseBreakdownEntry[])
     : [];
 
-  const chartData =
-    analysis.factor_scores?.map((i: any) => ({
-      subject: i.factor,
-      score: toNum(i.score),
-      fullMark: toNum(i.maxScore),
-    })) || [];
+  const baseFactorData = normalizeFactorEntries(analysis.factor_scores);
+  const chartData = baseFactorData.length > 0 ? baseFactorData : [];
+  const scatterData =
+    normalizeFactorEntries(
+      analysis.factor_scatter ||
+        analysis.scatter_data ||
+        analysis.factor_correlation ||
+        analysis.factor_scores
+    ) || [];
+  const treemapData =
+    normalizeFactorEntries(
+      analysis.factor_contribution ||
+        analysis.factor_share ||
+        analysis.factor_treemap ||
+        analysis.factor_scores
+    ) || [];
+  const scatterSeries = scatterData.length > 0 ? scatterData : chartData;
+  const treemapSeries = treemapData.length > 0 ? treemapData : chartData;
   const sentimentData = analysis.sentiment_analysis
     ? Object.entries(analysis.sentiment_analysis).map(([name, value]) => ({
       name,
@@ -1675,8 +1716,8 @@ const AdminReportDetail = () => {
           title="۹. همبستگی فاکتورها"
           front={
             <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
-              {chartData.length === 0 ? (
-                noData()
+              {scatterSeries.length === 0 ? (
+                noData("داده‌ای برای همبستگی فاکتورها ارسال نشده است.")
               ) : (
                 <ResponsiveContainer className="chart-ltr">
                   <ScatterChart>
@@ -1689,7 +1730,7 @@ const AdminReportDetail = () => {
                       formatter={(value: number, name: string) => [`${value}`, name === "score" ? "امتیاز" : "حداکثر"]}
                     />
                     <Scatter
-                      data={chartData}
+                      data={scatterSeries}
                       fill="#f97316"
                       shape="circle"
                       legendType="circle"
@@ -1714,11 +1755,11 @@ const AdminReportDetail = () => {
           title="۱۰. سهم فاکتورها"
           front={
             <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
-              {chartData.length === 0 ? (
-                noData()
+              {treemapSeries.length === 0 ? (
+                noData("سهمی برای فاکتورها ارسال نشده است.")
               ) : (
                 <ResponsiveContainer className="chart-ltr">
-                  <Treemap data={chartData} dataKey="score" nameKey="subject" stroke="#fff" fill="#6366f1" />
+                  <Treemap data={treemapSeries} dataKey="score" nameKey="subject" stroke="#fff" fill="#6366f1" />
                 </ResponsiveContainer>
               )}
             </div>
