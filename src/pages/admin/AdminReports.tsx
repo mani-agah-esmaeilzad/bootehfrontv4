@@ -25,6 +25,237 @@ import { ArrowLeft, BarChart as BarChartIcon, LoaderCircle, RefreshCw, Search, T
 import apiFetch, { adminGetReportsOverview } from "@/services/apiService";
 import { ComparisonSpiderChart } from "@/components/ui/ComparisonSpiderChart";
 
+const persianDigitMap: Record<string, string> = {
+    "۰": "0",
+    "۱": "1",
+    "۲": "2",
+    "۳": "3",
+    "۴": "4",
+    "۵": "5",
+    "۶": "6",
+    "۷": "7",
+    "۸": "8",
+    "۹": "9",
+};
+
+const toNum = (val: any): number => {
+    if (typeof val === "number" && Number.isFinite(val)) return val;
+    if (val === null || val === undefined) return 0;
+    let str = String(val).trim();
+    if (!str) return 0;
+    str = str.replace(/[۰-۹]/g, (digit) => persianDigitMap[digit] ?? digit);
+    str = str.replace(/,/g, "").replace(/%/g, "");
+    str = str.replace(/[^\d.-]/g, "");
+    const parsed = Number(str);
+    return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const normalizeKey = (key: string) => key.toLowerCase().replace(/[\s_-]+/g, "");
+const resolveAnalysisField = (source: Record<string, any>, candidates: string[]) => {
+    if (!source || typeof source !== "object") return undefined;
+    const normalizedMap = new Map<string, string>();
+    Object.keys(source).forEach((key) => normalizedMap.set(normalizeKey(key), key));
+    for (const candidate of candidates) {
+        const normalized = normalizeKey(candidate);
+        if (normalizedMap.has(normalized)) return source[normalizedMap.get(normalized)!];
+    }
+    return undefined;
+};
+
+const parseArrayLike = (input: unknown): unknown[] => {
+    if (Array.isArray(input)) return input;
+    if (typeof input === "string") {
+        const trimmed = input.trim();
+        if (
+            (trimmed.startsWith("[") && trimmed.endsWith("]")) ||
+            (trimmed.startsWith("{") && trimmed.endsWith("}"))
+        ) {
+            try {
+                const parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed)) return parsed;
+            } catch {
+                return [];
+            }
+        }
+    }
+    return [];
+};
+
+const extractLooseJsonBlock = (source: string, label: string) => {
+    const idx = source.toLowerCase().indexOf(label.toLowerCase());
+    if (idx === -1) return undefined;
+    const afterLabel = source.slice(idx + label.length);
+    const bracketIndex = afterLabel.indexOf("[");
+    const braceIndex = afterLabel.indexOf("{");
+    const hasBracket = bracketIndex !== -1;
+    const hasBrace = braceIndex !== -1;
+    let startOffset = -1;
+    let openChar: "[" | "{" | null = null;
+    if (hasBracket && (!hasBrace || bracketIndex < braceIndex)) {
+        startOffset = bracketIndex;
+        openChar = "[";
+    } else if (hasBrace) {
+        startOffset = braceIndex;
+        openChar = "{";
+    }
+    if (startOffset === -1 || !openChar) return undefined;
+    const closeChar = openChar === "[" ? "]" : "}";
+    let depth = 0;
+    for (let i = idx + label.length + startOffset; i < source.length; i += 1) {
+        const char = source[i];
+        if (char === openChar) depth += 1;
+        else if (char === closeChar) depth -= 1;
+        if (depth === 0) {
+            const block = source.slice(idx + label.length + startOffset, i + 1);
+            try {
+                return JSON.parse(block);
+            } catch {
+                return undefined;
+            }
+        }
+    }
+    return undefined;
+};
+
+const parseLooseAnalysisString = (raw: string) => {
+    const blocks: Record<string, string> = {
+        keyword_analysis: "Keyword Analysis",
+        verbosity_trend: "Verbosity Trend",
+        action_orientation: "Action Orientation",
+        problem_solving_approach: "Problem Solving Approach",
+        communication_style: "Communication Style",
+        linguistic_semantic_analysis: "Linguistic Semantic Analysis",
+        factor_scatter: "Factor Scatter",
+        factor_contribution: "Factor Contribution",
+        factor_scores: "Factor Scores",
+        sentiment_analysis: "Sentiment Analysis",
+    };
+    const result: Record<string, unknown> = {};
+    for (const [key, label] of Object.entries(blocks)) {
+        const parsed = extractLooseJsonBlock(raw, label);
+        if (parsed !== undefined) {
+            result[key] = parsed;
+        }
+    }
+    return result;
+};
+
+const hydrateAnalysis = (raw: any) => {
+    let base: Record<string, any> =
+        typeof raw === "string"
+            ? parseLooseAnalysisString(raw)
+            : raw && typeof raw === "object"
+                ? { ...raw }
+                : {};
+
+    const additional = base?.additional_details;
+    if (typeof additional === "string") {
+        const parsed = parseLooseAnalysisString(additional);
+        Object.entries(parsed).forEach(([key, value]) => {
+            if (base[key] === undefined) {
+                base[key] = value;
+            }
+        });
+    }
+
+    const normalizeField = (key: string, value: unknown) => {
+        if (value === undefined || value === null) return;
+        base[key] = value;
+    };
+
+    const normalizedKeys = Object.keys(base).reduce<Record<string, unknown>>((acc, key) => {
+        acc[normalizeKey(key)] = base[key];
+        return acc;
+    }, {});
+
+    const aliasPairs: Record<string, string[]> = {
+        factor_scores: ["factorscores", "factorscore", "factors", "scores"],
+    };
+
+    Object.entries(aliasPairs).forEach(([target, aliases]) => {
+        for (const alias of aliases) {
+            if (normalizedKeys[alias] !== undefined && base[target] === undefined) {
+                base[target] = normalizedKeys[alias];
+                break;
+            }
+        }
+    });
+
+    const fixToArray = (fieldName: string) => {
+        const val = base[fieldName];
+        if (val && !Array.isArray(val) && typeof val === "object") {
+            base[fieldName] = Object.entries(val).map(([key, value]) => {
+                const score = toNum(value);
+                const maxScore = 5;
+                return {
+                    factor: key,
+                    name: key,
+                    subject: key,
+                    score,
+                    maxScore,
+                    fullMark: maxScore,
+                    size: score,
+                    value: score,
+                };
+            });
+        }
+    };
+
+    fixToArray("factor_scores");
+
+    return base;
+};
+
+const normalizeFactorEntries = (input: unknown): any[] => {
+    const candidateArray = parseArrayLike(input);
+    if (!Array.isArray(candidateArray)) return [];
+
+    return candidateArray
+        .map((entry, index) => {
+            if (entry && typeof entry === "object") {
+                const record = entry as Record<string, unknown>;
+
+                const name =
+                    (record.subject as string) ||
+                    (record.factor as string) ||
+                    (record.name as string) ||
+                    (record.label as string) ||
+                    `فاکتور ${index + 1}`;
+
+                const score = toNum(
+                    record.score ??
+                    record.value ??
+                    record.actual ??
+                    record.current ??
+                    record.raw ??
+                    record.scoreValue
+                );
+
+                const fullMark = toNum(record.maxScore ?? record.fullMark ?? 5) || 5;
+
+                return {
+                    name,
+                    subject: name,
+                    score,
+                    fullMark,
+                    size: score,
+                    value: score,
+                };
+            }
+
+            const scoreValue = toNum(entry);
+            return {
+                name: `فاکتور ${index + 1}`,
+                subject: `فاکتور ${index + 1}`,
+                score: scoreValue,
+                fullMark: 5,
+                size: scoreValue,
+                value: scoreValue,
+            };
+        })
+        .filter((item) => Number.isFinite(item.score));
+};
+
 interface AssessmentReport {
     assessment_id: number;
     user_id: number;
@@ -218,20 +449,32 @@ const AdminReports = () => {
                 throw new Error(response.message || "دریافت داده‌های مقایسه ممکن نشد.");
             }
             const detailData = response.data;
-            const analysis = detailData.analysis || {};
-            const rawFactors = Array.isArray(analysis.factor_scores) ? analysis.factor_scores : [];
-            const factorScores = rawFactors.map((item: any) => ({
-                factor: item.factor ?? item.name ?? "مولفه ناشناس",
-                score: typeof item.score === "number" ? item.score : Number(item.value ?? 0),
-                maxScore: typeof item.maxScore === "number" ? item.maxScore : Number(item.fullMark ?? 100),
+            const hydrated = hydrateAnalysis(detailData.analysis || {});
+            const factorSource =
+                resolveAnalysisField(hydrated, ["factor_scores", "factor score", "factor-score"]) ??
+                hydrated.factor_scores;
+            const normalizedFactors = normalizeFactorEntries(factorSource);
+            const factorScores = normalizedFactors.map((entry: any) => ({
+                factor: entry.name ?? entry.subject ?? "مولفه ناشناس",
+                score: toNum(entry.score),
+                maxScore: toNum(entry.fullMark ?? entry.maxScore ?? 5) || 5,
             }));
+
+            const rawScore =
+                hydrated.score ??
+                hydrated.overall_score ??
+                hydrated.total_score ??
+                detailData.analysis?.score ??
+                detailData.analysis?.overall_score ??
+                0;
+
             const detail: ComparisonDetail = {
                 assessmentId,
                 displayName: `${detailData.firstName ?? ""} ${detailData.lastName ?? ""}`.trim() || detailData.username,
                 username: detailData.username,
                 questionnaireTitle: detailData.questionnaire_title,
                 completedAt: detailData.completed_at ?? null,
-                score: typeof analysis.score === "number" ? analysis.score : 0,
+                score: toNum(rawScore),
                 factorScores,
             };
             setCompareDetails((prev) => ({ ...prev, [assessmentId]: detail }));
