@@ -433,37 +433,35 @@ const SupplementaryQuestions = () => {
                   </span>
                 </div>
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div className="flex w-full flex-col gap-3 sm:flex-row sm:w-auto">
+                  <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
                     <Button
                       type="button"
                       variant="outline"
                       onClick={handlePrevCard}
                       disabled={isFirstCard}
-                      className="rounded-2xl border-white/20 text-white hover:bg-white/10 disabled:opacity-50"
+                      className="rounded-2xl border-white/25 bg-transparent text-white hover:bg-white/10 disabled:border-white/15 disabled:bg-transparent disabled:text-white/35 disabled:opacity-100 disabled:cursor-not-allowed"
                     >
                       سوال قبلی
                     </Button>
-                    {!isLastCard && (
-                      <Button
-                        type="button"
-                        onClick={handleNextCard}
-                        disabled={!answers[activeCard.key].trim()}
-                        className="rounded-2xl bg-white/90 px-8 text-slate-900 hover:bg-white"
-                      >
-                        سوال بعدی
-                      </Button>
-                    )}
                   </div>
-                  {isLastCard && (
-                    <Button
-                      onClick={handleSubmit}
-                      disabled={isSubmitting || !canSubmit}
-                      className="flex w-full items-center justify-center gap-2 rounded-3xl bg-purple-500 px-8 py-4 text-base font-semibold text-white transition hover:bg-purple-600 disabled:opacity-70 md:w-auto"
-                    >
-                      {isSubmitting && <LoaderCircle className="h-5 w-5 animate-spin text-white" />}
-                      {isSubmitting ? "در حال ارسال پاسخ‌ها..." : "ثبت پاسخ‌ها و مشاهده تحلیل نهایی"}
-                    </Button>
-                  )}
+                  <Button
+                    onClick={isLastCard ? handleSubmit : handleNextCard}
+                    disabled={
+                      isLastCard
+                        ? isSubmitting || !canSubmit
+                        : !answers[activeCard.key].trim()
+                    }
+                    className="flex w-full items-center justify-center gap-2 rounded-3xl bg-purple-500 px-8 py-4 text-base font-semibold text-white transition hover:bg-purple-600 disabled:opacity-70 md:w-auto"
+                  >
+                    {isLastCard && isSubmitting && (
+                      <LoaderCircle className="h-5 w-5 animate-spin text-white" />
+                    )}
+                    {isLastCard
+                      ? isSubmitting
+                        ? "در حال ارسال پاسخ‌ها..."
+                        : "ثبت پاسخ‌ها و مشاهده تحلیل نهایی"
+                      : "عکس بعدی"}
+                  </Button>
                 </div>
               </div>
             </>
