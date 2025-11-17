@@ -280,36 +280,57 @@ const AdminReports = () => {
         : null;
 
     const comparisonChartData = useMemo(() => {
-        if (!primaryDetail || !secondaryDetail) return null;
-        const factorNames = Array.from(
-            new Set([
-                ...primaryDetail.factorScores.map((item) => item.factor),
-                ...secondaryDetail.factorScores.map((item) => item.factor),
-            ])
-        );
-        if (factorNames.length === 0) return null;
-        const data = factorNames.map((name) => {
-            const firstFactor = primaryDetail.factorScores.find((item) => item.factor === name);
-            const secondFactor = secondaryDetail.factorScores.find((item) => item.factor === name);
-            const maxScore = Math.max(firstFactor?.maxScore ?? secondFactor?.maxScore ?? 100);
-            return {
-                subject: name,
-                primary: firstFactor?.score ?? 0,
-                secondary: secondFactor?.score ?? 0,
-                fullMark: maxScore,
-            };
+        const activeEntries: Array<{
+            key: "primary" | "secondary";
+            color: string;
+            detail: ComparisonDetail;
+        }> = [];
+        if (primaryDetail) {
+            activeEntries.push({ key: "primary", color: "#6366F1", detail: primaryDetail });
+        }
+        if (secondaryDetail) {
+            activeEntries.push({ key: "secondary", color: "#F97316", detail: secondaryDetail });
+        }
+        if (activeEntries.length === 0) return null;
+
+        const factorNames = new Set<string>();
+        activeEntries.forEach(({ detail }) => {
+            detail.factorScores.forEach((item) => factorNames.add(item.factor));
         });
+        if (factorNames.size === 0) return null;
+
+        const data = Array.from(factorNames).map((name) => {
+            const entry: Record<string, number | string | undefined> = { subject: name };
+            let maxScore = 0;
+            activeEntries.forEach(({ key, detail }) => {
+                const found = detail.factorScores.find((item) => item.factor === name);
+                if (found) {
+                    entry[key] = found.score ?? 0;
+                    maxScore = Math.max(maxScore, found.maxScore ?? 0);
+                } else {
+                    entry[key] = 0;
+                }
+            });
+            entry.fullMark = maxScore || undefined;
+            return entry;
+        });
+
         const maxDomain = Math.max(
             5,
-            ...data.map((entry) => Math.max(entry.fullMark ?? 0, entry.primary ?? 0, entry.secondary ?? 0))
+            ...data.flatMap((entry) =>
+                activeEntries.map(({ key }) => (typeof entry[key] === "number" ? Number(entry[key]) : 0))
+            ),
+            ...data.map((entry) => (typeof entry.fullMark === "number" ? Number(entry.fullMark) : 0))
         );
+
         return {
             data,
             maxDomain,
-            series: [
-                { key: "primary", label: primaryDetail.displayName, color: "#6366F1" },
-                { key: "secondary", label: secondaryDetail.displayName, color: "#F97316" },
-            ],
+            series: activeEntries.map(({ key, color, detail }) => ({
+                key,
+                color,
+                label: detail.displayName,
+            })),
         };
     }, [primaryDetail, secondaryDetail]);
 
@@ -534,22 +555,35 @@ const AdminReports = () => {
                                 {comparisonChartData ? (
                                     <div className="grid gap-6 lg:grid-cols-3">
                                         <div className="space-y-4">
-                                            {[{ label: "شرکت‌کننده اول", detail: primaryDetail }, { label: "شرکت‌کننده دوم", detail: secondaryDetail }].map(
-                                                ({ label, detail }) =>
-                                                    detail && (
-                                                        <div
-                                                            key={label}
-                                                            className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 shadow-sm"
-                                                        >
-                                                            <p className="text-xs font-semibold text-slate-500">{label}</p>
-                                                            <p className="text-base font-bold text-slate-900">{detail.displayName}</p>
-                                                            <p className="text-xs text-slate-500">{detail.username}</p>
-                                                            <div className="mt-3 text-sm text-slate-700">
-                                                                امتیاز کل: <span className="font-semibold">{detail.score}</span>
-                                                            </div>
-                                                            <p className="text-xs text-slate-500">{formatDate(detail.completedAt)}</p>
-                                                        </div>
-                                                    )
+                                            {[{ label: "شرکت‌کننده اول", detail: primaryDetail, selected: Boolean(selectedCompareIds.primary) },
+                                              { label: "شرکت‌کننده دوم", detail: secondaryDetail, selected: Boolean(selectedCompareIds.secondary) }].map(
+                                                ({ label, detail, selected }) => (
+                                                    <div
+                                                        key={label}
+                                                        className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 shadow-sm"
+                                                    >
+                                                        <p className="text-xs font-semibold text-slate-500">{label}</p>
+                                                        {selected ? (
+                                                            detail ? (
+                                                                <>
+                                                                    <p className="text-base font-bold text-slate-900">{detail.displayName}</p>
+                                                                    <p className="text-xs text-slate-500">{detail.username}</p>
+                                                                    <div className="mt-3 text-sm text-slate-700">
+                                                                        امتیاز کل: <span className="font-semibold">{detail.score}</span>
+                                                                    </div>
+                                                                    <p className="text-xs text-slate-500">{formatDate(detail.completedAt)}</p>
+                                                                </>
+                                                            ) : (
+                                                                <div className="flex items-center gap-2 text-sm text-slate-500">
+                                                                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                                                                    در حال بارگذاری اطلاعات...
+                                                                </div>
+                                                            )
+                                                        ) : (
+                                                            <p className="text-xs text-slate-500">شرکت‌کننده‌ای انتخاب نشده است</p>
+                                                        )}
+                                                    </div>
+                                                )
                                             )}
                                             <Button
                                                 variant="ghost"
@@ -561,7 +595,7 @@ const AdminReports = () => {
                                             </Button>
                                         </div>
                                         <div className="lg:col-span-2">
-                                            <div className="relative rounded-3xl border border-slate-200 bg-slate-900/90 p-4 shadow-inner">
+                                            <div className="relative rounded-3xl border border-slate-200 bg-slate-900/90 p-4 shadow-inner min-h-[360px]">
                                                 {compareLoadingId && (
                                                     <div className="absolute inset-0 z-10 flex items-center justify-center rounded-3xl bg-slate-900/60 backdrop-blur">
                                                         <LoaderCircle className="h-8 w-8 animate-spin text-white" />
@@ -573,6 +607,11 @@ const AdminReports = () => {
                                                     maxDomain={comparisonChartData.maxDomain}
                                                 />
                                             </div>
+                                            {comparisonChartData.series.length === 1 && (
+                                                <p className="pt-3 text-xs text-slate-400">
+                                                    برای مقایسه نفر دوم، یک شرکت‌کننده دیگر را نیز انتخاب کنید.
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 ) : (
@@ -582,8 +621,10 @@ const AdminReports = () => {
                                                 <LoaderCircle className="h-4 w-4 animate-spin" />
                                                 در حال بارگذاری داده‌های مقایسه...
                                             </div>
+                                        ) : selectedCompareIds.primary || selectedCompareIds.secondary ? (
+                                            "برای نمایش نمودار، منتظر بمانید تا داده‌های شرکت‌کننده انتخاب شده بارگذاری شود."
                                         ) : (
-                                            "برای مشاهده نمودار، دو شرکت‌کننده را انتخاب کنید."
+                                            "برای مشاهده نمودار، حداقل یک شرکت‌کننده را انتخاب کنید."
                                         )}
                                     </div>
                                 )}
