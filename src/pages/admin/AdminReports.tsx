@@ -1,6 +1,6 @@
 // src/pages/admin/AdminReports.tsx
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,6 +23,7 @@ import {
 import { toast } from "sonner";
 import { ArrowLeft, BarChart as BarChartIcon, LoaderCircle, RefreshCw, Search, Trash2 } from "lucide-react";
 import apiFetch, { adminGetReportsOverview } from "@/services/apiService";
+import { ComparisonSpiderChart } from "@/components/ui/ComparisonSpiderChart";
 
 interface AssessmentReport {
     assessment_id: number;
@@ -30,6 +31,7 @@ interface AssessmentReport {
     username: string;
     first_name: string;
     last_name: string;
+    questionnaire_id: number;
     questionnaire_title: string;
     status: string;
     completed_at: string | null;
@@ -52,6 +54,16 @@ interface ReportsOverview {
         questionnaireTitle: string;
         completedAt: string | null;
     }[];
+}
+
+interface ComparisonDetail {
+    assessmentId: number;
+    displayName: string;
+    username: string;
+    questionnaireTitle: string;
+    completedAt: string | null;
+    score: number;
+    factorScores: { factor: string; score: number; maxScore: number }[];
 }
 
 const statusLabels: Record<string, string> = {
@@ -91,6 +103,14 @@ const AdminReports = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedQuestionnaire, setSelectedQuestionnaire] = useState<string>("all");
     const [deletingReportId, setDeletingReportId] = useState<number | null>(null);
+    const [compareQuestionnaireId, setCompareQuestionnaireId] = useState<number | null>(null);
+    const [selectedCompareIds, setSelectedCompareIds] = useState<{ primary: number | null; secondary: number | null }>({
+        primary: null,
+        secondary: null,
+    });
+    const [compareDetails, setCompareDetails] = useState<Record<number, ComparisonDetail>>({});
+    const [compareLoadingId, setCompareLoadingId] = useState<number | null>(null);
+    const [compareError, setCompareError] = useState<string | null>(null);
 
     useEffect(() => {
         loadData();
@@ -131,6 +151,37 @@ const AdminReports = () => {
         return unique.sort((a, b) => a.localeCompare(b, "fa"));
     }, [overview, reports]);
 
+    const comparisonQuestionnaireOptions = useMemo(() => {
+        const map = new Map<number, string>();
+        reports.forEach((report) => {
+            if (!map.has(report.questionnaire_id)) {
+                map.set(report.questionnaire_id, report.questionnaire_title);
+            }
+        });
+        return Array.from(map.entries())
+            .map(([id, title]) => ({ id, title }))
+            .sort((a, b) => a.title.localeCompare(b.title, "fa"));
+    }, [reports]);
+
+    useEffect(() => {
+        if (comparisonQuestionnaireOptions.length === 0) {
+            setCompareQuestionnaireId(null);
+            setSelectedCompareIds({ primary: null, secondary: null });
+            return;
+        }
+        setCompareQuestionnaireId((prev) => {
+            if (prev && comparisonQuestionnaireOptions.some((item) => item.id === prev)) {
+                return prev;
+            }
+            return comparisonQuestionnaireOptions[0].id;
+        });
+    }, [comparisonQuestionnaireOptions]);
+
+    useEffect(() => {
+        setSelectedCompareIds({ primary: null, secondary: null });
+        setCompareError(null);
+    }, [compareQuestionnaireId]);
+
     const filteredReports = useMemo(() => {
         return reports.filter((report) => {
             const matchesQuestionnaire =
@@ -144,6 +195,123 @@ const AdminReports = () => {
             return matchesQuestionnaire && matchesSearch;
         });
     }, [reports, selectedQuestionnaire, searchTerm]);
+
+    const comparisonCandidates = useMemo(() => {
+        if (!compareQuestionnaireId) return [];
+        return reports
+            .filter((report) => report.questionnaire_id === compareQuestionnaireId)
+            .sort((a, b) => {
+                const dateA = a.completed_at ? new Date(a.completed_at).getTime() : 0;
+                const dateB = b.completed_at ? new Date(b.completed_at).getTime() : 0;
+                return dateB - dateA;
+            });
+    }, [reports, compareQuestionnaireId]);
+
+    const fetchComparisonDetail = useCallback(async (assessmentId: number) => {
+        if (compareDetails[assessmentId]) {
+            return compareDetails[assessmentId];
+        }
+        setCompareLoadingId(assessmentId);
+        try {
+            const response = await apiFetch(`admin/reports/${assessmentId}`);
+            if (!response.success || !response.data) {
+                throw new Error(response.message || "دریافت داده‌های مقایسه ممکن نشد.");
+            }
+            const detailData = response.data;
+            const analysis = detailData.analysis || {};
+            const rawFactors = Array.isArray(analysis.factor_scores) ? analysis.factor_scores : [];
+            const factorScores = rawFactors.map((item: any) => ({
+                factor: item.factor ?? item.name ?? "مولفه ناشناس",
+                score: typeof item.score === "number" ? item.score : Number(item.value ?? 0),
+                maxScore: typeof item.maxScore === "number" ? item.maxScore : Number(item.fullMark ?? 100),
+            }));
+            const detail: ComparisonDetail = {
+                assessmentId,
+                displayName: `${detailData.firstName ?? ""} ${detailData.lastName ?? ""}`.trim() || detailData.username,
+                username: detailData.username,
+                questionnaireTitle: detailData.questionnaire_title,
+                completedAt: detailData.completed_at ?? null,
+                score: typeof analysis.score === "number" ? analysis.score : 0,
+                factorScores,
+            };
+            setCompareDetails((prev) => ({ ...prev, [assessmentId]: detail }));
+            return detail;
+        } catch (error: any) {
+            const message = error?.message || "دریافت داده‌های مقایسه با مشکل مواجه شد.";
+            setCompareError(message);
+            toast.error(message);
+            throw error;
+        } finally {
+            setCompareLoadingId((current) => (current === assessmentId ? null : current));
+        }
+    }, [compareDetails]);
+
+    const handleCompareSelection = useCallback(
+        (slot: "primary" | "secondary", rawValue: string) => {
+            const parsedValue = rawValue === "none" ? null : Number(rawValue);
+            setCompareError(null);
+            setSelectedCompareIds((prev) => {
+                const next = { ...prev };
+                if (slot === "primary") {
+                    next.primary = parsedValue;
+                    if (parsedValue && parsedValue === prev.secondary) {
+                        next.secondary = null;
+                    }
+                } else {
+                    next.secondary = parsedValue;
+                    if (parsedValue && parsedValue === prev.primary) {
+                        next.primary = null;
+                    }
+                }
+                return next;
+            });
+            if (parsedValue) {
+                fetchComparisonDetail(parsedValue);
+            }
+        },
+        [fetchComparisonDetail]
+    );
+
+    const primaryDetail = selectedCompareIds.primary
+        ? compareDetails[selectedCompareIds.primary] ?? null
+        : null;
+    const secondaryDetail = selectedCompareIds.secondary
+        ? compareDetails[selectedCompareIds.secondary] ?? null
+        : null;
+
+    const comparisonChartData = useMemo(() => {
+        if (!primaryDetail || !secondaryDetail) return null;
+        const factorNames = Array.from(
+            new Set([
+                ...primaryDetail.factorScores.map((item) => item.factor),
+                ...secondaryDetail.factorScores.map((item) => item.factor),
+            ])
+        );
+        if (factorNames.length === 0) return null;
+        const data = factorNames.map((name) => {
+            const firstFactor = primaryDetail.factorScores.find((item) => item.factor === name);
+            const secondFactor = secondaryDetail.factorScores.find((item) => item.factor === name);
+            const maxScore = Math.max(firstFactor?.maxScore ?? secondFactor?.maxScore ?? 100);
+            return {
+                subject: name,
+                primary: firstFactor?.score ?? 0,
+                secondary: secondFactor?.score ?? 0,
+                fullMark: maxScore,
+            };
+        });
+        const maxDomain = Math.max(
+            5,
+            ...data.map((entry) => Math.max(entry.fullMark ?? 0, entry.primary ?? 0, entry.secondary ?? 0))
+        );
+        return {
+            data,
+            maxDomain,
+            series: [
+                { key: "primary", label: primaryDetail.displayName, color: "#6366F1" },
+                { key: "secondary", label: secondaryDetail.displayName, color: "#F97316" },
+            ],
+        };
+    }, [primaryDetail, secondaryDetail]);
 
     const handleDeleteReport = async (reportId: number, fullName: string) => {
         if (!window.confirm(`آیا از حذف گزارش مربوط به «${fullName}» اطمینان دارید؟ این کار قابل بازگشت نیست.`)) {
@@ -255,6 +423,171 @@ const AdminReports = () => {
                             </div>
                         ) : (
                             <p className="py-6 text-center text-sm text-muted-foreground">اطلاعاتی برای نمایش وجود ندارد.</p>
+                        )}
+                    </CardContent>
+                </Card>
+            </section>
+
+            <section>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>مقایسه شرکت‌کنندگان در نمودار عنکبوتی</CardTitle>
+                        <CardDescription>دو گزارش از یک پرسشنامه را انتخاب کنید و عملکرد آن‌ها را بر اساس مولفه‌های مشترک مقایسه کنید.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="grid gap-4 md:grid-cols-3">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-700">پرسشنامه</label>
+                                <Select
+                                    value={compareQuestionnaireId ? String(compareQuestionnaireId) : "none"}
+                                    onValueChange={(value) => setCompareQuestionnaireId(value === "none" ? null : Number(value))}
+                                    disabled={comparisonQuestionnaireOptions.length === 0}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="انتخاب پرسشنامه" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {comparisonQuestionnaireOptions.length === 0 ? (
+                                            <SelectItem value="none" disabled>
+                                                هنوز گزارشی ثبت نشده است
+                                            </SelectItem>
+                                        ) : (
+                                            comparisonQuestionnaireOptions.map((option) => (
+                                                <SelectItem key={option.id} value={String(option.id)}>
+                                                    {option.title}
+                                                </SelectItem>
+                                            ))
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-700">شرکت‌کننده اول</label>
+                                <Select
+                                    value={selectedCompareIds.primary ? String(selectedCompareIds.primary) : "none"}
+                                    onValueChange={(value) => handleCompareSelection("primary", value)}
+                                    disabled={!compareQuestionnaireId || comparisonCandidates.length === 0}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="انتخاب شرکت‌کننده اول" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">انتخاب نشده</SelectItem>
+                                        {comparisonCandidates.map((candidate) => {
+                                            const fullName = `${candidate.first_name ?? ""} ${candidate.last_name ?? ""}`.trim() || candidate.username;
+                                            return (
+                                                <SelectItem
+                                                    key={candidate.assessment_id}
+                                                    value={String(candidate.assessment_id)}
+                                                    disabled={candidate.assessment_id === selectedCompareIds.secondary}
+                                                >
+                                                    {fullName} ({candidate.username})
+                                                </SelectItem>
+                                            );
+                                        })}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-700">شرکت‌کننده دوم</label>
+                                <Select
+                                    value={selectedCompareIds.secondary ? String(selectedCompareIds.secondary) : "none"}
+                                    onValueChange={(value) => handleCompareSelection("secondary", value)}
+                                    disabled={!compareQuestionnaireId || comparisonCandidates.length === 0}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="انتخاب شرکت‌کننده دوم" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">انتخاب نشده</SelectItem>
+                                        {comparisonCandidates.map((candidate) => {
+                                            const fullName = `${candidate.first_name ?? ""} ${candidate.last_name ?? ""}`.trim() || candidate.username;
+                                            return (
+                                                <SelectItem
+                                                    key={`${candidate.assessment_id}-second`}
+                                                    value={String(candidate.assessment_id)}
+                                                    disabled={candidate.assessment_id === selectedCompareIds.primary}
+                                                >
+                                                    {fullName} ({candidate.username})
+                                                </SelectItem>
+                                            );
+                                        })}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        {compareError && (
+                            <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                                {compareError}
+                            </div>
+                        )}
+
+                        {(!compareQuestionnaireId || comparisonCandidates.length < 2) && (
+                            <div className="rounded-md border border-dashed border-slate-200 bg-slate-50/80 p-6 text-center text-sm text-slate-600">
+                                برای این پرسشنامه حداقل دو گزارش تکمیل‌شده لازم است تا امکان مقایسه فراهم شود.
+                            </div>
+                        )}
+
+                        {compareQuestionnaireId && comparisonCandidates.length >= 2 && (
+                            <>
+                                {comparisonChartData ? (
+                                    <div className="grid gap-6 lg:grid-cols-3">
+                                        <div className="space-y-4">
+                                            {[{ label: "شرکت‌کننده اول", detail: primaryDetail }, { label: "شرکت‌کننده دوم", detail: secondaryDetail }].map(
+                                                ({ label, detail }) =>
+                                                    detail && (
+                                                        <div
+                                                            key={label}
+                                                            className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 shadow-sm"
+                                                        >
+                                                            <p className="text-xs font-semibold text-slate-500">{label}</p>
+                                                            <p className="text-base font-bold text-slate-900">{detail.displayName}</p>
+                                                            <p className="text-xs text-slate-500">{detail.username}</p>
+                                                            <div className="mt-3 text-sm text-slate-700">
+                                                                امتیاز کل: <span className="font-semibold">{detail.score}</span>
+                                                            </div>
+                                                            <p className="text-xs text-slate-500">{formatDate(detail.completedAt)}</p>
+                                                        </div>
+                                                    )
+                                            )}
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-slate-600 hover:text-slate-900"
+                                                onClick={() => setSelectedCompareIds({ primary: null, secondary: null })}
+                                            >
+                                                پاک‌سازی انتخاب‌ها
+                                            </Button>
+                                        </div>
+                                        <div className="lg:col-span-2">
+                                            <div className="relative rounded-3xl border border-slate-200 bg-slate-900/90 p-4 shadow-inner">
+                                                {compareLoadingId && (
+                                                    <div className="absolute inset-0 z-10 flex items-center justify-center rounded-3xl bg-slate-900/60 backdrop-blur">
+                                                        <LoaderCircle className="h-8 w-8 animate-spin text-white" />
+                                                    </div>
+                                                )}
+                                                <ComparisonSpiderChart
+                                                    data={comparisonChartData.data}
+                                                    series={comparisonChartData.series}
+                                                    maxDomain={comparisonChartData.maxDomain}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="rounded-md border border-dashed border-slate-200 p-6 text-center text-sm text-slate-600">
+                                        {compareLoadingId ? (
+                                            <div className="flex items-center justify-center gap-2">
+                                                <LoaderCircle className="h-4 w-4 animate-spin" />
+                                                در حال بارگذاری داده‌های مقایسه...
+                                            </div>
+                                        ) : (
+                                            "برای مشاهده نمودار، دو شرکت‌کننده را انتخاب کنید."
+                                        )}
+                                    </div>
+                                )}
+                            </>
                         )}
                     </CardContent>
                 </Card>
