@@ -1,32 +1,7 @@
 // src/components/pdf/ReportPDFLayout.tsx
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SpiderChart } from "@/components/ui/SpiderChart";
+import React from "react";
 import ReactMarkdown from "react-markdown";
-import {
-  Bar,
-  BarChart,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Pie,
-  PieChart,
-  Cell,
-  Line,
-  LineChart,
-  Legend,
-  Treemap,
-  RadarChart,
-  Radar,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  ScatterChart,
-  Scatter,
-  AreaChart,
-  Area,
-} from "recharts";
 import { Logo } from "@/components/ui/logo";
 import { withRtlFields } from "@/lib/reports";
 
@@ -46,7 +21,6 @@ interface PDFLayoutProps {
   report: ReportDetail;
 }
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#A020F0", "#FF69B4"];
 const A4_WIDTH = 794;
 const A4_HEIGHT = 1123;
 const pageStyle: React.CSSProperties = {
@@ -62,8 +36,108 @@ const pageStyle: React.CSSProperties = {
   flexDirection: "column",
   gap: "24px",
 };
-const ChartBox = ({ height = 240, children }: { height?: number; children: React.ReactNode }) => (
-  <div style={{ width: "100%", height: `${height}px` }}>{children}</div>
+const PlainTable = ({
+  columns,
+  rows,
+}: {
+  columns: Array<{ key: string; label: string; width?: string | number }>;
+  rows: Array<Record<string, string | number>>;
+}) => (
+  <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0 }}>
+    <thead>
+      <tr>
+        {columns.map((col) => (
+          <th
+            key={col.key}
+            style={{
+              textAlign: "right",
+              padding: "6px 8px",
+              fontSize: "12px",
+              color: "#6b7280",
+              borderBottom: "1px solid #e5e7eb",
+              width: col.width,
+            }}
+          >
+            {col.label}
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row, rowIndex) => (
+        <tr key={rowIndex}>
+          {columns.map((col, colIndex) => (
+            <td
+              key={`${rowIndex}-${col.key}`}
+              style={{
+                padding: "6px 8px",
+                fontSize: "12px",
+                color: "#111827",
+                borderBottom: "1px solid #f3f4f6",
+                backgroundColor: rowIndex % 2 === 0 ? "#fff" : "#f9fafb",
+                borderTopLeftRadius: rowIndex === 0 && colIndex === 0 ? "8px" : undefined,
+                borderTopRightRadius:
+                  rowIndex === 0 && colIndex === columns.length - 1 ? "8px" : undefined,
+              }}
+            >
+              {row[col.key] ?? "—"}
+            </td>
+          ))}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+);
+const SectionCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <div
+    style={{
+      border: "1px solid #e5e7eb",
+      borderRadius: "20px",
+      padding: "20px",
+      boxShadow: "0 8px 20px rgba(15,23,42,0.08)",
+      display: "flex",
+      flexDirection: "column",
+      gap: "12px",
+      background: "white",
+    }}
+  >
+    <h3 style={{ fontSize: "16px", fontWeight: 700, color: "#111827" }}>{title}</h3>
+    {children}
+  </div>
+);
+const ProgressItem = ({ label, value }: { label: string; value: number }) => {
+  const percent = Math.max(0, Math.min(100, value));
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#374151" }}>
+        <span>{label}</span>
+        <span>{percent.toFixed(0)}%</span>
+      </div>
+      <div style={{ width: "100%", height: "8px", borderRadius: "999px", background: "#e5e7eb" }}>
+        <div
+          style={{
+            width: `${percent}%`,
+            height: "100%",
+            borderRadius: "999px",
+            background: "linear-gradient(90deg, #6366f1, #a855f7)",
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+const SimpleList = ({ items }: { items: Array<{ label: string; value: string | number }> }) => (
+  <div style={{ display: "grid", gap: "8px" }}>
+    {items.map((item, index) => (
+      <div
+        key={`${item.label}-${index}`}
+        style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#374151" }}
+      >
+        <span style={{ color: "#6b7280" }}>{item.label}</span>
+        <span style={{ fontWeight: 600, color: "#111827" }}>{item.value}</span>
+      </div>
+    ))}
+  </div>
 );
 
 const persianDigitMap: Record<string, string> = {
@@ -227,14 +301,6 @@ const normalizeFactorEntries = (input: unknown): Array<{ subject: string; score:
     })
     .filter((item) => Number.isFinite(item.score));
 };
-const chartFontFamily = "Vazirmatn, Tahoma, sans-serif";
-const baseAxisTick = { fill: "#1f2937", fontFamily: chartFontFamily, fontSize: 12 };
-const lightAxisTick = { fill: "#4b5563", fontFamily: chartFontFamily, fontSize: 12 };
-const legendStyle: React.CSSProperties = {
-  fontFamily: chartFontFamily,
-  fontSize: "12px",
-  direction: "rtl",
-};
 
 export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
   ({ report }, ref) => {
@@ -354,6 +420,55 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
       },
     ];
 
+    const factorProgress = chartData.map((item) => ({
+      label: item.subject,
+      value: item.fullMark ? (toNum(item.score) / toNum(item.fullMark)) * 100 : toNum(item.score),
+    }));
+    const sentimentList = sentimentData.map((item) => ({
+      label: item.name,
+      value: `${toNum(item.value).toFixed(1)}%`,
+    }));
+    const keywordList = keywordData.slice(0, 8).map((item: any, index: number) => ({
+      label: item.keyword ?? `کلیدواژه ${index + 1}`,
+      value: item.mentions ?? 0,
+    }));
+    const verbosityRows = verbosityData.slice(0, 8).map((entry: any, index: number) => ({
+      turn: entry.turn ?? index + 1,
+      words: entry.word_count ?? entry.performance ?? 0,
+    }));
+    const actionRows = actionData.length
+      ? [
+          { label: "واژگان کنشی", value: actionData[0].action_words ?? 0 },
+          { label: "واژگان خنثی/غیرکنشی", value: actionData[0].passive_words ?? 0 },
+        ]
+      : [];
+    const problemRows = problemSolvingData.map((entry: any) => ({
+      label: entry.name,
+      value: entry.value,
+    }));
+    const commRows = commStyle.map((entry: any) => ({
+      label: entry.name,
+      value: entry.value,
+    }));
+    const radarRows = semanticRadar.map((entry: any) => ({
+      label: entry.name,
+      value: entry.value,
+    }));
+    const pronounRows = pronounChartData.map((entry: any) => ({
+      label: entry.name,
+      value: entry.value,
+    }));
+    const semanticRows = semanticFields.map((entry: any) => ({
+      label: entry.field ?? entry.name,
+      value: entry.mentions ?? entry.value ?? 0,
+    }));
+
+    const twoColumnGrid: React.CSSProperties = {
+      display: "grid",
+      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+      gap: "16px",
+    };
+
     return (
       <div
         ref={ref}
@@ -400,294 +515,155 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
               سنجه‌های کیفی و کمی، نقاط قوت، ریسک‌ها و اولویت‌های توسعه‌ای او را مشخص می‌کند.
             </p>
           </div>
-          <div className="grid gap-6" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
-            <div className="space-y-4 rounded-2xl border border-gray-200 p-5 shadow-sm">
-              <div>
-                <p className="text-sm text-gray-500">امتیاز کل</p>
-                <p className="text-5xl font-extrabold text-blue-700">
-                  {toNum(analysis.score)}
-                  <span className="text-lg text-gray-500"> / {report.max_score || 100}</span>
-                </p>
+          <div style={twoColumnGrid}>
+            <SectionCard title="مشخصات کلی">
+              <SimpleList items={infoItems} />
+            </SectionCard>
+            <SectionCard title="امتیاز کل">
+              <div style={{ textAlign: "center", padding: "16px 0" }}>
+                <p style={{ fontSize: "48px", fontWeight: 800, color: "#2563eb" }}>{toNum(analysis.score)}</p>
+                <p style={{ fontSize: "14px", color: "#6b7280" }}>از {report.max_score || 100}</p>
               </div>
-              <div className="space-y-2 text-sm text-gray-600">
-                {infoItems.map((item) => (
-                  <div key={item.label} className="flex justify-between border-b border-dashed border-gray-200 pb-1">
-                    <span className="font-semibold text-gray-500">{item.label}</span>
-                    <span className="text-gray-800">{item.value}</span>
-                  </div>
+            </SectionCard>
+          </div>
+
+          <SectionCard title="نمای کلی شایستگی‌ها">
+            {factorProgress.length > 0 ? (
+              <div style={{ display: "grid", gap: "10px" }}>
+                {factorProgress.map((item) => (
+                  <ProgressItem key={item.label} label={item.label} value={item.value} />
                 ))}
               </div>
-            </div>
-            <div className="space-y-3 rounded-2xl border border-gray-200 p-5 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900">نمودار شایستگی‌ها</h3>
-              <ChartBox height={320}>
-                {chartData.length > 0 ? (
-                  <SpiderChart data={chartData} />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-gray-500">داده‌ای وجود ندارد.</div>
-                )}
-              </ChartBox>
-            </div>
-          </div>
-          <div className="rounded-2xl border border-gray-200 p-5 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-900">تحلیل کیفی</h3>
-            <div className="prose prose-sm mt-3 max-w-none leading-7 text-gray-700">
+            ) : (
+              <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای برای شایستگی‌ها موجود نیست.</p>
+            )}
+          </SectionCard>
+
+          <SectionCard title="تحلیل کیفی">
+            <div style={{ fontSize: "13px", lineHeight: 1.8, color: "#374151" }}>
               <ReactMarkdown>{analysis.report || "تحلیل کیفی برای این گزارش ثبت نشده است."}</ReactMarkdown>
             </div>
-          </div>
+          </SectionCard>
         </section>
 
         <section className="pdf-page" style={pageStyle}>
           <h2 className="text-2xl font-bold text-gray-900">تحلیل‌های تکمیلی - بخش اول</h2>
-          <div className="grid grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>تحلیل احساسات</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartBox height={230}>
-                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
-                    <PieChart>
-                      {sentimentData.length > 0 ? (
-                        <Pie data={sentimentData} dataKey="value" nameKey="name" outerRadius={80} label>
-                          {sentimentData.map((entry, index) => (
-                            <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                      ) : (
-                        <></>
-                      )}
-                      <Tooltip />
-                      <Legend wrapperStyle={legendStyle} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </ChartBox>
-              </CardContent>
-            </Card>
+          <div style={twoColumnGrid}>
+            <SectionCard title="تحلیل احساسات">
+              {sentimentList.length ? (
+                <SimpleList items={sentimentList} />
+              ) : (
+                <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای موجود نیست.</p>
+              )}
+            </SectionCard>
+            <SectionCard title="کلمات کلیدی پرتکرار">
+              {keywordList.length ? (
+                <PlainTable
+                  columns={[
+                    { key: "label", label: "کلمه" },
+                    { key: "value", label: "دفعات" },
+                  ]}
+                  rows={keywordList.map((item) => ({ label: item.label, value: item.value }))}
+                />
+              ) : (
+                <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای موجود نیست.</p>
+              )}
+            </SectionCard>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>کلمات کلیدی پرتکرار</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartBox height={230}>
-                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
-                    <BarChart data={keywordData} layout="vertical">
-                      <XAxis type="number" tick={baseAxisTick} />
-                      <YAxis dataKey="keyword" type="category" width={100} tick={baseAxisTick} />
-                      <Tooltip />
-                      <Bar dataKey="mentions" fill="#82ca9d" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartBox>
-              </CardContent>
-            </Card>
+            <SectionCard title="روند کلمات">
+              {verbosityRows.length ? (
+                <PlainTable
+                  columns={[
+                    { key: "turn", label: "نوبت" },
+                    { key: "words", label: "تعداد واژه" },
+                  ]}
+                  rows={verbosityRows}
+                />
+              ) : (
+                <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای موجود نیست.</p>
+              )}
+            </SectionCard>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>روند کلمات</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartBox height={230}>
-                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
-                    <LineChart data={verbosityData}>
-                      <XAxis dataKey="turn" tick={baseAxisTick} />
-                      <YAxis tick={baseAxisTick} />
-                      <Tooltip />
-                      <Line dataKey="word_count" stroke="#f97316" strokeWidth={2} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </ChartBox>
-              </CardContent>
-            </Card>
+            <SectionCard title="کنش‌محوری">
+              {actionRows.length ? (
+                <SimpleList items={actionRows} />
+              ) : (
+                <p style={{ fontSize: "12px", color: "#6b7280" }}>اطلاعاتی درباره واژگان کنشی ثبت نشده است.</p>
+              )}
+            </SectionCard>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>کنش‌محوری</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartBox height={230}>
-                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
-                    <BarChart data={actionData}>
-                      <XAxis dataKey="name" tick={baseAxisTick} />
-                      <YAxis tick={baseAxisTick} />
-                      <Tooltip />
-                      <Legend wrapperStyle={legendStyle} />
-                      <Bar dataKey="action_words" fill="#8884d8" />
-                      <Bar dataKey="passive_words" fill="#82ca9d" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartBox>
-              </CardContent>
-            </Card>
+            <SectionCard title="رویکرد حل مسئله">
+              {problemRows.length ? (
+                <SimpleList items={problemRows} />
+              ) : (
+                <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای موجود نیست.</p>
+              )}
+            </SectionCard>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>رویکرد حل مسئله</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartBox height={230}>
-                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
-                    <PieChart>
-                      {problemSolvingData.length > 0 ? (
-                        <Pie data={problemSolvingData} dataKey="value" nameKey="name" innerRadius={60} outerRadius={90} label>
-                          {problemSolvingData.map((entry, index) => (
-                            <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                      ) : (
-                        <></>
-                      )}
-                      <Tooltip />
-                      <Legend wrapperStyle={legendStyle} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </ChartBox>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>سطح اطمینان</CardTitle>
-              </CardHeader>
-              <CardContent className="flex h-[230px] flex-col items-center justify-center gap-2">
-                <p className="text-5xl font-extrabold text-blue-600">{toNum(analysis.confidence_level?.score)}</p>
-                <p className="text-sm text-gray-500">از ۱۰</p>
-              </CardContent>
-            </Card>
+            <SectionCard title="سطح اطمینان">
+              <div style={{ textAlign: "center", padding: "16px 0" }}>
+                <p style={{ fontSize: "46px", fontWeight: 800, color: "#0ea5e9" }}>
+                  {toNum(analysis.confidence_level?.score)}
+                </p>
+                <p style={{ fontSize: "13px", color: "#6b7280" }}>از ۱۰</p>
+              </div>
+            </SectionCard>
           </div>
         </section>
 
         <section className="pdf-page" style={pageStyle}>
           <h2 className="text-2xl font-bold text-gray-900">تحلیل‌های تکمیلی - بخش دوم</h2>
-          <div className="grid grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>سبک ارتباطی</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartBox height={230}>
-                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
-                    <BarChart data={commStyle}>
-                      <XAxis dataKey="name" tick={baseAxisTick} />
-                      <YAxis tick={baseAxisTick} />
-                      <Tooltip />
-                      <Bar dataKey="value" fill="#A020F0" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartBox>
-              </CardContent>
-            </Card>
+          <div style={twoColumnGrid}>
+            <SectionCard title="سبک ارتباطی">
+              {commRows.length ? (
+                <SimpleList items={commRows} />
+              ) : (
+                <p style={{ fontSize: "12px", color: "#6b7280" }}>اطلاعاتی ثبت نشده است.</p>
+              )}
+            </SectionCard>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>توزیع نمرات</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartBox height={230}>
-                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
-                    <AreaChart data={chartData}>
-                      <XAxis dataKey="subject" tick={baseAxisTick} />
-                      <YAxis tick={baseAxisTick} />
-                      <Tooltip />
-                      <Area dataKey="score" stroke="#6366f1" fill="#a5b4fc" strokeWidth={2} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </ChartBox>
-              </CardContent>
-            </Card>
+            <SectionCard title="توزیع نمرات">
+              {factorProgress.length ? (
+                <SimpleList
+                  items={factorProgress.map((item) => ({
+                    label: item.label,
+                    value: `${Math.round(item.value)}%`,
+                  }))}
+                />
+              ) : (
+                <p style={{ fontSize: "12px", color: "#6b7280" }}>اطلاعاتی ثبت نشده است.</p>
+              )}
+            </SectionCard>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>همبستگی فاکتورها</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartBox height={230}>
-                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
-                    <ScatterChart>
-                      <XAxis dataKey="score" tick={baseAxisTick} name="امتیاز" />
-                      <YAxis dataKey="fullMark" tick={baseAxisTick} name="حداکثر" />
-                      <Tooltip />
-                      <Scatter data={scatterChartData} fill="#FF8042" />
-                    </ScatterChart>
-                  </ResponsiveContainer>
-                </ChartBox>
-              </CardContent>
-            </Card>
+            <SectionCard title="شاخص‌های زبانی">
+              {radarRows.length ? (
+                <SimpleList items={radarRows.map((item) => ({ label: item.label, value: item.value }))} />
+              ) : (
+                <p style={{ fontSize: "12px", color: "#6b7280" }}>اطلاعاتی ثبت نشده است.</p>
+              )}
+            </SectionCard>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>سهم فاکتورها</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartBox height={230}>
-                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
-                    <Treemap data={treemapChartData} dataKey="score" nameKey="subject" stroke="#fff" fill="#60a5fa" />
-                  </ResponsiveContainer>
-                </ChartBox>
-              </CardContent>
-            </Card>
+            <SectionCard title="استفاده از ضمایر">
+              {pronounRows.length ? (
+                <SimpleList items={pronounRows.map((item) => ({ label: item.label, value: item.value }))} />
+              ) : (
+                <p style={{ fontSize: "12px", color: "#6b7280" }}>اطلاعاتی موجود نیست.</p>
+              )}
+            </SectionCard>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>شاخص‌های زبانی</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartBox height={230}>
-                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
-                    <RadarChart data={semanticRadar}>
-                      <PolarGrid />
-                      <PolarAngleAxis dataKey="name" tick={lightAxisTick} />
-                      <PolarRadiusAxis tick={lightAxisTick} />
-                      <Radar name="Semantic" dataKey="value" stroke="#8884d8" fill="#c4b5fd" fillOpacity={0.5} />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </ChartBox>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>استفاده از ضمایر</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartBox height={230}>
-                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
-                    <PieChart>
-                      {pronounChartData.length > 0 ? (
-                        <Pie data={pronounChartData} dataKey="value" nameKey="name" outerRadius={80} label>
-                          {pronounChartData.map((entry, index) => (
-                            <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                      ) : (
-                        <></>
-                      )}
-                      <Tooltip />
-                      <Legend wrapperStyle={legendStyle} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </ChartBox>
-              </CardContent>
-            </Card>
-
-            <Card className="col-span-2">
-              <CardHeader>
-                <CardTitle>حوزه‌های معنایی پرتکرار</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartBox height={260}>
-                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
-                    <BarChart data={semanticFields} layout="vertical">
-                      <XAxis type="number" tick={baseAxisTick} />
-                      <YAxis dataKey="field" type="category" width={120} tick={baseAxisTick} />
-                      <Tooltip />
-                      <Bar dataKey="mentions" fill="#34d399" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartBox>
-              </CardContent>
-            </Card>
+            <SectionCard title="حوزه‌های معنایی پرتکرار">
+              {semanticRows.length ? (
+                <PlainTable
+                  columns={[
+                    { key: "label", label: "حوزه" },
+                    { key: "value", label: "تکرار" },
+                  ]}
+                  rows={semanticRows}
+                />
+              ) : (
+                <p style={{ fontSize: "12px", color: "#6b7280" }}>اطلاعاتی ثبت نشده است.</p>
+              )}
+            </SectionCard>
           </div>
         </section>
       </div>
