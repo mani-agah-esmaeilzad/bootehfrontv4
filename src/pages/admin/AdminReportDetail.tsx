@@ -654,34 +654,33 @@ const AdminReportDetail = () => {
   }, [id, navigate]);
 
   const handleDownloadPDF = async () => {
-    const input = pdfPrintRef.current;
-    if (!input || !report) return;
+    const container = pdfPrintRef.current;
+    if (!container || !report) return;
     setIsDownloading(true);
     try {
       await ensureFontsLoaded();
-      const canvas = await html2canvas(input, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#fff',
-        windowWidth: input.scrollWidth,
-        windowHeight: input.scrollHeight,
-      });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const ratio = canvas.width / pdfWidth;
-      const imgHeight = canvas.height / ratio;
-      let heightLeft = imgHeight;
-      let position = 0;
-      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
-      heightLeft -= pdfHeight;
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
-        heightLeft -= pdfHeight;
+      const pageNodes = Array.from(container.querySelectorAll(".pdf-page")) as HTMLElement[];
+      const targets = pageNodes.length > 0 ? pageNodes : [container];
+      const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: "a4" });
+
+      for (let index = 0; index < targets.length; index += 1) {
+        const page = targets[index];
+        const canvas = await html2canvas(page, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#fff",
+          scrollX: 0,
+          scrollY: -window.scrollY,
+        });
+        const imgData = canvas.toDataURL("image/png");
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        if (index > 0) {
+          pdf.addPage();
+        }
+        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
       }
+
       pdf.save(`Report-${report.username}-${report.id}.pdf`);
       toast.success("فایل PDF ساخته شد.");
     } catch (e) {

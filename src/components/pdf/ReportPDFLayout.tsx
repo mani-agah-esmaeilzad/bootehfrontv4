@@ -47,6 +47,24 @@ interface PDFLayoutProps {
 }
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#A020F0", "#FF69B4"];
+const A4_WIDTH = 794;
+const A4_HEIGHT = 1123;
+const pageStyle: React.CSSProperties = {
+  width: `${A4_WIDTH}px`,
+  height: `${A4_HEIGHT}px`,
+  padding: "48px",
+  backgroundColor: "white",
+  color: "#111827",
+  boxSizing: "border-box",
+  direction: "rtl",
+  fontFamily: "Vazirmatn, Tahoma, sans-serif",
+  display: "flex",
+  flexDirection: "column",
+  gap: "24px",
+};
+const ChartBox = ({ height = 240, children }: { height?: number; children: React.ReactNode }) => (
+  <div style={{ width: "100%", height: `${height}px` }}>{children}</div>
+);
 
 const persianDigitMap: Record<string, string> = {
   "۰": "0",
@@ -323,21 +341,31 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
         value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.third_person),
       }),
     ];
-    const semanticFields = withRtlFields(analysis.linguistic_semantic_analysis?.semantic_fields);
+    const semanticFields = withRtlFields(analysis.linguistic_semantic_analysis?.semantic_fields) || [];
+    const pronounChartData = pronouns.filter((item) => Number.isFinite(item.value));
+
+    const infoItems = [
+      { label: "نام کامل", value: `${report.firstName} ${report.lastName}`.trim() || "—" },
+      { label: "نام کاربری", value: report.username },
+      { label: "پرسشنامه", value: report.questionnaire_title },
+      {
+        label: "تاریخ تکمیل",
+        value: report.completed_at ? new Date(report.completed_at).toLocaleString("fa-IR") : "نامشخص",
+      },
+    ];
 
     return (
       <div
         ref={ref}
-        style={{
-          width: "850px",
-          padding: "40px",
-          backgroundColor: "white",
-          color: "black",
-          fontFamily: "Vazirmatn, Tahoma, sans-serif",
-          direction: "rtl",
-          textAlign: "right",
-        }}
         className="pdf-font"
+        style={{
+          backgroundColor: "#e5e7eb",
+          padding: "16px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "24px",
+          alignItems: "center",
+        }}
       >
         <style>
           {`
@@ -346,10 +374,13 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             .pdf-font tspan {
               font-family: 'Vazirmatn', Tahoma, sans-serif !important;
             }
+            .chart-ltr {
+              direction: ltr;
+            }
           `}
         </style>
-        {/* صفحه کاور */}
-        <div className="flex flex-col items-center justify-center h-[90vh] border-4 border-gray-800 rounded-lg">
+
+        <section className="pdf-page" style={{ ...pageStyle, justifyContent: "center", alignItems: "center" }}>
           <Logo variant="large" />
           <h1 className="mt-10 text-4xl font-extrabold text-gray-900">گزارش نهایی ارزیابی شایستگی</h1>
           <h2 className="mt-6 text-2xl text-blue-700">
@@ -357,138 +388,308 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
           </h2>
           <p className="mt-4 text-gray-600">{report.questionnaire_title}</p>
           <p className="mt-2 text-gray-500">
-            تاریخ تکمیل:{" "}
-            {report.completed_at
-              ? new Date(report.completed_at).toLocaleDateString("fa-IR")
-              : "نامشخص"}
+            تاریخ تکمیل: {report.completed_at ? new Date(report.completed_at).toLocaleDateString("fa-IR") : "نامشخص"}
           </p>
-        </div>
+        </section>
 
-        <div style={{ pageBreakBefore: "always" }}>
-          <h2 className="mb-4 border-b-2 pb-2 text-2xl font-bold">خلاصه مدیریتی</h2>
-          <p className="text-sm leading-relaxed text-gray-700">
-            این گزارش به منظور تحلیل شایستگی‌های کلیدی {report.firstName} {report.lastName} تدوین شده است.
-            داده‌ها شامل نمودارها و تحلیل‌های کیفی و زبانی هستند که تصویری روشن از نقاط قوت و زمینه‌های بهبود فرد ارائه می‌دهند.
-          </p>
-        </div>
-
-        <div style={{ pageBreakBefore: "always" }}>
-          <div className="grid gap-6" style={{ gridTemplateColumns: "repeat(5, minmax(0, 1fr))" }}>
-            <div className="col-span-2">
-              <h2 className="border-b pb-2 text-xl font-bold">امتیاز کل</h2>
-              <div className="rounded-lg bg-blue-50 p-4 text-center">
-                <p className="text-6xl font-bold text-blue-800">
+        <section className="pdf-page" style={pageStyle}>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">خلاصه مدیریتی</h2>
+            <p className="mt-2 text-sm leading-relaxed text-gray-700">
+              این گزارش تصویری یکپارچه از عملکرد {report.firstName} {report.lastName} ارائه می‌دهد و با تکیه بر
+              سنجه‌های کیفی و کمی، نقاط قوت، ریسک‌ها و اولویت‌های توسعه‌ای او را مشخص می‌کند.
+            </p>
+          </div>
+          <div className="grid gap-6" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+            <div className="space-y-4 rounded-2xl border border-gray-200 p-5 shadow-sm">
+              <div>
+                <p className="text-sm text-gray-500">امتیاز کل</p>
+                <p className="text-5xl font-extrabold text-blue-700">
                   {toNum(analysis.score)}
-                  <span className="text-2xl text-gray-500"> / {report.max_score || 100}</span>
+                  <span className="text-lg text-gray-500"> / {report.max_score || 100}</span>
                 </p>
               </div>
-              <h2 className="mt-6 border-b pb-2 text-xl font-bold">نمودار شایستگی‌ها</h2>
-              <div className="h-[300px] w-full">
+              <div className="space-y-2 text-sm text-gray-600">
+                {infoItems.map((item) => (
+                  <div key={item.label} className="flex justify-between border-b border-dashed border-gray-200 pb-1">
+                    <span className="font-semibold text-gray-500">{item.label}</span>
+                    <span className="text-gray-800">{item.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-3 rounded-2xl border border-gray-200 p-5 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-900">نمودار شایستگی‌ها</h3>
+              <ChartBox height={320}>
                 {chartData.length > 0 ? (
                   <SpiderChart data={chartData} />
                 ) : (
-                  <p className="mt-4 text-center text-sm text-gray-500">داده‌ای وجود ندارد.</p>
+                  <div className="flex h-full items-center justify-center text-sm text-gray-500">داده‌ای وجود ندارد.</div>
                 )}
-              </div>
-            </div>
-            <div className="col-span-3">
-              <h2 className="border-b pb-2 text-xl font-bold">تحلیل کیفی</h2>
-              <div className="prose prose-sm mt-4 max-w-none leading-7 text-gray-700">
-                <ReactMarkdown>{analysis.report || ""}</ReactMarkdown>
-              </div>
+              </ChartBox>
             </div>
           </div>
-        </div>
-
-        <div style={{ pageBreakBefore: "always" }}>
-          <h2 className="mb-6 border-b-2 pb-4 text-2xl font-bold">تحلیل‌های تکمیلی</h2>
-          <div className="grid grid-cols-2 gap-8">
-            {/* ۱. احساسات */}
-            <Card><CardHeader><CardTitle>تحلیل احساسات</CardTitle></CardHeader><CardContent className="h-72">
-              <ResponsiveContainer className="chart-ltr"><PieChart>{sentimentData.length > 0 && (
-                <Pie data={sentimentData} dataKey="value" nameKey="name" outerRadius={80} label>
-                  {sentimentData.map((e,i)=><Cell key={i} fill={COLORS[i%COLORS.length]} />)}
-                </Pie>)}<Tooltip/><Legend wrapperStyle={legendStyle}/></PieChart></ResponsiveContainer>
-            </CardContent></Card>
-
-            {/* ۲. کلمات کلیدی */}
-            <Card><CardHeader><CardTitle>کلمات کلیدی پرتکرار</CardTitle></CardHeader><CardContent className="h-72">
-              <ResponsiveContainer className="chart-ltr"><BarChart data={keywordData} layout="vertical">
-                <XAxis type="number" tick={baseAxisTick}/><YAxis dataKey="keyword" type="category" width={100} tick={baseAxisTick}/><Tooltip/>
-                <Bar dataKey="mentions" fill="#82ca9d"/></BarChart></ResponsiveContainer>
-            </CardContent></Card>
-
-            {/* ۳. روند پرحرفی */}
-            <Card><CardHeader><CardTitle>روند کلمات</CardTitle></CardHeader><CardContent className="h-72">
-              <ResponsiveContainer className="chart-ltr"><LineChart data={verbosityData}>
-                <XAxis dataKey="turn" tick={baseAxisTick}/><YAxis tick={baseAxisTick}/><Tooltip/><Line dataKey="word_count" stroke="#ffc658"/></LineChart></ResponsiveContainer>
-            </CardContent></Card>
-
-            {/* ۴. کنش‌محوری */}
-            <Card><CardHeader><CardTitle>کنش‌محوری</CardTitle></CardHeader><CardContent className="h-72">
-              <ResponsiveContainer className="chart-ltr"><BarChart data={actionData}>
-                <XAxis dataKey="name" tick={baseAxisTick}/><YAxis tick={baseAxisTick}/><Tooltip/><Legend wrapperStyle={legendStyle}/>
-                <Bar dataKey="action_words" fill="#8884d8"/><Bar dataKey="passive_words" fill="#82ca9d"/>
-              </BarChart></ResponsiveContainer>
-            </CardContent></Card>
-
-            {/* ۵. حل مسئله */}
-            <Card><CardHeader><CardTitle>رویکرد حل مسئله</CardTitle></CardHeader><CardContent className="h-72">
-              <ResponsiveContainer className="chart-ltr"><PieChart>{problemSolvingData.length>0&&(
-                <Pie data={problemSolvingData} dataKey="value" nameKey="name" innerRadius={60} outerRadius={90} label>
-                  {problemSolvingData.map((e,i)=><Cell key={i} fill={COLORS[i%COLORS.length]}/>)}
-                </Pie>)}<Tooltip/><Legend wrapperStyle={legendStyle}/></PieChart></ResponsiveContainer>
-            </CardContent></Card>
-
-            {/* ۶. سطح اطمینان */}
-            <Card><CardHeader><CardTitle>سطح اطمینان</CardTitle></CardHeader><CardContent className="text-center">
-              <p className="text-7xl font-bold text-blue-700">{toNum(analysis.confidence_level?.score)}</p><p>از ۱۰</p>
-            </CardContent></Card>
-
-            {/* ۷. سبک ارتباطی */}
-            <Card><CardHeader><CardTitle>سبک ارتباطی</CardTitle></CardHeader><CardContent className="h-72">
-              <ResponsiveContainer className="chart-ltr"><BarChart data={commStyle}><XAxis dataKey="name" tick={baseAxisTick}/><YAxis tick={baseAxisTick}/><Tooltip/>
-              <Bar dataKey="value" fill="#A020F0"/></BarChart></ResponsiveContainer>
-            </CardContent></Card>
-
-            {/* ۸. توزیع نمرات */}
-            <Card><CardHeader><CardTitle>توزیع نمرات</CardTitle></CardHeader><CardContent className="h-72">
-              <ResponsiveContainer className="chart-ltr"><AreaChart data={chartData}><XAxis dataKey="subject" tick={baseAxisTick}/><YAxis tick={baseAxisTick}/><Tooltip/>
-              <Area dataKey="score" stroke="#8884d8" fill="#8884d8"/></AreaChart></ResponsiveContainer>
-            </CardContent></Card>
-
-            {/* ۹. Scatter */}
-            <Card><CardHeader><CardTitle>همبستگی فاکتورها</CardTitle></CardHeader><CardContent className="h-72">
-              <ResponsiveContainer className="chart-ltr"><ScatterChart><XAxis dataKey="score" tick={baseAxisTick}/><YAxis dataKey="fullMark" tick={baseAxisTick}/><Tooltip/>
-              <Scatter data={scatterChartData} fill="#FF8042"/></ScatterChart></ResponsiveContainer>
-            </CardContent></Card>
-
-            {/* ۱۰. Treemap */}
-            <Card><CardHeader><CardTitle>سهم فاکتورها</CardTitle></CardHeader><CardContent className="h-72">
-              <ResponsiveContainer className="chart-ltr"><Treemap data={treemapChartData} dataKey="score" nameKey="subject" stroke="#fff" fill="#8884d8"/></ResponsiveContainer>
-            </CardContent></Card>
-
-            {/* ۱۱. شاخص‌های زبانی */}
-            <Card><CardHeader><CardTitle>شاخص‌های زبانی</CardTitle></CardHeader><CardContent className="h-72">
-              <ResponsiveContainer className="chart-ltr"><RadarChart data={semanticRadar}><PolarGrid/><PolarAngleAxis dataKey="name" tick={lightAxisTick}/><PolarRadiusAxis tick={lightAxisTick}/>
-              <Radar name="Semantic" dataKey="value" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6}/></RadarChart></ResponsiveContainer>
-            </CardContent></Card>
-
-            {/* ۱۲. استفاده از ضمایر */}
-            <Card><CardHeader><CardTitle>استفاده از ضمایر</CardTitle></CardHeader><CardContent className="h-72">
-              <ResponsiveContainer className="chart-ltr"><PieChart><Pie data={pronouns} dataKey="value" nameKey="name" outerRadius={80} label>
-                {pronouns.map((e,i)=><Cell key={i} fill={COLORS[i%COLORS.length]}/>)}
-              </Pie><Tooltip/><Legend wrapperStyle={legendStyle}/></PieChart></ResponsiveContainer>
-            </CardContent></Card>
-
-            {/* ۱۳. حوزه‌های معنایی */}
-            <Card><CardHeader><CardTitle>حوزه‌های معنایی پرتکرار</CardTitle></CardHeader><CardContent className="h-72">
-              <ResponsiveContainer className="chart-ltr"><BarChart data={semanticFields} layout="vertical">
-                <XAxis type="number" tick={baseAxisTick}/><YAxis dataKey="field" type="category" width={100} tick={baseAxisTick}/><Tooltip/>
-                <Bar dataKey="mentions" fill="#82ca9d"/></BarChart></ResponsiveContainer>
-            </CardContent></Card>
+          <div className="rounded-2xl border border-gray-200 p-5 shadow-sm">
+            <h3 className="text-lg font-semibold text-gray-900">تحلیل کیفی</h3>
+            <div className="prose prose-sm mt-3 max-w-none leading-7 text-gray-700">
+              <ReactMarkdown>{analysis.report || "تحلیل کیفی برای این گزارش ثبت نشده است."}</ReactMarkdown>
+            </div>
           </div>
-        </div>
+        </section>
+
+        <section className="pdf-page" style={pageStyle}>
+          <h2 className="text-2xl font-bold text-gray-900">تحلیل‌های تکمیلی - بخش اول</h2>
+          <div className="grid grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>تحلیل احساسات</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartBox height={230}>
+                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
+                    <PieChart>
+                      {sentimentData.length > 0 ? (
+                        <Pie data={sentimentData} dataKey="value" nameKey="name" outerRadius={80} label>
+                          {sentimentData.map((entry, index) => (
+                            <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                      ) : (
+                        <></>
+                      )}
+                      <Tooltip />
+                      <Legend wrapperStyle={legendStyle} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </ChartBox>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>کلمات کلیدی پرتکرار</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartBox height={230}>
+                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
+                    <BarChart data={keywordData} layout="vertical">
+                      <XAxis type="number" tick={baseAxisTick} />
+                      <YAxis dataKey="keyword" type="category" width={100} tick={baseAxisTick} />
+                      <Tooltip />
+                      <Bar dataKey="mentions" fill="#82ca9d" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartBox>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>روند کلمات</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartBox height={230}>
+                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
+                    <LineChart data={verbosityData}>
+                      <XAxis dataKey="turn" tick={baseAxisTick} />
+                      <YAxis tick={baseAxisTick} />
+                      <Tooltip />
+                      <Line dataKey="word_count" stroke="#f97316" strokeWidth={2} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartBox>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>کنش‌محوری</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartBox height={230}>
+                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
+                    <BarChart data={actionData}>
+                      <XAxis dataKey="name" tick={baseAxisTick} />
+                      <YAxis tick={baseAxisTick} />
+                      <Tooltip />
+                      <Legend wrapperStyle={legendStyle} />
+                      <Bar dataKey="action_words" fill="#8884d8" />
+                      <Bar dataKey="passive_words" fill="#82ca9d" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartBox>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>رویکرد حل مسئله</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartBox height={230}>
+                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
+                    <PieChart>
+                      {problemSolvingData.length > 0 ? (
+                        <Pie data={problemSolvingData} dataKey="value" nameKey="name" innerRadius={60} outerRadius={90} label>
+                          {problemSolvingData.map((entry, index) => (
+                            <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                      ) : (
+                        <></>
+                      )}
+                      <Tooltip />
+                      <Legend wrapperStyle={legendStyle} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </ChartBox>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>سطح اطمینان</CardTitle>
+              </CardHeader>
+              <CardContent className="flex h-[230px] flex-col items-center justify-center gap-2">
+                <p className="text-5xl font-extrabold text-blue-600">{toNum(analysis.confidence_level?.score)}</p>
+                <p className="text-sm text-gray-500">از ۱۰</p>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        <section className="pdf-page" style={pageStyle}>
+          <h2 className="text-2xl font-bold text-gray-900">تحلیل‌های تکمیلی - بخش دوم</h2>
+          <div className="grid grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>سبک ارتباطی</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartBox height={230}>
+                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
+                    <BarChart data={commStyle}>
+                      <XAxis dataKey="name" tick={baseAxisTick} />
+                      <YAxis tick={baseAxisTick} />
+                      <Tooltip />
+                      <Bar dataKey="value" fill="#A020F0" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartBox>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>توزیع نمرات</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartBox height={230}>
+                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
+                    <AreaChart data={chartData}>
+                      <XAxis dataKey="subject" tick={baseAxisTick} />
+                      <YAxis tick={baseAxisTick} />
+                      <Tooltip />
+                      <Area dataKey="score" stroke="#6366f1" fill="#a5b4fc" strokeWidth={2} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </ChartBox>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>همبستگی فاکتورها</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartBox height={230}>
+                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
+                    <ScatterChart>
+                      <XAxis dataKey="score" tick={baseAxisTick} name="امتیاز" />
+                      <YAxis dataKey="fullMark" tick={baseAxisTick} name="حداکثر" />
+                      <Tooltip />
+                      <Scatter data={scatterChartData} fill="#FF8042" />
+                    </ScatterChart>
+                  </ResponsiveContainer>
+                </ChartBox>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>سهم فاکتورها</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartBox height={230}>
+                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
+                    <Treemap data={treemapChartData} dataKey="score" nameKey="subject" stroke="#fff" fill="#60a5fa" />
+                  </ResponsiveContainer>
+                </ChartBox>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>شاخص‌های زبانی</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartBox height={230}>
+                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
+                    <RadarChart data={semanticRadar}>
+                      <PolarGrid />
+                      <PolarAngleAxis dataKey="name" tick={lightAxisTick} />
+                      <PolarRadiusAxis tick={lightAxisTick} />
+                      <Radar name="Semantic" dataKey="value" stroke="#8884d8" fill="#c4b5fd" fillOpacity={0.5} />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </ChartBox>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>استفاده از ضمایر</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartBox height={230}>
+                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
+                    <PieChart>
+                      {pronounChartData.length > 0 ? (
+                        <Pie data={pronounChartData} dataKey="value" nameKey="name" outerRadius={80} label>
+                          {pronounChartData.map((entry, index) => (
+                            <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                      ) : (
+                        <></>
+                      )}
+                      <Tooltip />
+                      <Legend wrapperStyle={legendStyle} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </ChartBox>
+              </CardContent>
+            </Card>
+
+            <Card className="col-span-2">
+              <CardHeader>
+                <CardTitle>حوزه‌های معنایی پرتکرار</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartBox height={260}>
+                  <ResponsiveContainer width="100%" height="100%" className="chart-ltr">
+                    <BarChart data={semanticFields} layout="vertical">
+                      <XAxis type="number" tick={baseAxisTick} />
+                      <YAxis dataKey="field" type="category" width={120} tick={baseAxisTick} />
+                      <Tooltip />
+                      <Bar dataKey="mentions" fill="#34d399" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartBox>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
       </div>
     );
   }
