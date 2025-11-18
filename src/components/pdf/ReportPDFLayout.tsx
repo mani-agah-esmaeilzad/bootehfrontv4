@@ -424,7 +424,12 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
     ];
     const semanticFields = withRtlFields(analysis.linguistic_semantic_analysis?.semantic_fields) || [];
     const pronounChartData = pronouns.filter((item) => Number.isFinite(item.value));
-    const phaseBreakdown = Array.isArray(analysis.phase_breakdown) ? analysis.phase_breakdown : [];
+    const phaseBreakdownSource =
+      analysis.phase_breakdown ||
+      analysis.final_analysis?.phase_breakdown ||
+      report.analysis?.phase_breakdown ||
+      report.analysis?.final_analysis?.phase_breakdown;
+    const phaseBreakdown = Array.isArray(phaseBreakdownSource) ? phaseBreakdownSource : [];
     const phaseInsights = phaseBreakdown.map((phase: any, index: number) => {
       const phaseNumber = phase?.phase ?? index + 1;
       const persona = phase?.personaName ? ` - ${phase.personaName}` : "";
@@ -491,7 +496,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
       label: entry.field ?? entry.name,
       value: entry.mentions ?? entry.value ?? 0,
     }));
-    const semanticRowsLimited = semanticRows.slice(0, 8);
+    const semanticRowsLimited = semanticRows.slice(0, 6);
 
     const twoColumnGrid: React.CSSProperties = {
       display: "grid",
@@ -849,11 +854,11 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             <SectionCard title="حوزه‌های معنایی پرتکرار" style={{ gridColumn: "span 2" }}>
               {semanticRowsLimited.length ? (
                 <>
-                  <ChartBox height={220}>
+                  <ChartBox height={180}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={semanticRowsLimited} layout="vertical">
                         <XAxis type="number" tick={baseAxisTick} />
-                        <YAxis dataKey="label" type="category" width={150} tick={baseAxisTick} />
+                        <YAxis dataKey="label" type="category" width={140} tick={baseAxisTick} />
                         <Tooltip />
                         <Bar dataKey="value" fill="#34d399" />
                       </BarChart>
