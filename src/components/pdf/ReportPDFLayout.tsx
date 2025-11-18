@@ -116,7 +116,15 @@ const ChartBox = ({ height = 240, children }: { height?: number; children: React
     <div style={{ width: "100%", height: "100%", direction: "ltr" }}>{children}</div>
   </div>
 );
-const SectionCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
+const SectionCard = ({
+  title,
+  children,
+  style,
+}: {
+  title: string;
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) => (
   <div
     style={{
       border: "1px solid #e5e7eb",
@@ -127,6 +135,7 @@ const SectionCard = ({ title, children }: { title: string; children: React.React
       flexDirection: "column",
       gap: "12px",
       background: "white",
+      ...style,
     }}
   >
     <h3 style={{ fontSize: "16px", fontWeight: 700, color: "#111827" }}>{title}</h3>
@@ -415,6 +424,20 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
     ];
     const semanticFields = withRtlFields(analysis.linguistic_semantic_analysis?.semantic_fields) || [];
     const pronounChartData = pronouns.filter((item) => Number.isFinite(item.value));
+    const phaseBreakdown = Array.isArray(analysis.phase_breakdown) ? analysis.phase_breakdown : [];
+    const phaseInsights = phaseBreakdown.map((phase: any, index: number) => {
+      const phaseNumber = phase?.phase ?? index + 1;
+      const persona = phase?.personaName ? ` - ${phase.personaName}` : "";
+      const summary =
+        phase?.analysis?.summary ||
+        phase?.analysis?.report ||
+        phase?.analysis?.description ||
+        "تحلیل این مرحله در دسترس نیست.";
+      return {
+        title: `مرحله ${phaseNumber}${persona}`,
+        summary,
+      };
+    });
 
     const infoItems = [
       { label: "نام کامل", value: `${report.firstName} ${report.lastName}`.trim() || "—" },
@@ -468,6 +491,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
       label: entry.field ?? entry.name,
       value: entry.mentions ?? entry.value ?? 0,
     }));
+    const semanticRowsLimited = semanticRows.slice(0, 8);
 
     const twoColumnGrid: React.CSSProperties = {
       display: "grid",
@@ -501,19 +525,20 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
           `}
         </style>
 
-        <section className="pdf-page" style={{ ...pageStyle, justifyContent: "center", alignItems: "center" }}>
-          <Logo variant="large" />
-          <h1 className="mt-10 text-4xl font-extrabold text-gray-900">گزارش نهایی ارزیابی شایستگی</h1>
-          <h2 className="mt-6 text-2xl text-blue-700">
-            {report.firstName} {report.lastName} ({report.username})
-          </h2>
-          <p className="mt-4 text-gray-600">{report.questionnaire_title}</p>
-          <p className="mt-2 text-gray-500">
-            تاریخ تکمیل: {report.completed_at ? new Date(report.completed_at).toLocaleDateString("fa-IR") : "نامشخص"}
-          </p>
-        </section>
-
         <section className="pdf-page" style={pageStyle}>
+          <div style={{ textAlign: "center", marginBottom: "16px" }}>
+            <Logo variant="large" />
+            <h1 style={{ fontSize: "28px", fontWeight: 800, color: "#111827", marginTop: "12px" }}>
+              گزارش نهایی ارزیابی شایستگی
+            </h1>
+            <h2 style={{ fontSize: "20px", color: "#2563eb", marginTop: "6px" }}>
+              {report.firstName} {report.lastName} ({report.username})
+            </h2>
+            <p style={{ marginTop: "4px", color: "#6b7280" }}>{report.questionnaire_title}</p>
+            <p style={{ marginTop: "2px", fontSize: "12px", color: "#9ca3af" }}>
+              تاریخ تکمیل: {report.completed_at ? new Date(report.completed_at).toLocaleDateString("fa-IR") : "نامشخص"}
+            </p>
+          </div>
           <div>
             <h2 className="text-2xl font-bold text-gray-900">خلاصه مدیریتی</h2>
             <p className="mt-2 text-sm leading-relaxed text-gray-700">
@@ -555,11 +580,37 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             )}
           </SectionCard>
 
-          <SectionCard title="تحلیل کیفی">
+          <SectionCard title="تحلیل کلی">
             <div style={{ fontSize: "13px", lineHeight: 1.8, color: "#374151" }}>
-              <ReactMarkdown>{analysis.report || "تحلیل کیفی برای این گزارش ثبت نشده است."}</ReactMarkdown>
+              <ReactMarkdown>
+                {analysis.summary ||
+                  analysis.overall_summary ||
+                  analysis.report ||
+                  "تحلیل کلی برای این گزارش ثبت نشده است."}
+              </ReactMarkdown>
             </div>
           </SectionCard>
+
+          {phaseInsights.length > 0 && (
+            <SectionCard title="تحلیل تفکیکی مراحل">
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {phaseInsights.map((item, index) => (
+                  <div
+                    key={`${item.title}-${index}`}
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "14px",
+                      padding: "12px 16px",
+                      background: "#f8fafc",
+                    }}
+                  >
+                    <p style={{ fontSize: "13px", fontWeight: 700, color: "#111827" }}>{item.title}</p>
+                    <p style={{ fontSize: "12px", color: "#4b5563", lineHeight: 1.7 }}>{item.summary}</p>
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+          )}
         </section>
 
         <section className="pdf-page" style={pageStyle}>
@@ -786,14 +837,14 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
               )}
             </SectionCard>
 
-            <SectionCard title="حوزه‌های معنایی پرتکرار">
-              {semanticRows.length ? (
+            <SectionCard title="حوزه‌های معنایی پرتکرار" style={{ gridColumn: "span 2" }}>
+              {semanticRowsLimited.length ? (
                 <>
                   <ChartBox height={220}>
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={semanticRows}>
+                      <BarChart data={semanticRowsLimited} layout="vertical">
                         <XAxis type="number" tick={baseAxisTick} />
-                        <YAxis dataKey="label" type="category" width={120} tick={baseAxisTick} />
+                        <YAxis dataKey="label" type="category" width={150} tick={baseAxisTick} />
                         <Tooltip />
                         <Bar dataKey="value" fill="#34d399" />
                       </BarChart>
@@ -804,7 +855,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
                       { key: "label", label: "حوزه" },
                       { key: "value", label: "تکرار" },
                     ]}
-                    rows={semanticRows}
+                    rows={semanticRowsLimited}
                   />
                 </>
               ) : (
