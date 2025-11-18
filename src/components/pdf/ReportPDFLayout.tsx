@@ -546,14 +546,44 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
               سنجه‌های کیفی و کمی، نقاط قوت، ریسک‌ها و اولویت‌های توسعه‌ای او را مشخص می‌کند.
             </p>
           </div>
-          <div style={twoColumnGrid}>
-            <SectionCard title="مشخصات کلی">
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, 0.8fr)",
+              gap: "16px",
+            }}
+          >
+            <SectionCard title="اطلاعات و نمودار شایستگی‌ها" style={{ gap: "16px" }}>
               <SimpleList items={infoItems} />
+              <div
+                style={{
+                  border: "1px dashed #e5e7eb",
+                  borderRadius: "14px",
+                  padding: "12px",
+                  textAlign: "center",
+                  background: "#f8fafc",
+                }}
+              >
+                <p style={{ fontSize: "36px", fontWeight: 800, color: "#2563eb" }}>{toNum(analysis.score)}</p>
+                <p style={{ fontSize: "13px", color: "#6b7280" }}>از {report.max_score || 100}</p>
+              </div>
+              {chartData.length > 0 ? (
+                <ChartBox height={220}>
+                  <SpiderChart data={chartData} />
+                </ChartBox>
+              ) : (
+                <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای برای نمایش نمودار وجود ندارد.</p>
+              )}
             </SectionCard>
-            <SectionCard title="امتیاز کل">
-              <div style={{ textAlign: "center", padding: "16px 0" }}>
-                <p style={{ fontSize: "48px", fontWeight: 800, color: "#2563eb" }}>{toNum(analysis.score)}</p>
-                <p style={{ fontSize: "14px", color: "#6b7280" }}>از {report.max_score || 100}</p>
+
+            <SectionCard title="تحلیل کلی">
+              <div style={{ fontSize: "13px", lineHeight: 1.8, color: "#374151" }}>
+                <ReactMarkdown>
+                  {analysis.summary ||
+                    analysis.overall_summary ||
+                    analysis.report ||
+                    "تحلیل کلی برای این گزارش ثبت نشده است."}
+                </ReactMarkdown>
               </div>
             </SectionCard>
           </div>
@@ -568,27 +598,6 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             ) : (
               <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای برای شایستگی‌ها موجود نیست.</p>
             )}
-          </SectionCard>
-
-          <SectionCard title="نمودار شایستگی‌ها (عنکبوتی)">
-            {chartData.length > 0 ? (
-              <ChartBox height={260}>
-                <SpiderChart data={chartData} />
-              </ChartBox>
-            ) : (
-              <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای برای نمایش نمودار وجود ندارد.</p>
-            )}
-          </SectionCard>
-
-          <SectionCard title="تحلیل کلی">
-            <div style={{ fontSize: "13px", lineHeight: 1.8, color: "#374151" }}>
-              <ReactMarkdown>
-                {analysis.summary ||
-                  analysis.overall_summary ||
-                  analysis.report ||
-                  "تحلیل کلی برای این گزارش ثبت نشده است."}
-              </ReactMarkdown>
-            </div>
           </SectionCard>
 
           {phaseInsights.length > 0 && (
