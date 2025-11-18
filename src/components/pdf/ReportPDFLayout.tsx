@@ -4,6 +4,21 @@ import React from "react";
 import ReactMarkdown from "react-markdown";
 import { Logo } from "@/components/ui/logo";
 import { withRtlFields } from "@/lib/reports";
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  LineChart,
+  Line,
+  Legend,
+} from "recharts";
+import { SpiderChart } from "@/components/ui/SpiderChart";
 
 interface ReportDetail {
   id: number;
@@ -35,6 +50,14 @@ const pageStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: "24px",
+};
+const COLORS = ["#0ea5e9", "#22c55e", "#f97316", "#6366f1", "#facc15", "#ec4899"];
+const chartFontFamily = "Vazirmatn, Tahoma, sans-serif";
+const baseAxisTick = { fill: "#374151", fontFamily: chartFontFamily, fontSize: 11 };
+const legendStyle: React.CSSProperties = {
+  fontFamily: chartFontFamily,
+  fontSize: "12px",
+  direction: "rtl",
 };
 const PlainTable = ({
   columns,
@@ -87,6 +110,11 @@ const PlainTable = ({
       ))}
     </tbody>
   </table>
+);
+const ChartBox = ({ height = 240, children }: { height?: number; children: React.ReactNode }) => (
+  <div style={{ width: "100%", height: `${height}px` }}>
+    <div style={{ width: "100%", height: "100%", direction: "ltr" }}>{children}</div>
+  </div>
 );
 const SectionCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div
@@ -539,6 +567,16 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             )}
           </SectionCard>
 
+          <SectionCard title="نمودار شایستگی‌ها (عنکبوتی)">
+            {chartData.length > 0 ? (
+              <ChartBox height={260}>
+                <SpiderChart data={chartData} />
+              </ChartBox>
+            ) : (
+              <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای برای نمایش نمودار وجود ندارد.</p>
+            )}
+          </SectionCard>
+
           <SectionCard title="تحلیل کیفی">
             <div style={{ fontSize: "13px", lineHeight: 1.8, color: "#374151" }}>
               <ReactMarkdown>{analysis.report || "تحلیل کیفی برای این گزارش ثبت نشده است."}</ReactMarkdown>
@@ -550,51 +588,119 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
           <h2 className="text-2xl font-bold text-gray-900">تحلیل‌های تکمیلی - بخش اول</h2>
           <div style={twoColumnGrid}>
             <SectionCard title="تحلیل احساسات">
-              {sentimentList.length ? (
-                <SimpleList items={sentimentList} />
+              {sentimentData.length ? (
+                <>
+                  <ChartBox height={220}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={sentimentData} dataKey="value" nameKey="name" outerRadius={70}>
+                          {sentimentData.map((entry, index) => (
+                            <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend wrapperStyle={legendStyle} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </ChartBox>
+                  <SimpleList items={sentimentList} />
+                </>
               ) : (
                 <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای موجود نیست.</p>
               )}
             </SectionCard>
+
             <SectionCard title="کلمات کلیدی پرتکرار">
-              {keywordList.length ? (
-                <PlainTable
-                  columns={[
-                    { key: "label", label: "کلمه" },
-                    { key: "value", label: "دفعات" },
-                  ]}
-                  rows={keywordList.map((item) => ({ label: item.label, value: item.value }))}
-                />
+              {keywordData.length ? (
+                <>
+                  <ChartBox height={220}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={keywordData} layout="vertical">
+                        <XAxis type="number" tick={baseAxisTick} />
+                        <YAxis dataKey="keyword" type="category" width={110} tick={baseAxisTick} />
+                        <Tooltip />
+                        <Bar dataKey="mentions" fill="#22c55e" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartBox>
+                  <PlainTable
+                    columns={[
+                      { key: "keyword", label: "کلمه" },
+                      { key: "mentions", label: "دفعات" },
+                    ]}
+                    rows={keywordList.map((item) => ({ keyword: item.label, mentions: item.value }))}
+                  />
+                </>
               ) : (
                 <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای موجود نیست.</p>
               )}
             </SectionCard>
 
             <SectionCard title="روند کلمات">
-              {verbosityRows.length ? (
-                <PlainTable
-                  columns={[
-                    { key: "turn", label: "نوبت" },
-                    { key: "words", label: "تعداد واژه" },
-                  ]}
-                  rows={verbosityRows}
-                />
+              {verbosityData.length ? (
+                <>
+                  <ChartBox height={220}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={verbosityData}>
+                        <XAxis dataKey="turn" tick={baseAxisTick} />
+                        <YAxis tick={baseAxisTick} />
+                        <Tooltip />
+                        <Line dataKey="word_count" stroke="#f97316" strokeWidth={2} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </ChartBox>
+                  <PlainTable
+                    columns={[
+                      { key: "turn", label: "نوبت" },
+                      { key: "word_count", label: "تعداد واژه" },
+                    ]}
+                    rows={verbosityRows}
+                  />
+                </>
               ) : (
                 <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای موجود نیست.</p>
               )}
             </SectionCard>
 
             <SectionCard title="کنش‌محوری">
-              {actionRows.length ? (
-                <SimpleList items={actionRows} />
+              {actionData.length ? (
+                <>
+                  <ChartBox height={220}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={actionData}>
+                        <XAxis dataKey="name" tick={baseAxisTick} />
+                        <YAxis tick={baseAxisTick} />
+                        <Tooltip />
+                        <Legend wrapperStyle={legendStyle} />
+                        <Bar dataKey="action_words" fill="#6366f1" />
+                        <Bar dataKey="passive_words" fill="#94a3b8" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartBox>
+                  <SimpleList items={actionRows} />
+                </>
               ) : (
                 <p style={{ fontSize: "12px", color: "#6b7280" }}>اطلاعاتی درباره واژگان کنشی ثبت نشده است.</p>
               )}
             </SectionCard>
 
             <SectionCard title="رویکرد حل مسئله">
-              {problemRows.length ? (
-                <SimpleList items={problemRows} />
+              {problemSolvingData.length ? (
+                <>
+                  <ChartBox height={220}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={problemSolvingData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80}>
+                          {problemSolvingData.map((entry, index) => (
+                            <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </ChartBox>
+                  <SimpleList items={problemRows} />
+                </>
               ) : (
                 <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای موجود نیست.</p>
               )}
@@ -615,21 +721,45 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
           <h2 className="text-2xl font-bold text-gray-900">تحلیل‌های تکمیلی - بخش دوم</h2>
           <div style={twoColumnGrid}>
             <SectionCard title="سبک ارتباطی">
-              {commRows.length ? (
-                <SimpleList items={commRows} />
+              {commStyle.length ? (
+                <>
+                  <ChartBox height={220}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={commStyle}>
+                        <XAxis dataKey="name" tick={baseAxisTick} />
+                        <YAxis tick={baseAxisTick} />
+                        <Tooltip />
+                        <Bar dataKey="value" fill="#a855f7" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartBox>
+                  <SimpleList items={commRows} />
+                </>
               ) : (
                 <p style={{ fontSize: "12px", color: "#6b7280" }}>اطلاعاتی ثبت نشده است.</p>
               )}
             </SectionCard>
 
             <SectionCard title="توزیع نمرات">
-              {factorProgress.length ? (
-                <SimpleList
-                  items={factorProgress.map((item) => ({
-                    label: item.label,
-                    value: `${Math.round(item.value)}%`,
-                  }))}
-                />
+              {chartData.length ? (
+                <>
+                  <ChartBox height={220}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData}>
+                        <XAxis dataKey="subject" tick={baseAxisTick} />
+                        <YAxis tick={baseAxisTick} />
+                        <Tooltip />
+                        <Bar dataKey="score" fill="#3b82f6" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartBox>
+                  <SimpleList
+                    items={factorProgress.map((item) => ({
+                      label: item.label,
+                      value: `${Math.round(item.value)}%`,
+                    }))}
+                  />
+                </>
               ) : (
                 <p style={{ fontSize: "12px", color: "#6b7280" }}>اطلاعاتی ثبت نشده است.</p>
               )}
@@ -637,7 +767,19 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
             <SectionCard title="شاخص‌های زبانی">
               {radarRows.length ? (
-                <SimpleList items={radarRows.map((item) => ({ label: item.label, value: item.value }))} />
+                <>
+                  <ChartBox height={220}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={radarRows}>
+                        <XAxis dataKey="label" tick={baseAxisTick} />
+                        <YAxis tick={baseAxisTick} />
+                        <Tooltip />
+                        <Bar dataKey="value" fill="#14b8a6" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartBox>
+                  <SimpleList items={radarRows.map((item) => ({ label: item.label, value: item.value }))} />
+                </>
               ) : (
                 <p style={{ fontSize: "12px", color: "#6b7280" }}>اطلاعاتی ثبت نشده است.</p>
               )}
@@ -645,7 +787,22 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
             <SectionCard title="استفاده از ضمایر">
               {pronounRows.length ? (
-                <SimpleList items={pronounRows.map((item) => ({ label: item.label, value: item.value }))} />
+                <>
+                  <ChartBox height={220}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={pronounRows} dataKey="value" nameKey="label" outerRadius={70}>
+                          {pronounRows.map((entry, index) => (
+                            <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend wrapperStyle={legendStyle} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </ChartBox>
+                  <SimpleList items={pronounRows.map((item) => ({ label: item.label, value: item.value }))} />
+                </>
               ) : (
                 <p style={{ fontSize: "12px", color: "#6b7280" }}>اطلاعاتی موجود نیست.</p>
               )}
@@ -653,13 +810,25 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
             <SectionCard title="حوزه‌های معنایی پرتکرار">
               {semanticRows.length ? (
-                <PlainTable
-                  columns={[
-                    { key: "label", label: "حوزه" },
-                    { key: "value", label: "تکرار" },
-                  ]}
-                  rows={semanticRows}
-                />
+                <>
+                  <ChartBox height={220}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={semanticRows}>
+                        <XAxis type="number" tick={baseAxisTick} />
+                        <YAxis dataKey="label" type="category" width={120} tick={baseAxisTick} />
+                        <Tooltip />
+                        <Bar dataKey="value" fill="#34d399" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartBox>
+                  <PlainTable
+                    columns={[
+                      { key: "label", label: "حوزه" },
+                      { key: "value", label: "تکرار" },
+                    ]}
+                    rows={semanticRows}
+                  />
+                </>
               ) : (
                 <p style={{ fontSize: "12px", color: "#6b7280" }}>اطلاعاتی ثبت نشده است.</p>
               )}
