@@ -357,83 +357,61 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
     const sentimentData =
       analysis.sentiment_analysis
-        ? Object.entries(analysis.sentiment_analysis).map(([name, value]) =>
-            withRtlFields({ name, value: toNum(value) })
-          )
+        ? Object.entries(analysis.sentiment_analysis).map(([name, value]) => ({
+            name,
+            value: toNum(value),
+          }))
         : [];
 
     const keywordData =
-      analysis.keyword_analysis?.map((item: any) =>
-        withRtlFields({
-          ...item,
-          mentions: toNum(item.mentions),
-        })
-      ) || [];
+      analysis.keyword_analysis?.map((item: any) => ({
+        keyword: item.keyword ?? item.name,
+        mentions: toNum(item.mentions ?? item.value),
+      })) || [];
 
     const verbosityData =
-      analysis.verbosity_trend?.map((item: any) =>
-        withRtlFields({
-          ...item,
-          word_count: toNum(item.word_count),
-        })
-      ) || [];
+      analysis.verbosity_trend?.map((item: any, index: number) => ({
+        turn: item.turn ?? item.iteration ?? index + 1,
+        word_count: toNum(item.word_count ?? item.value),
+      })) || [];
 
     const actionData = analysis.action_orientation
       ? [
-          withRtlFields({
+          {
             name: "مقایسه",
             action_words: toNum(analysis.action_orientation.action_words),
             passive_words: toNum(analysis.action_orientation.passive_words),
-          }),
+          },
         ]
       : [];
 
     const problemSolvingData =
       analysis.problem_solving_approach
-        ? Object.entries(analysis.problem_solving_approach).map(([name, value]) =>
-            withRtlFields({ name, value: toNum(value) })
-          )
+        ? Object.entries(analysis.problem_solving_approach).map(([name, value]) => ({
+            name,
+            value: toNum(value),
+          }))
         : [];
 
     const commStyle =
       analysis.communication_style
-        ? Object.entries(analysis.communication_style).map(([name, value]) =>
-            withRtlFields({ name, value: toNum(value) })
-          )
+        ? Object.entries(analysis.communication_style).map(([name, value]) => ({
+            name,
+            value: toNum(value),
+          }))
         : [];
 
     const semanticRadar = [
-      withRtlFields({
-        name: "تنوع واژگانی",
-        value: toNum(analysis.linguistic_semantic_analysis?.lexical_diversity),
-      }),
-      withRtlFields({
-        name: "انسجام معنایی",
-        value: toNum(analysis.linguistic_semantic_analysis?.semantic_coherence),
-      }),
-      withRtlFields({
-        name: "عینیت",
-        value: toNum(analysis.linguistic_semantic_analysis?.concreteness_level),
-      }),
-      withRtlFields({
-        name: "انتزاع",
-        value: toNum(analysis.linguistic_semantic_analysis?.abstractness_level),
-      }),
+      { name: "تنوع واژگانی", value: toNum(analysis.linguistic_semantic_analysis?.lexical_diversity) },
+      { name: "انسجام معنایی", value: toNum(analysis.linguistic_semantic_analysis?.semantic_coherence) },
+      { name: "عینیت", value: toNum(analysis.linguistic_semantic_analysis?.concreteness_level) },
+      { name: "انتزاع", value: toNum(analysis.linguistic_semantic_analysis?.abstractness_level) },
     ];
 
     const pronouns = [
-      withRtlFields({
-        name: "اول شخص",
-        value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.first_person),
-      }),
-      withRtlFields({
-        name: "دوم شخص",
-        value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.second_person),
-      }),
-      withRtlFields({
-        name: "سوم شخص",
-        value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.third_person),
-      }),
+      { name: "اول شخص", value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.first_person) },
+      { name: "دوم شخص", value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.second_person) },
+      { name: "سوم شخص", value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.third_person) },
     ];
     const semanticFields = withRtlFields(analysis.linguistic_semantic_analysis?.semantic_fields) || [];
     const pronounChartData = pronouns.filter((item) => Number.isFinite(item.value));
