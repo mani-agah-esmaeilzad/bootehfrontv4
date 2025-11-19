@@ -5,10 +5,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, LoaderCircle, Loader2, MessageCircle, Send, Sparkles } from "lucide-react";
+import { ArrowLeft, LoaderCircle, Loader2, MessageCircle, Mic, MicOff, Send, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { startPersonalityForm, finishPersonalityForm } from "@/services/apiService";
 import { AxisDonutChart } from "@/components/ui/AxisDonutChart";
+import { SpiderChart } from "@/components/ui/SpiderChart";
 
 type FormQuestion = {
   id: number;
@@ -44,8 +45,11 @@ const PersonalityForm = () => {
   const [isThinking, setIsThinking] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [inputValue, setInputValue] = useState("");
+  const [isSpeechSupported, setIsSpeechSupported] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
 
   const chatRef = useRef<HTMLDivElement | null>(null);
+  const speechRecognitionRef = useRef<any>(null);
   const totalQuestions = questions.length;
   const answeredCount = useMemo(() => Object.keys(responses).length, [responses]);
   const progress = totalQuestions ? Math.round((answeredCount / totalQuestions) * 100) : 0;
@@ -78,7 +82,7 @@ const PersonalityForm = () => {
       {
         id: "intro",
         role: "assistant",
-        content: `سلام! من کوچ شخصیت بوته هستم و الان قرار است نسخه کامل آزمون MBTI (${questions.length} سؤال) را با تو به‌صورت مکالمه‌ای طی کنیم. فقط «گزینه الف» یا «گزینه ب» را انتخاب کن تا مسیر روشن شود.`,
+        content: `سلام! من کوچ شخصیت بوته هستم و الان قرار است نسخه کامل این ارزیابی (${questions.length} سؤال) را با تو به‌صورت مکالمه‌ای طی کنیم. فقط «گزینه الف» یا «گزینه ب» را انتخاب کن تا مسیر روشن شود.`,
       },
       buildQuestionMessage(questions[0], 0, questions.length),
     ]);
@@ -92,6 +96,69 @@ const PersonalityForm = () => {
       behavior: "smooth",
     });
   }, [messages, isThinking]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const SpeechRecognitionCtor =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) {
+      setIsSpeechSupported(false);
+      return;
+    }
+    setIsSpeechSupported(true);
+    const recognition = new SpeechRecognitionCtor();
+    recognition.lang = "fa-IR";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.continuous = false;
+
+    recognition.onresult = (event: any) => {
+      const transcript = event?.results?.[0]?.[0]?.transcript;
+      if (transcript) {
+        setInputValue((prev) => (prev ? `${prev} ${transcript}` : transcript));
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      setIsRecording(false);
+      const errorType = event?.error;
+      if (errorType === "not-allowed") {
+        toast.error("دسترسی به میکروفون رد شد.");
+      } else if (errorType !== "aborted") {
+        toast.error("تشخیص صدا با خطا مواجه شد.");
+      }
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    speechRecognitionRef.current = recognition;
+    return () => {
+      recognition.stop();
+      speechRecognitionRef.current = null;
+    };
+  }, []);
+
+  const toggleRecording = () => {
+    if (!isSpeechSupported || !speechRecognitionRef.current) {
+      toast.error("مرورگر فعلی از ورودی صوتی پشتیبانی نمی‌کند.");
+      return;
+    }
+    try {
+      if (isRecording) {
+        speechRecognitionRef.current.stop();
+        setIsRecording(false);
+        return;
+      }
+      speechRecognitionRef.current.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error("Speech recognition error:", error);
+      toast.error("امکان شروع تشخیص صدا وجود ندارد.");
+      setIsRecording(false);
+    }
+  };
 
   function buildQuestionMessage(question: FormQuestion, index: number, total: number): ChatMessage {
     return {
@@ -209,8 +276,8 @@ const PersonalityForm = () => {
       <header className="border-b border-white/10 bg-slate-950/80 backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-5 md:px-6">
           <div className="space-y-1 text-right">
-            <p className="text-xs font-semibold text-cyan-300">گفتگوی ساختارمند MBTI</p>
-            <h1 className="text-2xl font-bold text-white">{sessionInfo.testName}</h1>
+            <p className="text-xs font-semibold text-cyan-300">گفتگوی ساختارمند شخصیت</p>
+            <h1 className="text-2xl font-bold text-white">کوچ شخصیت بوته</h1>
           </div>
           <Button
             variant="ghost"
@@ -269,29 +336,41 @@ const PersonalityForm = () => {
             </div>
 
             {!analysis && (
-              <div className="mt-5 flex flex-col gap-3 text-sm text-white">
-                <p className="text-xs text-slate-400">
-                  پاسخ خود را آزادانه بنویس و مشخص کن که گزینه الف یا ب را انتخاب می‌کنی (می‌توانی دلیل یا مثال هم اضافه کنی).
-                </p>
-                <div className="flex items-center gap-3">
-                  <Input
-                    placeholder="مثلاً: «گزینه الف چون در چنین موقعیت‌هایی سریع‌تر تصمیم می‌گیرم...»"
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSend();
-                      }
-                    }}
-                    disabled={isSubmitting || isThinking}
-                    className="flex-1 border-white/20 bg-white/5 text-white placeholder:text-slate-500"
-                  />
+            <div className="mt-5 flex flex-col gap-3 text-sm text-white">
+              <p className="text-xs text-slate-400">
+                پاسخ خود را آزادانه بنویس و مشخص کن که گزینه الف یا ب را انتخاب می‌کنی (می‌توانی دلیل یا مثال هم اضافه کنی).
+              </p>
+              <div className="flex items-center gap-3">
+                <Input
+                  placeholder="مثلاً: «گزینه الف چون در چنین موقعیت‌هایی سریع‌تر تصمیم می‌گیرم...»"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  disabled={isSubmitting || isThinking}
+                  className="flex-1 border-white/20 bg-white/5 text-white placeholder:text-slate-500"
+                />
+                {isSpeechSupported && (
                   <Button
-                    className="rounded-2xl border border-white/10 bg-white/10 text-white hover:bg-white/20"
-                    onClick={handleSend}
+                    type="button"
+                    className={`rounded-2xl border border-white/10 px-3 text-white ${isRecording ? "bg-red-500/20" : "bg-white/10 hover:bg-white/20"}`}
+                    onClick={toggleRecording}
                     disabled={isSubmitting || isThinking}
+                    aria-pressed={isRecording}
+                    title="ورود صوتی"
                   >
+                    {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  </Button>
+                )}
+                <Button
+                  className="rounded-2xl border border-white/10 bg-white/10 text-white hover:bg-white/20"
+                  onClick={handleSend}
+                  disabled={isSubmitting || isThinking}
+                >
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
@@ -319,6 +398,14 @@ const PersonalityForm = () => {
                     </CardHeader>
                     <CardContent className="space-y-4 text-sm leading-7 text-slate-100">
                       <p>{analysis.summary}</p>
+                      {Array.isArray(analysis.radar) && analysis.radar.length > 0 && (
+                        <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                          <p className="text-xs text-slate-400">نمودار یکپارچه ترجیحات</p>
+                          <div className="mt-3 h-60 w-full">
+                            <SpiderChart data={analysis.radar} />
+                          </div>
+                        </div>
+                      )}
                       <div className="space-y-3">
                         {analysis.axes?.map((axis: any) => (
                           <div key={axis.dimension} className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">

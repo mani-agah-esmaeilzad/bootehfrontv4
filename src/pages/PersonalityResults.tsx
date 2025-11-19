@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoaderCircle, Sparkles } from "lucide-react";
 import { AxisDonutChart } from "@/components/ui/AxisDonutChart";
+import { SpiderChart } from "@/components/ui/SpiderChart";
 import { getPersonalityResults } from "@/services/apiService";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -69,6 +70,7 @@ const PersonalityResults = () => {
     return (
       <div className="grid gap-6 md:grid-cols-2">
         {items.map((item) => {
+        const analysis = item.results?.analysis;
         return (
             <Card key={item.sessionId} className="border-purple-100 bg-white/90 shadow-sm">
               <CardHeader className="flex flex-col items-start gap-2">
@@ -77,22 +79,30 @@ const PersonalityResults = () => {
               <p className="text-xs text-slate-400">ثبت: {formatDate(item.created_at)}</p>
             </CardHeader>
               <CardContent className="space-y-4 text-sm leading-7 text-slate-700">
-              {item.results?.analysis ? (
+              {analysis ? (
                 <div className="space-y-4">
-                  {item.results.analysis.mbti && (
+                  {analysis.mbti && (
                     <div className="rounded-2xl border border-purple-100 bg-purple-50/60 p-4 text-center">
                       <p className="text-xs font-semibold text-purple-600">تیپ نهایی</p>
-                      <p className="text-3xl font-black text-purple-700">{item.results.analysis.mbti}</p>
-                      {item.results.analysis.summary && (
+                      <p className="text-3xl font-black text-purple-700">{analysis.mbti}</p>
+                      {analysis.summary && (
                         <p className="mt-2 text-xs leading-6 text-purple-800">
-                          {item.results.analysis.summary}
+                          {analysis.summary}
                         </p>
                       )}
                     </div>
                   )}
-                  {Array.isArray(item.results.analysis.axes) && item.results.analysis.axes.length > 0 && (
+                  {Array.isArray(analysis.radar) && analysis.radar.length > 0 && (
+                    <div className="rounded-2xl border border-purple-100 bg-white p-4 shadow-sm">
+                      <p className="text-xs font-semibold text-slate-500">نمودار کلی ترجیحات</p>
+                      <div className="mt-3 h-64">
+                        <SpiderChart data={analysis.radar} />
+                      </div>
+                    </div>
+                  )}
+                  {Array.isArray(analysis.axes) && analysis.axes.length > 0 && (
                     <div className="grid gap-3 text-xs text-slate-600 md:grid-cols-2">
-                      {item.results.analysis.axes.map((axis: any) => (
+                      {analysis.axes.map((axis: any) => (
                         <div key={axis.dimension} className="flex gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3">
                           <AxisDonutChart axis={axis} size={120} />
                           <div className="flex-1 space-y-2 text-slate-700">
@@ -111,9 +121,9 @@ const PersonalityResults = () => {
                       ))}
                     </div>
                   )}
-                  {!item.results.analysis.mbti && !item.results.analysis.axes && (
+                  {!analysis.mbti && !analysis.axes && (
                     <pre className="whitespace-pre-wrap break-words rounded-md bg-slate-50 p-3 text-xs text-slate-600">
-                      {JSON.stringify(item.results.analysis, null, 2)}
+                      {JSON.stringify(analysis, null, 2)}
                     </pre>
                   )}
                 </div>

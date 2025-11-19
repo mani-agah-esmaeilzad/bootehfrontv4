@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Loader2, LoaderCircle, Send } from "lucide-react";
 import {
   startPersonalityTest,
@@ -12,6 +12,8 @@ import {
   finishPersonalityTest,
 } from "@/services/apiService";
 import { toast } from "sonner";
+import { AxisDonutChart } from "@/components/ui/AxisDonutChart";
+import { SpiderChart } from "@/components/ui/SpiderChart";
 
 interface ChatMessage {
   id: string;
@@ -28,6 +30,53 @@ interface StartResponse {
   history: ChatMessage[];
 }
 
+type MbtiDichotomyKey = "EI" | "SN" | "TF" | "JP";
+type MbtiLetter = "E" | "I" | "S" | "N" | "T" | "F" | "J" | "P";
+
+interface MbtiAnalysis {
+  type?: string;
+  confidence?: number;
+  summary?: string;
+  strengths?: string[];
+  development_tips?: string[];
+  dichotomies?: Record<MbtiDichotomyKey, { score?: number; label?: string }>;
+}
+
+const MBTI_LETTER_LABELS: Record<MbtiLetter, string> = {
+  E: "برونگرایی (E)",
+  I: "درونگرایی (I)",
+  S: "واقع‌گرایی (S)",
+  N: "شهودگرایی (N)",
+  T: "تحلیل منطقی (T)",
+  F: "تصمیم‌گیری احساسی (F)",
+  J: "ساختار و برنامه (J)",
+  P: "انعطاف‌پذیری (P)",
+};
+
+const MBTI_DIMENSIONS: Array<{
+  id: MbtiDichotomyKey;
+  title: string;
+  letters: [MbtiLetter, MbtiLetter];
+}> = [
+  { id: "EI", title: "الگوی تعامل اجتماعی", letters: ["E", "I"] },
+  { id: "SN", title: "منبع جمع‌آوری اطلاعات", letters: ["S", "N"] },
+  { id: "TF", title: "تصمیم‌گیری", letters: ["T", "F"] },
+  { id: "JP", title: "سازماندهی و سبک زندگی", letters: ["J", "P"] },
+];
+
+const clampScore = (value: number) =>
+  Math.max(-100, Math.min(100, Number.isNaN(value) ? 0 : value));
+const normalizeToPercent = (value: number) =>
+  Math.round(((clampScore(value) + 100) / 200) * 100);
+
+const isMbtiAnalysis = (value: any): value is MbtiAnalysis => {
+  if (!value || typeof value !== "object") return false;
+  return (
+    typeof value.dichotomies === "object" &&
+    MBTI_DIMENSIONS.some(({ id }) => value.dichotomies?.[id])
+  );
+};
+
 const PersonalityChat = () => {
   const navigate = useNavigate();
   const { slug } = useParams<{ slug: string }>();
@@ -37,7 +86,7 @@ const PersonalityChat = () => {
   const [inputValue, setInputValue] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
-  const [analysis, setAnalysis] = useState<any>(null);
+  const [analysis, setAnalysis] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(true);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -134,7 +183,58 @@ const PersonalityChat = () => {
     navigate(`/personality/${slug}`);
   };
 
-  const renderAnalysis = () => {
+  const isMbtiReport = slug === "mbti" && isMbtiAnalysis(analysis);
+  const mbtiAnalysis: MbtiAnalysis | null = isMbtiReport
+    ? (analysis as MbtiAnalysis)
+    : null;
+
+  const mbtiAxes = mbtiAnalysis
+    ? MBTI_DIMENSIONS.map(({ id, letters, title }) => {
+        const axisData = mbtiAnalysis.dichotomies?.[id] || {};
+        const rawScore = normalizeToPercent(Number(axisData.score ?? 0));
+        const primaryLetter = letters[0];
+        const secondaryLetter = letters[1];
+        const primaryScore = rawScore;
+        const secondaryScore = 100 - primaryScore;
+        return {
+          dimension: id,
+          title,
+          primary: {
+            letter: primaryLetter,
+            label: MBTI_LETTER_LABELS[primaryLetter],
+            score: primaryScore,
+          },
+          secondary: {
+            letter: secondaryLetter,
+            label: MBTI_LETTER_LABELS[secondaryLetter],
+            score: secondaryScore,
+          },
+          dominantLetter:
+            primaryScore >= secondaryScore ? primaryLetter : secondaryLetter,
+          delta: Math.abs(primaryScore - secondaryScore),
+          interpretation:
+            typeof axisData.label === "string" ? axisData.label : null,
+        };
+      })
+    : [];
+
+  const mbtiSpiderData =
+    mbtiAxes.length > 0
+      ? mbtiAxes.flatMap((axis) => [
+          {
+            subject: axis.primary.label,
+            score: axis.primary.score,
+            fullMark: 100,
+          },
+          {
+            subject: axis.secondary.label,
+            score: axis.secondary.score,
+            fullMark: 100,
+          },
+        ])
+      : [];
+
+  const renderDefaultAnalysis = () => {
     if (!analysis) return null;
     const keys = Object.keys(analysis);
     return (
@@ -145,17 +245,162 @@ const PersonalityChat = () => {
             {keys.map((key) => (
               <div key={key}>
                 <p className="font-semibold text-purple-700">{key}</p>
-                <pre className="mt-1 whitespace-pre-wrap break-words rounded-md bg-slate-50 p-3 text-xs text-slate-600">{JSON.stringify(analysis[key], null, 2)}</pre>
+                <pre className="mt-1 whitespace-pre-wrap break-words rounded-md bg-slate-50 p-3 text-xs text-slate-600">
+                  {JSON.stringify(analysis[key], null, 2)}
+                </pre>
               </div>
             ))}
           </div>
           <div className="flex flex-wrap justify-end gap-3">
-            <Button variant="outline" onClick={() => navigate("/personality/results")}>مشاهده همه گزارش‌ها</Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/personality/results")}
+            >
+              مشاهده همه گزارش‌ها
+            </Button>
             <Button onClick={goBack}>بازگشت</Button>
           </div>
         </CardContent>
       </Card>
     );
+  };
+
+  const renderMbtiAnalysis = () => {
+    if (!mbtiAnalysis) return null;
+    const strengths = Array.isArray(mbtiAnalysis.strengths)
+      ? mbtiAnalysis.strengths.filter(Boolean)
+      : [];
+    const growthAreas = Array.isArray(mbtiAnalysis.development_tips)
+      ? mbtiAnalysis.development_tips.filter(Boolean)
+      : [];
+
+    return (
+      <div className="mt-6 space-y-5 text-right">
+        <Card className="border-purple-200 bg-white shadow-sm">
+          <CardContent className="space-y-4 p-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold text-purple-600">
+                  تیپ نهایی شما
+                </p>
+                <p className="text-4xl font-black text-slate-900">
+                  {mbtiAnalysis.type ?? "نامشخص"}
+                </p>
+              </div>
+              {typeof mbtiAnalysis.confidence === "number" && (
+                <div className="rounded-2xl border border-purple-100 bg-purple-50 px-4 py-2 text-sm font-semibold text-purple-700">
+                  اعتماد به تحلیل: {Math.round(mbtiAnalysis.confidence)}%
+                </div>
+              )}
+            </div>
+            {mbtiAnalysis.summary && (
+              <p className="text-sm leading-7 text-slate-700">
+                {mbtiAnalysis.summary}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {mbtiSpiderData.length > 0 && (
+          <Card className="border-purple-200 bg-white shadow-sm">
+            <CardHeader className="pb-0">
+              <CardTitle className="text-base font-semibold text-slate-900">
+                نمودار کلی ترجیحات
+              </CardTitle>
+              <p className="text-xs text-slate-500">
+                این نمودار شدت هر ترجیح در چهار بعد اصلی MBTI را نمایش می‌دهد.
+              </p>
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="mx-auto w-full max-w-2xl">
+                <SpiderChart data={mbtiSpiderData} />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="grid gap-4 md:grid-cols-2">
+          {mbtiAxes.map((axis) => (
+            <Card
+              key={axis.dimension}
+              className="border-purple-200/70 bg-white shadow-sm"
+            >
+              <CardContent className="space-y-3 p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      بعد {axis.dimension}
+                    </p>
+                    <p className="text-xs text-slate-500">{axis.title}</p>
+                  </div>
+                  <span className="rounded-full bg-purple-50 px-3 py-1 text-xs text-purple-700">
+                    تمایل غالب: {axis.dominantLetter}
+                  </span>
+                </div>
+                <AxisDonutChart axis={axis} />
+                {axis.interpretation && (
+                  <p className="text-xs leading-6 text-slate-600">
+                    {axis.interpretation}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {(strengths.length > 0 || growthAreas.length > 0) && (
+          <div className="grid gap-4 md:grid-cols-2">
+            {strengths.length > 0 && (
+              <Card className="border-green-100 bg-white">
+                <CardHeader>
+                  <CardTitle className="text-base text-green-800">
+                    نقاط قوت برجسته
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm leading-6 text-slate-700">
+                  <ul className="list-disc space-y-1 pr-4 text-xs text-slate-600">
+                    {strengths.map((item, index) => (
+                      <li key={index}>{item}</li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+            {growthAreas.length > 0 && (
+              <Card className="border-amber-100 bg-white">
+                <CardHeader>
+                  <CardTitle className="text-base text-amber-800">
+                    مسیرهای رشد پیشنهادی
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm leading-6 text-slate-700">
+                  <ul className="list-disc space-y-1 pr-4 text-xs text-slate-600">
+                    {growthAreas.map((item, index) => (
+                      <li key={index}>{item}</li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
+        <div className="flex flex-wrap justify-end gap-3">
+          <Button variant="outline" onClick={() => navigate("/personality/results")}>
+            مشاهده همه گزارش‌ها
+          </Button>
+          <Button onClick={goBack}>بازگشت</Button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderAnalysis = () => {
+    if (!analysis) return null;
+    if (isMbtiReport) {
+      return renderMbtiAnalysis();
+    }
+    return renderDefaultAnalysis();
   };
 
   if (loading || !sessionInfo) {
@@ -172,8 +417,13 @@ const PersonalityChat = () => {
       <header className="border-b border-purple-100 bg-white/80 backdrop-blur">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-4 md:px-6">
           <div>
-            <h1 className="text-xl font-semibold text-slate-900">{sessionInfo.testName}</h1>
-            <p className="text-xs text-slate-500">گفتگو با {sessionInfo.personaName}</p>
+            <p className="text-xs font-semibold text-slate-500">گفتگوی فعال</p>
+            <h1 className="text-xl font-semibold text-slate-900">
+              {sessionInfo.personaName}
+            </h1>
+            <p className="text-xs text-slate-500">
+              فضای تمرینی اختصاصی کوچ شخصیت بوته
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Button
