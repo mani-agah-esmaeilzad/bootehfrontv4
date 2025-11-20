@@ -82,26 +82,12 @@ const chartGallery = [
     description: "ارزیابی مداوم و دوره‌ای شایستگی‌ها در مسیر سفر سازمانی کارکنان.",
     accent: "from-purple-500/20 via-white to-white",
     chart: (
-      <svg viewBox="0 0 220 120" className="h-32 w-full text-purple-600">
-        <defs>
-          <linearGradient id="chartGradientPulse" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="rgba(124,58,237,0.25)" />
-            <stop offset="100%" stopColor="rgba(124,58,237,0.05)" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M0 90 Q40 40 80 55 T160 45 T220 35"
-          fill="url(#chartGradientPulse)"
-          stroke="none"
-        />
-        <polyline
-          points="0,90 30,70 60,50 90,60 120,40 150,50 180,38 210,42"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={4}
-          strokeLinecap="round"
-        />
-      </svg>
+      <img
+        src="/20_(2).png"
+        alt="نمودار مدیران"
+        className="h-32 w-full rounded-2xl object-contain"
+        loading="lazy"
+      />
     ),
   },
   {
@@ -109,25 +95,12 @@ const chartGallery = [
     description: "تعریف شایستگی‌های موردنیاز هر شغل و اطمینان از تطبیق آن با شایستگی‌های شاغل.",
     accent: "from-slate-900/10 via-white to-purple-200/20",
     chart: (
-      <svg viewBox="0 0 220 120" className="h-32 w-full text-slate-900">
-        <polyline
-          points="0,80 40,45 80,65 120,35 160,50 200,30 220,40"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={3}
-          strokeLinecap="round"
-        />
-        {[0, 40, 80, 120, 160, 200].map((x, index) => (
-          <circle
-            key={x}
-            cx={x + 10}
-            cy={[78, 45, 62, 38, 54, 34][index]}
-            r={5}
-            fill="currentColor"
-            className="opacity-70"
-          />
-        ))}
-      </svg>
+      <img
+        src="/21_(2).png"
+        alt="نمودار استخدام‌کنندگان"
+        className="h-32 w-full rounded-2xl object-contain"
+        loading="lazy"
+      />
     ),
   },
   {
@@ -135,27 +108,12 @@ const chartGallery = [
     description: "کسب شناخت از شایستگی‌های فعلی و میزان تناسب آن‌ها با چشم‌انداز شغلی و برنامه‌ریزی برای تقویت شایستگی‌های مدنظر.",
     accent: "from-purple-600/15 via-white to-slate-900/10",
     chart: (
-      <svg viewBox="0 0 220 120" className="h-32 w-full text-purple-600">
-        {[20, 60, 100, 140, 180].map((x, index) => (
-          <rect
-            key={x}
-            x={x - 8}
-            y={110 - (index + 2) * 14}
-            width={16}
-            height={(index + 2) * 14}
-            rx={6}
-            fill="currentColor"
-            className="opacity-70"
-          />
-        ))}
-        <path
-          d="M20 86 Q60 70 100 60 T180 30"
-          stroke="rgba(15,23,42,0.4)"
-          strokeWidth={3}
-          fill="none"
-          strokeLinecap="round"
-        />
-      </svg>
+      <img
+        src="/22_(2).png"
+        alt="نمودار کارجویان"
+        className="h-32 w-full rounded-2xl object-contain"
+        loading="lazy"
+      />
     ),
   },
 ];
