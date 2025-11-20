@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, BarChart2, Building, FileText, Sparkles, Users } from "lucide-react";
+import { ArrowLeft, BarChart2, Building, FileText, Sparkles, Users, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const quickStats = [
@@ -26,6 +26,13 @@ const shortcuts = [
     icon: FileText,
     path: "/admin/questionnaires",
     accent: "from-violet-500/80 to-purple-500/80",
+  },
+  {
+    title: "مسیرهای کاربران",
+    description: "تعیین مرحله‌های مجاز برای هر حساب",
+    icon: SlidersHorizontal,
+    path: "/admin/user-stages",
+    accent: "from-purple-500/80 to-indigo-500/80",
   },
   {
     title: "پنل‌های سازمانی",

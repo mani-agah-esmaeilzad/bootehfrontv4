@@ -103,6 +103,10 @@ export const getOrganizationDetails = async (id: number) => await apiFetch(`admi
 export const createOrganization = async (data: { name: string; questionnaireIds: number[]; userIds: number[] }) => await apiFetch('admin/organizations', { method: 'POST', body: JSON.stringify(data) });
 export const updateOrganization = async (id: number, data: { name: string; questionnaireIds: number[]; userIds: number[] }) => await apiFetch(`admin/organizations/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 export const deleteOrganization = async (id: number) => await apiFetch(`admin/organizations/${id}`, { method: 'DELETE' });
+export const getUserStageSummaries = async () => await apiFetch('admin/user-stages');
+export const getUserStageDetail = async (id: number) => await apiFetch(`admin/user-stages/${id}`);
+export const updateUserStageAssignments = async (id: number, questionnaireIds: number[]) =>
+    await apiFetch(`admin/user-stages/${id}`, { method: 'PUT', body: JSON.stringify({ questionnaireIds }) });
 
 
 // --- توابع خروجی اکسل ---

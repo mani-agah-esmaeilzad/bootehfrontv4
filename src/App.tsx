@@ -37,6 +37,7 @@ import AdminOrganizations from './pages/admin/AdminOrganizations';
 import AdminPersonalityAssessments from './pages/admin/AdminPersonalityAssessments';
 import AdminPersonalityResults from './pages/admin/AdminPersonalityResults';
 import AdminBlogs from './pages/admin/AdminBlogs';
+import AdminUserStages from './pages/admin/AdminUserStages';
 
 // --- Route Protection Components ---
 
@@ -90,6 +91,7 @@ function App() {
               <Route path="/admin/reports" element={<AdminReports />} />
               <Route path="/admin/reports/:id" element={<AdminReportDetail />} />
               <Route path="/admin/organizations" element={<AdminOrganizations />} />
+              <Route path="/admin/user-stages" element={<AdminUserStages />} />
               <Route path="/admin/blog" element={<AdminBlogs />} />
               <Route path="/admin/personality-tests" element={<AdminPersonalityAssessments />} />
               <Route path="/admin/personality-results" element={<AdminPersonalityResults />} />
