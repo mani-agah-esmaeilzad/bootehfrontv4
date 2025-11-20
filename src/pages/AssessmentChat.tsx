@@ -849,8 +849,10 @@ const AssessmentChat = () => {
                             </span>
                           )}
                         </div>
-                        <span className="text-sm font-bold text-white sm:text-base">{persona.meta.name}</span>
-                        <span className="text-[10px] text-white/70 sm:text-xs">{persona.meta.badge}</span>
+                        <div className="hidden flex-col items-center text-center sm:flex">
+                          <span className="text-base font-bold text-white">{persona.meta.name}</span>
+                          <span className="text-[11px] text-white/70">{persona.meta.badge}</span>
+                        </div>
                       </div>
                     </div>
                   );
