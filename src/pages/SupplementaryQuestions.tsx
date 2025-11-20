@@ -24,6 +24,7 @@ interface StoredAssessmentState {
   settings?: any;
   personaName?: string;
   userGender?: string | null;
+  userAge?: number | null;
   nextStage?: {
     type: string;
     slug?: string | null;

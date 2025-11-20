@@ -168,10 +168,13 @@ const Dashboard = () => {
         settings,
         personaName,
         userGender,
+        userAge,
         nextStage,
         currentPhase,
         totalPhases,
       } = response.data;
+      const parsedUserAge =
+        typeof userAge === "number" && Number.isFinite(userAge) ? userAge : null;
 
       sessionStorage.setItem(
         `assessmentState_${questionnaireId}`,
@@ -181,6 +184,7 @@ const Dashboard = () => {
           settings,
           personaName,
           userGender: userGender ?? null,
+          userAge: parsedUserAge,
           nextStage,
           currentPhase: currentPhase ?? 1,
           totalPhases: totalPhases ?? 1,

@@ -13,13 +13,6 @@ import { cn } from "@/lib/utils";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { SceneCanvas } from "@/components/SceneCanvas"; // فرض بر این است که این کامپوننت وجود دارد
 
-// تصاویر آواتار (فرض می‌کنیم مسیرها و تصاویر درست هستند)
-import avatarUserMale from "@/assets/male1.jpg";
-import avatarUserFemale from "@/assets/female1.jpg";
-import avatarUserNeutral from "@/assets/male3.jpg";
-import avatarProctor from "@/assets/male2.jpg";
-import avatarNarrator from "@/assets/female2.jpg";
-
 // =========================================================================
 // ۱. ثوابت و واسط‌ها (Constants and Interfaces) - برای رفع خطای 2448 باید در اینجا باشند
 // =========================================================================
@@ -37,6 +30,7 @@ interface AssessmentState {
   settings: any;
   personaName: string;
   userGender?: string | null;
+  userAge?: number | null;
   nextStage?: {
     type: string;
     slug?: string | null;
@@ -66,13 +60,76 @@ const normalizeGenderValue = (value?: string | null) => {
 const feminineTokens = ["female", "f", "خانم", "زن", "مونث", "زنانه", "دختر", "lady", "woman", "women"];
 const masculineTokens = ["male", "m", "آقا", "مرد", "مذکر", "پسر", "man", "men"];
 
-const resolveUserAvatarByGender = (gender?: string | null) => {
-  const normalized = normalizeGenderValue(gender)?.toLowerCase() ?? null;
-  if (!normalized) return avatarUserNeutral;
-  if (feminineTokens.some((token) => normalized.includes(token))) return avatarUserFemale;
-  if (masculineTokens.some((token) => normalized.includes(token))) return avatarUserMale;
-  return avatarUserNeutral;
+const normalizeAgeValue = (value?: number | string | null): number | null => {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
 };
+
+type GenderKey = "female" | "male";
+
+const detectGenderKey = (gender?: string | null): GenderKey | null => {
+  const normalized = normalizeGenderValue(gender)?.toLowerCase() ?? null;
+  if (!normalized) return null;
+  if (feminineTokens.some((token) => normalized.includes(token))) return "female";
+  if (masculineTokens.some((token) => normalized.includes(token))) return "male";
+  return null;
+};
+
+const PUBLIC_USER_AVATAR_BASE = "/user%20photo/";
+const USER_AVATAR_FALLBACKS: Record<"female" | "male" | "neutral", string> = {
+  female: `${PUBLIC_USER_AVATAR_BASE}young_female_a.png`,
+  male: `${PUBLIC_USER_AVATAR_BASE}young_male_b.png`,
+  neutral: `${PUBLIC_USER_AVATAR_BASE}young_male_a.png`,
+};
+
+type AvatarRule = {
+  gender: GenderKey;
+  min?: number;
+  max?: number;
+  file: string;
+};
+
+const USER_AVATAR_RULES: AvatarRule[] = [
+  { gender: "male", min: 8, max: 12, file: "boy_child_a.png" },
+  { gender: "female", min: 14, max: 18, file: "teen_female_a.png" },
+  { gender: "female", min: 20, max: 24, file: "young_female_a.png" },
+  { gender: "female", min: 25, max: 30, file: "young_female_b.png" },
+  { gender: "male", min: 20, max: 27, file: "young_male_a.png" },
+  { gender: "male", min: 28, max: 35, file: "young_male_b.png" },
+  { gender: "male", min: 32, max: 42, file: "adult_male_a.png" },
+  { gender: "male", min: 44, max: 60, file: "mature_male_a.png" },
+];
+
+const resolveUserAvatarByProfile = (gender?: string | null, ageInput?: number | string | null) => {
+  const genderKey = detectGenderKey(gender);
+  const age = normalizeAgeValue(ageInput);
+  if (genderKey && age !== null) {
+    const match = USER_AVATAR_RULES.find((rule) => {
+      if (rule.gender !== genderKey) return false;
+      const min = rule.min ?? Number.NEGATIVE_INFINITY;
+      const max = rule.max ?? Number.POSITIVE_INFINITY;
+      return age >= min && age <= max;
+    });
+    if (match) {
+      return `${PUBLIC_USER_AVATAR_BASE}${match.file}`;
+    }
+  }
+  if (genderKey === "female") return USER_AVATAR_FALLBACKS.female;
+  if (genderKey === "male") return USER_AVATAR_FALLBACKS.male;
+  return USER_AVATAR_FALLBACKS.neutral;
+};
+
+const PROCTOR_AVATAR_SRC = "/mobser%20photo/21.png";
+const NARRATOR_AVATAR_SRC = "/ravi%20photo/19.png";
 
 // الگوی شناسایی گوینده در پیام
 const SPEAKER_PATTERNS = [
@@ -154,14 +211,14 @@ const AssessmentChat = () => {
   // متغیرهای محاسبه شده
   const isResponseLocked = responseLockRemaining > 0;
   const userAvatarSrc = useMemo(
-    () => resolveUserAvatarByGender(assessmentState?.userGender),
-    [assessmentState?.userGender]
+    () => resolveUserAvatarByProfile(assessmentState?.userGender, assessmentState?.userAge),
+    [assessmentState?.userGender, assessmentState?.userAge]
   );
   const avatars = useMemo(
     () => [
       { src: userAvatarSrc, name: "شما", role: "user" },
-      { src: avatarProctor, name: "مبصر", role: "proctor" },
-      { src: avatarNarrator, name: "راوی", role: "narrator" },
+      { src: PROCTOR_AVATAR_SRC, name: "مبصر", role: "proctor" },
+      { src: NARRATOR_AVATAR_SRC, name: "راوی", role: "narrator" },
     ],
     [userAvatarSrc]
   );
@@ -195,6 +252,7 @@ const AssessmentChat = () => {
       const nextState = { ...prev, ...updates };
       nextState.personaName = normalizePersonaName(nextState.personaName);
       nextState.userGender = normalizeGenderValue(nextState.userGender);
+      nextState.userAge = normalizeAgeValue(nextState.userAge ?? null);
       if (id) {
         sessionStorage.setItem(`assessmentState_${id}`, JSON.stringify(nextState));
       }
@@ -437,6 +495,7 @@ const AssessmentChat = () => {
           ...state,
           personaName: normalizePersonaName(state.personaName),
           userGender: normalizeGenderValue(state.userGender),
+          userAge: normalizeAgeValue(state.userAge ?? null),
         };
         setAssessmentState(normalizedState);
         if (id) {
@@ -513,7 +572,7 @@ const AssessmentChat = () => {
         },
         narrator: {
           name: "راوی",
-          avatar: avatarNarrator,
+          avatar: NARRATOR_AVATAR_SRC,
           badge: "نقال سناریو",
           accent: "from-emerald-400 to-teal-500",
           bubble: "bg-white/40 text-slate-800 border-white/25 backdrop-blur",
@@ -522,7 +581,7 @@ const AssessmentChat = () => {
         },
         proctor: {
           name: "مبصر",
-          avatar: avatarProctor,
+          avatar: PROCTOR_AVATAR_SRC,
           badge: "ناظر آزمون",
           accent: "from-amber-400 to-orange-500",
           bubble: "bg-white/40 text-slate-800 border-white/25 backdrop-blur",
@@ -531,7 +590,7 @@ const AssessmentChat = () => {
         },
         ai: {
           name: DEFAULT_PERSONA_NAME,
-          avatar: avatarNarrator,
+          avatar: NARRATOR_AVATAR_SRC,
           badge: "دستیار",
           accent: "from-indigo-400 to-purple-500",
           bubble: "bg-white/40 text-slate-800 border-white/25 backdrop-blur",
