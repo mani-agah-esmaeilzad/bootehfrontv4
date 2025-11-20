@@ -604,13 +604,6 @@ const AssessmentChat = () => {
       <SceneCanvas className="absolute inset-0" />
 
       <div className="relative z-10 flex w-full max-w-6xl flex-1 min-h-0 flex-col items-center gap-8 sm:gap-10">
-        <header className="flex flex-col items-center gap-3 text-center sm:gap-4">
-          <h1 className="text-2xl font-extrabold text-white sm:text-3xl">میدان گفتگو با قاب مربعی</h1>
-          <p className="max-w-2xl text-sm leading-7 text-slate-200 sm:text-base">
-            پیام‌های شما داخل یک قاب مربعی بزرگ و خواناتر ارائه می‌شوند و آواتار هر نقش روی اضلاع این قاب قرار گرفته تا
-            حضورش را نشان دهد.
-          </p>
-        </header>
 
         <section className="relative flex w-full flex-1 min-h-0 flex-col items-center">
             <div className="pointer-events-none absolute inset-0 hidden lg:block">

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, BarChart2, Building, FileText, Sparkles, Users, SlidersHorizontal } from "lucide-react";
+import { ArrowLeft, BarChart2, Building, FileText, Sparkles, Users, SlidersHorizontal, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const quickStats = [
@@ -33,6 +33,13 @@ const shortcuts = [
     icon: SlidersHorizontal,
     path: "/admin/user-stages",
     accent: "from-purple-500/80 to-indigo-500/80",
+  },
+  {
+    title: "گزارش نهایی",
+    description: "پاورویل شایستگی و کارنامه جامع",
+    icon: ShieldCheck,
+    path: "/admin/final-reports",
+    accent: "from-cyan-500/80 to-sky-500/80",
   },
   {
     title: "پنل‌های سازمانی",

@@ -107,6 +107,8 @@ export const getUserStageSummaries = async () => await apiFetch('admin/user-stag
 export const getUserStageDetail = async (id: number) => await apiFetch(`admin/user-stages/${id}`);
 export const updateUserStageAssignments = async (id: number, questionnaireIds: number[]) =>
     await apiFetch(`admin/user-stages/${id}`, { method: 'PUT', body: JSON.stringify({ questionnaireIds }) });
+export const getFinalReportSummaries = async () => await apiFetch('admin/final-reports');
+export const getFinalReportDetail = async (userId: number) => await apiFetch(`admin/final-reports/${userId}`);
 
 
 // --- توابع خروجی اکسل ---

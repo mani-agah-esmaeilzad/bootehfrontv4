@@ -38,6 +38,7 @@ import AdminPersonalityAssessments from './pages/admin/AdminPersonalityAssessmen
 import AdminPersonalityResults from './pages/admin/AdminPersonalityResults';
 import AdminBlogs from './pages/admin/AdminBlogs';
 import AdminUserStages from './pages/admin/AdminUserStages';
+import AdminFinalReports from './pages/admin/AdminFinalReports';
 
 // --- Route Protection Components ---
 
@@ -89,6 +90,7 @@ function App() {
               <Route path="/admin/questionnaires/new" element={<NewQuestionnaire />} /> 
               <Route path="/admin/questionnaires/edit/:id" element={<EditQuestionnaire />} />
               <Route path="/admin/reports" element={<AdminReports />} />
+              <Route path="/admin/final-reports" element={<AdminFinalReports />} />
               <Route path="/admin/reports/:id" element={<AdminReportDetail />} />
               <Route path="/admin/organizations" element={<AdminOrganizations />} />
               <Route path="/admin/user-stages" element={<AdminUserStages />} />
