@@ -85,7 +85,7 @@ const chartGallery = [
       <img
         src="/20_(2).png"
         alt="نمودار مدیران"
-        className="h-32 w-full rounded-2xl object-contain"
+        className="h-32 w-full rounded-2xl object-cover"
         loading="lazy"
       />
     ),
@@ -98,7 +98,7 @@ const chartGallery = [
       <img
         src="/21_(2).png"
         alt="نمودار استخدام‌کنندگان"
-        className="h-32 w-full rounded-2xl object-contain"
+        className="h-32 w-full rounded-2xl object-cover"
         loading="lazy"
       />
     ),
@@ -111,7 +111,7 @@ const chartGallery = [
       <img
         src="/22_(2).png"
         alt="نمودار کارجویان"
-        className="h-32 w-full rounded-2xl object-contain"
+        className="h-32 w-full rounded-2xl object-cover"
         loading="lazy"
       />
     ),
