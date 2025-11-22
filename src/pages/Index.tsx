@@ -216,14 +216,14 @@ const Index = () => {
             <Button
               variant="link"
               className="px-0 text-sm font-medium text-slate-600 hover:text-slate-900"
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/register")}
             >
               ورود
             </Button>
             <Button
               variant="default"
               className="flex items-center gap-2 bg-purple-600 px-5 text-white hover:bg-purple-700"
-              onClick={() => navigate("/register")}
+              onClick={() => navigate("/login")}
             >
               شروع کنید
               <ArrowLeft className="h-4 w-4" />
@@ -275,7 +275,7 @@ const Index = () => {
                 variant="outline"
                 className="border-slate-200 text-slate-700"
                 onClick={() => {
-                  navigate("/login");
+                  navigate("/register");
                   closeMobileMenu();
                 }}
               >
@@ -284,7 +284,7 @@ const Index = () => {
               <Button
                 className="bg-purple-600 text-white hover:bg-purple-700"
                 onClick={() => {
-                  navigate("/register");
+                  navigate("/login");
                   closeMobileMenu();
                 }}
               >

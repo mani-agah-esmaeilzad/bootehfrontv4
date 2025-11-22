@@ -65,7 +65,7 @@ const Login = () => {
       if (response.success) {
         localStorage.setItem("isLoggedIn", "true");
         toast.success("ورود با موفقیت انجام شد!");
-        navigate("/dashboard");
+        navigate("/personality");
       } else {
         throw new Error(response.message || "ایمیل یا رمز عبور نامعتبر است");
       }
