@@ -230,7 +230,7 @@ const Index = () => {
             <Button
               variant="default"
               className="flex items-center gap-2 bg-purple-600 px-5 text-white hover:bg-purple-700"
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/register")}
             >
               شروع کنید
               <ArrowLeft className="h-4 w-4" />
@@ -301,7 +301,7 @@ const Index = () => {
               <Button
                 className="bg-purple-600 text-white hover:bg-purple-700"
                 onClick={() => {
-                  navigate("/");
+                  navigate("/register");
                   closeMobileMenu();
                 }}
               >

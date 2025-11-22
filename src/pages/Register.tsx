@@ -188,10 +188,29 @@ const Register = () => {
       });
 
       if (response.success) {
-        toast.success("ثبت‌نام با موفقیت انجام شد! لطفاً وارد شوید.");
-        setTimeout(() => {
+        toast.success("ثبت‌نام با موفقیت انجام شد! در حال ورود به داشبورد...");
+        try {
+          const autoLoginResponse = await apiFetch("auth/login", {
+            method: "POST",
+            body: JSON.stringify({
+              email: submissionData.email,
+              password: formData.password,
+            }),
+          });
+
+          if (!autoLoginResponse.success) {
+            throw new Error(autoLoginResponse.message || "ورود خودکار با خطا مواجه شد");
+          }
+
+          localStorage.setItem("isLoggedIn", "true");
+          toast.success("با موفقیت وارد شدید!");
+          navigate("/dashboard");
+          return;
+        } catch (autoLoginError: any) {
+          toast.error(autoLoginError.message || "ورود خودکار ناموفق بود. لطفاً به‌صورت دستی وارد شوید.");
           navigate("/login");
-        }, 2000);
+          return;
+        }
       } else {
         throw new Error(response.error || response.message || "خطایی در ثبت‌نام رخ داد");
       }
