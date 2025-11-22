@@ -34,15 +34,16 @@ interface StoredAssessmentState {
 }
 
 const SupplementaryPromptImage = ({ text }: { text: string }) => (
-  <div className="relative w-full select-none">
+  <div className="relative mx-auto w-full max-w-[640px] select-none overflow-hidden rounded-[32px] shadow-[0_24px_45px_rgba(15,23,42,0.35)] md:max-w-[760px]">
     <img
-      src="/linkedin.jpeg"
-      alt=""
-      className="pointer-events-none h-auto w-full drop-shadow-[0_28px_52px_rgba(15,23,42,0.35)]"
+      src="/linkedin.png"
+      alt="نمای سوالات تکمیلی"
+      loading="lazy"
+      className="pointer-events-none h-full w-full object-cover"
       draggable={false}
     />
     <div className="absolute inset-x-[12%] top-[18%] bottom-[20%] flex items-center justify-center px-3 text-right md:inset-x-[13%] md:top-[16%] md:bottom-[18%]">
-      <p className="whitespace-pre-wrap text-[0.95rem] font-semibold leading-8 text-slate-800 drop-shadow-[0_1px_3px_rgba(255,255,255,0.7)] md:text-[1.05rem] md:leading-9">
+      <p className="whitespace-pre-wrap text-[0.9rem] font-semibold leading-7 text-slate-800 drop-shadow-[0_1px_3px_rgba(255,255,255,0.7)] md:text-[1.05rem] md:leading-8">
         {text}
       </p>
     </div>

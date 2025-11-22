@@ -207,6 +207,13 @@ const Index = () => {
               >
                 آزمون‌های شخصیتی
               </button>
+              <button
+                type="button"
+                className="transition hover:text-slate-900"
+                onClick={() => navigate("/dashboard")}
+              >
+                ارزیابی شایستگی‌ها
+              </button>
               <a className="transition hover:text-slate-900" href="#insights">
                 بینش‌ها
               </a>
@@ -223,7 +230,7 @@ const Index = () => {
             <Button
               variant="default"
               className="flex items-center gap-2 bg-purple-600 px-5 text-white hover:bg-purple-700"
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/")}
             >
               شروع کنید
               <ArrowLeft className="h-4 w-4" />
@@ -267,6 +274,16 @@ const Index = () => {
             >
               آزمون‌های شخصیتی
             </button>
+            <button
+              type="button"
+              className="block w-full rounded-2xl bg-purple-50 px-4 py-3 text-right font-semibold text-purple-700"
+              onClick={() => {
+                navigate("/dashboard");
+                closeMobileMenu();
+              }}
+            >
+              ارزیابی شایستگی‌ها
+            </button>
             <a className="block rounded-2xl bg-slate-50 px-4 py-3 font-semibold text-slate-900" href="#insights" onClick={closeMobileMenu}>
               بینش‌ها
             </a>
@@ -284,7 +301,7 @@ const Index = () => {
               <Button
                 className="bg-purple-600 text-white hover:bg-purple-700"
                 onClick={() => {
-                  navigate("/login");
+                  navigate("/");
                   closeMobileMenu();
                 }}
               >
