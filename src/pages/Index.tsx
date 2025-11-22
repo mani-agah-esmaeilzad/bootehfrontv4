@@ -85,7 +85,7 @@ const chartGallery = [
       <img
         src="/20_(2).png"
         alt="نمودار مدیران"
-        className="h-32 w-full rounded-2xl object-cover"
+        className="h-full w-full object-cover"
         loading="lazy"
       />
     ),
@@ -98,7 +98,7 @@ const chartGallery = [
       <img
         src="/21_(2).png"
         alt="نمودار استخدام‌کنندگان"
-        className="h-32 w-full rounded-2xl object-cover"
+        className="h-full w-full object-cover"
         loading="lazy"
       />
     ),
@@ -111,7 +111,7 @@ const chartGallery = [
       <img
         src="/22_(2).png"
         alt="نمودار کارجویان"
-        className="h-32 w-full rounded-2xl object-cover"
+        className="h-full w-full object-cover"
         loading="lazy"
       />
     ),
@@ -534,7 +534,7 @@ const Index = () => {
                     <h3 className="text-lg font-semibold text-slate-900">{card.title}</h3>
                     <p className="text-sm leading-6 text-slate-600">{card.description}</p>
                   </div>
-                  <div className="rounded-3xl border border-purple-100/70 bg-white/70 p-4 shadow-inner backdrop-blur">
+                  <div className="rounded-3xl border border-purple-100/70 bg-white/70 shadow-inner backdrop-blur overflow-hidden h-40">
                     {card.chart}
                   </div>
                 </div>
