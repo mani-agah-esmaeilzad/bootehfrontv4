@@ -70,6 +70,13 @@ interface ReportDetail {
   analysis: any;
 }
 
+type SentimentCategory = "positive" | "negative" | "neutral" | "other";
+
+interface SentimentNarrative {
+  headline: string;
+  bullets: string[];
+}
+
 const COLORS = ["#0ea5e9", "#22c55e", "#f97316", "#6366f1", "#facc15", "#ec4899"];
 
 const persianDigitMap: Record<string, string> = {
@@ -182,6 +189,193 @@ const parseLooseAnalysisString = (raw: string) => {
     }
   }
   return result;
+};
+
+const classifySentimentLabel = (label: string): SentimentCategory => {
+  const normalized = label
+    ?.toString()
+    .toLowerCase()
+    .replace(/[^\w\s\u0600-\u06FF]/g, "")
+    .trim();
+  if (!normalized) return "other";
+  if (
+    normalized.includes("positive") ||
+    normalized.includes("مثبت") ||
+    normalized.includes("خوش") ||
+    normalized.includes("امید")
+  ) {
+    return "positive";
+  }
+  if (
+    normalized.includes("negative") ||
+    normalized.includes("منفی") ||
+    normalized.includes("نگرانی") ||
+    normalized.includes("اعتراض") ||
+    normalized.includes("stress")
+  ) {
+    return "negative";
+  }
+  if (
+    normalized.includes("neutral") ||
+    normalized.includes("خنثی") ||
+    normalized.includes("متعادل") ||
+    normalized.includes("بیطرف")
+  ) {
+    return "neutral";
+  }
+  return "other";
+};
+
+const describeSentimentMood = (category: SentimentCategory) => {
+  switch (category) {
+    case "positive":
+      return "نشان می‌دهد فضای گفتگو عمدتاً امیدوارانه و انگیزشی بوده است";
+    case "negative":
+      return "حاکی از تمرکز مکالمه روی نگرانی‌ها و نقاط فشار است";
+    case "neutral":
+      return "بیان می‌کند پاسخ‌دهنده بیشتر توصیفی و بدون بار هیجانی صحبت کرده است";
+    default:
+      return "حضور گرایش هیجانی مشخصی در پاسخ‌ها را تأیید می‌کند";
+  }
+};
+
+const formatPercentValue = (value: number) => {
+  if (!Number.isFinite(value)) return "0";
+  const normalized = Math.round(value * 10) / 10;
+  return Number.isInteger(normalized) ? normalized.toFixed(0) : normalized.toFixed(1);
+};
+
+const buildSentimentNarrative = (data: { name: string; value: number }[]): SentimentNarrative => {
+  const fallback: SentimentNarrative = {
+    headline: "برای این گزارش داده‌ای جهت تحلیل کیفی احساسات ثبت نشده است.",
+    bullets: [
+      "برای فعال‌سازی این بخش باید حداقل یک برچسب مثبت، منفی یا خنثی در خروجی تحلیل خودکار وجود داشته باشد.",
+      "پیشنهاد: در سناریوهای بعدی سوالاتی اضافه کنید که پاسخ‌دهنده را به بیان احساسات شفاف‌تر هدایت کند.",
+    ],
+  };
+
+  if (!Array.isArray(data) || data.length === 0) return fallback;
+
+  const sanitized = data
+    .map((item) => ({
+      name: item.name,
+      value: Math.max(0, toNum(item.value)),
+    }))
+    .filter((item) => Number.isFinite(item.value) && item.value >= 0 && item.name);
+
+  if (sanitized.length === 0) {
+    return {
+      headline: "برچسب احساسات دریافت شد اما مقدار معناداری برای تحلیل کیفی در دسترس نبود.",
+      bullets: [
+        "بهتر است خروجی مدل احساسات بازبینی شود یا مجدداً تحلیل روی داده خام انجام شود تا سهم هر احساس مشخص گردد.",
+        "پیشنهاد: برای جلوگیری از این حالت، محدوده مقیاس امتیازدهی احساسات را در سمت سرور بررسی کنید.",
+      ],
+    };
+  }
+  const total = sanitized.reduce((sum, item) => sum + item.value, 0);
+  if (!total) {
+    return {
+      headline: "امتیاز احساسات صفر گزارش شده است.",
+      bullets: [
+        "این حالت معمولاً زمانی رخ می‌دهد که مدل احساسات به داده‌ای با لحن بسیار کوتاه یا خنثی برخورد کرده باشد.",
+        "پیشنهاد: نمونه‌های بیشتری از گفتگو جمع‌آوری کنید تا مدل بتواند سهم هر احساس را تفکیک کند.",
+      ],
+    };
+  }
+
+  const enriched = sanitized
+    .map((item) => ({
+      ...item,
+      percentage: (item.value / total) * 100,
+      category: classifySentimentLabel(item.name),
+    }))
+    .sort((a, b) => b.percentage - a.percentage);
+
+  const dominant = enriched[0];
+  const positive = enriched.find((item) => item.category === "positive");
+  const negative = enriched.find((item) => item.category === "negative");
+  const neutral = enriched.find((item) => item.category === "neutral");
+  const secondarySentiments = enriched.slice(1);
+
+  const headline = `غلبه احساس «${dominant.name}» با حدود ${formatPercentValue(dominant.percentage)}٪ ${describeSentimentMood(
+    dominant.category,
+  )}.`;
+
+  const bullets: string[] = [];
+
+  if (positive && negative) {
+    const leadingPositive = positive.percentage >= negative.percentage;
+    const gap = Math.abs(positive.percentage - negative.percentage);
+    bullets.push(
+      `احساسات ${leadingPositive ? "مثبت" : "منفی"} با ${formatPercentValue(
+        Math.max(positive.percentage, negative.percentage),
+      )}٪ سهم، ${formatPercentValue(gap)}٪ از سویه مقابل جلوتر است؛ ${
+        leadingPositive
+          ? "این انرژی را می‌توان برای تقویت انگیزش فرد حفظ کرد."
+          : "بهتر است ریشه دغدغه‌ها را سریع‌تر پیگیری کنید."
+      }`,
+    );
+  } else if (positive || negative) {
+    const single = positive || negative;
+    bullets.push(
+      `تنها احساس برجسته ${single?.category === "positive" ? "مثبت" : "منفی"} بوده و ${formatPercentValue(
+        single?.percentage ?? 0,
+      )}٪ پاسخ‌ها را شکل داده است.`,
+    );
+  }
+
+  if (neutral) {
+    if (neutral.percentage >= 30) {
+      bullets.push(
+        `حدود ${formatPercentValue(neutral.percentage)}٪ پاسخ‌ها خنثی هستند و فضای تحلیل را متعادل نگه داشته‌اند.`,
+      );
+    } else if (neutral.percentage <= 15) {
+      bullets.push(
+        `لحن خنثی تنها ${formatPercentValue(neutral.percentage)}٪ است؛ بنابراین احساسات آشکار مکالمه را هدایت کرده‌اند.`,
+      );
+    }
+  }
+
+  if (secondarySentiments.length > 0) {
+    const detail = secondarySentiments
+      .map((item) => `«${item.name}» ${formatPercentValue(item.percentage)}٪`)
+      .join("، ");
+    if (detail) {
+      bullets.push(`سایر گرایش‌ها شامل ${detail} هستند که در برنامه‌ریزی مداخلات تکمیلی قابل توجه‌اند.`);
+    }
+  }
+
+  const actionHint = (() => {
+    switch (dominant.category) {
+      case "positive":
+        return "پیشنهاد: با بازخورد دقیق، همین رویکرد مثبت را در مراحل بعدی تثبیت کنید.";
+      case "negative":
+        return "پیشنهاد: برای کاهش احساس منفی، یک گفت‌وگوی پیگیری با تمرکز بر پاسخ به نگرانی‌ها داشته باشید.";
+      case "neutral":
+        return "پیشنهاد: با پرسش‌های سناریومحور، پاسخ‌دهنده را به بیان احساسات دقیق‌تر دعوت کنید.";
+      default:
+        return "پیشنهاد: داده‌های بیشتری از تعاملات بعدی برای شفاف‌تر شدن لحن احساسی جمع‌آوری کنید.";
+    }
+  })();
+  bullets.push(actionHint);
+
+  return { headline, bullets };
+};
+
+const normalizeSentimentInsight = (value: unknown): SentimentNarrative | null => {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Record<string, unknown>;
+  const headline = typeof raw.headline === "string" ? raw.headline.trim() : "";
+  const bullets = Array.isArray(raw.bullets)
+    ? raw.bullets
+        .map((item) => (typeof item === "string" ? item.trim() : ""))
+        .filter((item) => item.length > 0)
+    : [];
+  if (!headline && bullets.length === 0) return null;
+  return {
+    headline: headline || "تحلیل کیفی احساسات",
+    bullets: bullets.length > 0 ? bullets : ["—"],
+  };
 };
 
 const hydrateAnalysis = (raw: any) => {
@@ -1018,6 +1212,10 @@ const AdminReportDetail = () => {
         sentimentData[0],
       )
       : null;
+  const sentimentInsightFromAnalysis = normalizeSentimentInsight(
+    (analysis as Record<string, unknown>)?.sentiment_insight,
+  );
+  const sentimentNarrative = sentimentInsightFromAnalysis ?? buildSentimentNarrative(sentimentData);
 
   const hiddenAnalysisKeys = new Set([
     "summary",
@@ -1027,6 +1225,7 @@ const AdminReportDetail = () => {
     "risk_flags",
     "factor_scores",
     "sentiment_analysis",
+    "sentiment_insight",
     "power_wheel",
     "progress_timeline",
     "report",
@@ -1480,6 +1679,27 @@ const AdminReportDetail = () => {
                 <span className="text-sm text-slate-600">{item.value}</span>
               </div>
             ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {sentimentNarrative && (
+        <Card dir="rtl" className="border-fuchsia-200 bg-fuchsia-50/70">
+          <CardHeader className="text-right">
+            <CardTitle className="text-right">توضیح هوشمند احساسات (اختصاصی ادمین)</CardTitle>
+            <CardDescription className="text-right text-fuchsia-700">
+              این تحلیل به صورت خودکار توسط AI تولید می‌شود، فقط در داشبورد ادمین دیده می‌شود و در خروجی کاربر قرار نمی‌گیرد.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 text-right text-sm leading-7 text-slate-700" style={{ fontFamily: rtlFontStack }}>
+            <p className="font-semibold text-slate-900">{sentimentNarrative.headline}</p>
+            {sentimentNarrative.bullets.length > 0 && (
+              <ul className="list-disc space-y-1 pr-5 text-slate-600">
+                {sentimentNarrative.bullets.map((item, index) => (
+                  <li key={`sentiment-narrative-${index}`}>{item}</li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
       )}
