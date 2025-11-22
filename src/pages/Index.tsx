@@ -530,7 +530,7 @@ const Index = () => {
                   key={card.title}
                   className={`flex h-full flex-col gap-4 rounded-3xl border border-purple-100/80 bg-gradient-to-br p-7 ${card.accent}`}
                 >
-                  <div className="space-y-2 text-right">
+                  <div className="space-y-2 text-right flex-1">
                     <h3 className="text-lg font-semibold text-slate-900">{card.title}</h3>
                     <p className="text-sm leading-6 text-slate-600">{card.description}</p>
                   </div>
