@@ -15,6 +15,25 @@ import apiFetch from "@/services/apiService";
 import { LoaderCircle, ArrowRight } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { QUESTIONNAIRE_CATEGORIES } from "@/constants/questionnaireCategories";
+import ChartModulesBuilder from "@/components/admin/ChartModulesBuilder";
+import { buildDefaultChartModules } from "@/constants/chartModules";
+
+const chartModuleItemSchema = z.object({
+  key: z.string().min(1),
+  label: z.string().min(1),
+  maxScore: z.number().optional(),
+  category: z.string().optional(),
+  description: z.string().optional(),
+});
+
+const chartModuleSchema = z.object({
+  id: z.string().optional(),
+  type: z.string(),
+  title: z.string().optional(),
+  enabled: z.boolean().optional(),
+  items: z.array(chartModuleItemSchema).optional(),
+  settings: z.record(z.any()).optional(),
+});
 
 const questionnaireSchema = z
   .object({
@@ -33,6 +52,7 @@ const questionnaireSchema = z
     phase_two_persona_prompt: z.string().optional(),
     phase_two_analysis_prompt: z.string().optional(),
     phase_two_welcome_message: z.string().optional(),
+    chart_modules: z.array(chartModuleSchema).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.enable_second_phase) {
@@ -80,6 +100,7 @@ const NewQuestionnaire = () => {
       phase_two_persona_prompt: "",
       phase_two_analysis_prompt: "",
       phase_two_welcome_message: "",
+      chart_modules: buildDefaultChartModules(),
     },
   });
   const enableSecondPhase = form.watch("enable_second_phase");
@@ -143,6 +164,26 @@ const NewQuestionnaire = () => {
                   </FormItem>
                 )}/>
                 <FormField control={form.control} name="welcome_message" render={({ field }) => ( <FormItem> <FormLabel>پیام خوشامدگویی</FormLabel> <FormControl><Textarea placeholder="پیامی که در ابتدای چت به کاربر نمایش داده می‌شود" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-3xl border border-slate-100 bg-white/85 shadow-lg shadow-indigo-500/10">
+              <CardHeader>
+                <CardTitle>پیکربندی داده‌های نمودار‌ها</CardTitle>
+                <CardDescription>هر نمودار مورد استفاده در گزارش نهایی را فعال کنید و مولفه‌هایش را تنظیم نمایید.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FormField
+                  control={form.control}
+                  name="chart_modules"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <ChartModulesBuilder value={field.value} onChange={field.onChange} />
+                      <FormDescription>این تنظیمات به پرامپت تحلیل اضافه می‌شود تا خروجی JSON با ساختار موردنیاز تولید شود.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </CardContent>
             </Card>
 

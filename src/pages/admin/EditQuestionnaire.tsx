@@ -16,6 +16,25 @@ import apiFetch from "@/services/apiService";
 import { LoaderCircle, ArrowRight } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { QUESTIONNAIRE_CATEGORIES } from "@/constants/questionnaireCategories";
+import ChartModulesBuilder from "@/components/admin/ChartModulesBuilder";
+import { buildDefaultChartModules } from "@/constants/chartModules";
+
+const chartModuleItemSchema = z.object({
+  key: z.string().min(1),
+  label: z.string().min(1),
+  maxScore: z.number().optional(),
+  category: z.string().optional(),
+  description: z.string().optional(),
+});
+
+const chartModuleSchema = z.object({
+  id: z.string().optional(),
+  type: z.string(),
+  title: z.string().optional(),
+  enabled: z.boolean().optional(),
+  items: z.array(chartModuleItemSchema).optional(),
+  settings: z.record(z.any()).optional(),
+});
 
 const questionnaireSchema = z
   .object({
@@ -34,6 +53,7 @@ const questionnaireSchema = z
     phase_two_persona_prompt: z.string().optional().nullable(),
     phase_two_analysis_prompt: z.string().optional().nullable(),
     phase_two_welcome_message: z.string().optional().nullable(),
+    chart_modules: z.array(chartModuleSchema).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.enable_second_phase) {
@@ -84,6 +104,7 @@ const EditQuestionnaire = () => {
       phase_two_persona_prompt: "",
       phase_two_analysis_prompt: "",
       phase_two_welcome_message: "",
+      chart_modules: buildDefaultChartModules(),
     },
   });
   const enableSecondPhase = form.watch("enable_second_phase");
@@ -115,6 +136,7 @@ const EditQuestionnaire = () => {
             phase_two_persona_prompt: data.phase_two_persona_prompt ?? "",
             phase_two_analysis_prompt: data.phase_two_analysis_prompt ?? "",
             phase_two_welcome_message: data.phase_two_welcome_message ?? "",
+            chart_modules: Array.isArray(data.chart_modules) && data.chart_modules.length > 0 ? data.chart_modules : buildDefaultChartModules(),
           });
         } else {
           throw new Error("پرسشنامه یافت نشد.");
@@ -200,6 +222,26 @@ const EditQuestionnaire = () => {
                   </FormItem>
                 )}/>
                 <FormField control={form.control} name="welcome_message" render={({ field }) => ( <FormItem> <FormLabel>پیام خوشامدگویی</FormLabel> <FormControl><Textarea {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>پیکربندی داده‌های نمودار‌ها</CardTitle>
+                <CardDescription>نمودارهایی که در گزارش نهایی نمایش داده می‌شوند و مولفه‌های هر کدام را از این بخش مدیریت کنید.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FormField
+                  control={form.control}
+                  name="chart_modules"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <ChartModulesBuilder value={field.value} onChange={field.onChange} />
+                      <FormDescription>این تغییرات روی پرامپت تحلیل اعمال می‌شود و به صورت خودکار به AI ارسال خواهد شد.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </CardContent>
             </Card>
 
