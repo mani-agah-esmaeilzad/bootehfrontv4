@@ -970,8 +970,6 @@ const AdminReportDetail = () => {
     : [];
 
   const factorScoreRaw = resolveAnalysisField(analysis, ["factor_scores", "factor score", "factor-score"]);
-  const baseFactorData = normalizeFactorEntries(factorScoreRaw);
-  const chartData = baseFactorData.length > 0 ? baseFactorData : [];
   const scatterRaw = resolveAnalysisField(analysis, [
     "factor_scatter",
     "scatter_data",
@@ -989,17 +987,24 @@ const AdminReportDetail = () => {
   ]);
   const treemapData = normalizeFactorEntries(treemapRaw);
 
-  // اگر دیتا برای این دو تا نیامده بود، از chartData (factor_scores) استفاده کن
-  const fallbackFactorSeries = chartData;
+  const baseFactorData = normalizeFactorEntries(factorScoreRaw);
+  const chartData =
+    baseFactorData.length > 0
+      ? baseFactorData
+      : scatterData.length > 0
+        ? scatterData
+        : treemapData.length > 0
+          ? treemapData
+          : [];
 
   // ✅ سری نهایی برای Scatter (همبستگی فاکتورها)
-  const scatterSeries = (scatterData.length > 0 ? scatterData : fallbackFactorSeries).map((item, index) => ({
+  const scatterSeries = (scatterData.length > 0 ? scatterData : chartData).map((item, index) => ({
     ...item,
     name: item.subject || `فاکتور ${index + 1}`,
   }));
 
   // ✅ سری نهایی برای Treemap (سهم فاکتورها)
-  const treemapSeries = (treemapData.length > 0 ? treemapData : fallbackFactorSeries).map((item, index) => ({
+  const treemapSeries = (treemapData.length > 0 ? treemapData : chartData).map((item, index) => ({
     name: item.subject || `فاکتور ${index + 1}`,
     size: item.score,
     value: item.score,
@@ -1122,6 +1127,11 @@ const AdminReportDetail = () => {
     score: number;
   };
 
+  const factorEntriesForWheel =
+    Array.isArray(analysis.factor_scores) && analysis.factor_scores.length > 0
+      ? analysis.factor_scores
+      : chartData;
+
   const rawWheelEntries: WheelEntry[] = Array.isArray(analysis.power_wheel?.dimensions)
     ? (analysis.power_wheel.dimensions as any[]).map((entry: any, index: number) => {
       const dimensionLabel = (entry?.dimension ?? `بعد ${index + 1}`).toString();
@@ -1137,22 +1147,29 @@ const AdminReportDetail = () => {
         score: clamp(toNum(entry?.score), 0, 100),
       };
     })
-    : (analysis.factor_scores?.map((entry: any, index: number) => {
-      const dimensionLabel = (entry?.factor ?? `شاخص ${index + 1}`).toString();
+    : factorEntriesForWheel.map((entry: any, index: number) => {
+      const dimensionLabel = (
+        entry?.dimension ??
+        entry?.factor ??
+        entry?.subject ??
+        entry?.name ??
+        `شاخص ${index + 1}`
+      ).toString();
       const categoryLabel = (entry?.category ?? dimensionLabel ?? `شاخص ${index + 1}`).toString();
       const categoryKey =
         categoryLabel.trim().length > 0
           ? categoryLabel.trim().toLowerCase().replace(/\s+/g, "-")
           : `category-${index + 1}`;
-      const max = Math.max(toNum(entry?.maxScore) || 5, 1);
-      const normalizedScore = (toNum(entry?.score) / max) * 100;
+      const max = Math.max(toNum(entry?.maxScore ?? entry?.fullMark) || 5, 1);
+      const rawScore = toNum(entry?.score ?? entry?.value ?? entry?.size ?? entry?.actual);
+      const normalizedScore = max > 0 ? (rawScore / max) * 100 : 0;
       return {
         dimension: dimensionLabel,
         categoryKey,
         categoryLabel,
         score: clamp(normalizedScore, 0, 100),
       };
-    })) || [];
+    });
 
   const wheelColorPalette = ["#f97316", "#22c55e", "#0ea5e9", "#facc15", "#ec4899", "#6366f1", "#14b8a6", "#8b5cf6"];
   const wheelCategoryMap = new Map<string, { key: string; label: string; color: string }>();
@@ -1311,21 +1328,11 @@ const AdminReportDetail = () => {
     "recommendations",
     "development_plan",
     "risk_flags",
-    "keyword_analysis",
-    "verbosity_trend",
-    "action_orientation",
-    "problem_solving_approach",
-    "communication_style",
-    "linguistic_semantic_analysis",
     "factor_scores",
-    "factor_scatter",
-    "factor_contribution",
     "sentiment_analysis",
     "sentiment_insight",
-    "cognitive_flexibility_dimensions",
     "power_wheel",
     "progress_timeline",
-    "additional_details",
     "report",
     "score",
     "total_score",
@@ -2174,7 +2181,7 @@ const AdminReportDetail = () => {
               dir="rtl"
               style={{ direction: "rtl", unicodeBidi: "plaintext" as const, fontFamily: rtlFontStack }}
             >
-              {analysis.confidence_level ? (
+              {confidenceScore !== null ? (
                 <>
                   <div
                     className="relative flex h-36 w-36 items-center justify-center rounded-full bg-slate-100 shadow-inner"
@@ -2183,12 +2190,15 @@ const AdminReportDetail = () => {
                     }}
                   >
                     <div className="flex h-28 w-28 flex-col items-center justify-center rounded-full bg-white">
-                      <span className="text-4xl font-bold text-slate-800">{confidenceScore}</span>
+                      <span className="text-4xl font-bold text-slate-800">
+                        {Number.isInteger(confidenceScore) ? confidenceScore : confidenceScore.toFixed(1)}
+                      </span>
                       <span className="text-xs text-muted-foreground">از ۱۰</span>
                     </div>
                   </div>
                   <p className="max-w-[220px] text-center text-xs text-muted-foreground">
-                    {analysis.confidence_level?.comment || "شاخص اعتماد به نفس محاسبه شده بر اساس تحلیل گفتار."}
+                    {analysis.confidence_level?.comment ||
+                      "شاخص اطمینان بر اساس امتیاز کلی کاربر تخمین زده شده است."}
                   </p>
                 </>
               ) : (
