@@ -132,6 +132,26 @@ const parseArrayLike = (input: unknown): unknown[] => {
   return [];
 };
 
+const parseObjectLike = (input: unknown): Record<string, unknown> | null => {
+  if (input && typeof input === "object" && !Array.isArray(input)) {
+    return input as Record<string, unknown>;
+  }
+  if (typeof input === "string") {
+    const trimmed = input.trim();
+    if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          return parsed as Record<string, unknown>;
+        }
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
+};
+
 const extractLooseJsonBlock = (source: string, label: string) => {
   const idx = source.toLowerCase().indexOf(label.toLowerCase());
   if (idx === -1) return undefined;
@@ -396,6 +416,47 @@ const hydrateAnalysis = (raw: any) => {
       }
     });
   }
+
+  const coerceArrayField = (fieldName: string) => {
+    const current = base[fieldName];
+    if (Array.isArray(current)) return;
+    const parsed = parseArrayLike(current);
+    if (parsed.length > 0) {
+      base[fieldName] = parsed;
+    }
+  };
+
+  const coerceObjectField = (fieldName: string) => {
+    const current = base[fieldName];
+    if (current && typeof current === "object" && !Array.isArray(current)) return;
+    const parsed = parseObjectLike(current);
+    if (parsed) {
+      base[fieldName] = parsed;
+    }
+  };
+
+  [
+    "keyword_analysis",
+    "verbosity_trend",
+    "factor_scores",
+    "factor_scatter",
+    "factor_contribution",
+    "phase_breakdown",
+    "progress_timeline",
+  ].forEach(coerceArrayField);
+
+  [
+    "sentiment_analysis",
+    "action_orientation",
+    "problem_solving_approach",
+    "communication_style",
+    "linguistic_semantic_analysis",
+    "confidence_level",
+    "power_wheel",
+    "factor_scores",
+    "factor_scatter",
+    "factor_contribution",
+  ].forEach(coerceObjectField);
 
   // ۲) هر کلید عجیب مدل رو normalize کن و بندازش روی کلیدهای استاندارد
   Object.entries(base).forEach(([key, value]) => {
