@@ -200,6 +200,7 @@ const parseLooseAnalysisString = (raw: string) => {
     factor_contribution: "Factor Contribution",
     factor_scores: "Factor Scores",
     sentiment_analysis: "Sentiment Analysis",
+    cognitive_flexibility_dimensions: "Cognitive Flexibility Dimensions",
   };
   const result: Record<string, unknown> = {};
   for (const [key, label] of Object.entries(blocks)) {
@@ -515,6 +516,7 @@ const hydrateAnalysis = (raw: any) => {
     "factor_contribution",
     "phase_breakdown",
     "progress_timeline",
+    "cognitive_flexibility_dimensions",
   ].forEach(coerceArrayField);
 
   [
@@ -528,6 +530,7 @@ const hydrateAnalysis = (raw: any) => {
     "factor_scores",
     "factor_scatter",
     "factor_contribution",
+    "cognitive_flexibility_dimensions",
   ].forEach(coerceObjectField);
 
   // 🔥 تبدیل ساختار شیء → آرایه برای charts
@@ -1022,27 +1025,43 @@ const AdminReportDetail = () => {
     analysis.average_word_count !== undefined && analysis.average_word_count !== null
       ? toNum(analysis.average_word_count)
       : null;
-  const actionData = analysis.action_orientation
-    ? [
-      {
-        name: "مقایسه",
-        action_words: toNum(analysis.action_orientation.action_words),
-        passive_words: toNum(analysis.action_orientation.passive_words),
-      },
-    ]
-    : [];
+  const cognitiveFlex = analysis.cognitive_flexibility_dimensions;
+  const hasDirectActionData = Boolean(
+    analysis.action_orientation && typeof analysis.action_orientation === "object",
+  );
+  const actionOrientation = analysis.action_orientation || cognitiveFlex;
+  const actionData =
+    actionOrientation && typeof actionOrientation === "object"
+      ? [
+        {
+          name: "مقایسه",
+          action_words: toNum(
+            actionOrientation.action_words ?? actionOrientation.alternative_generation,
+          ),
+          passive_words: toNum(
+            actionOrientation.passive_words ?? actionOrientation.control_perception,
+          ),
+        },
+      ]
+      : [];
   const actionLegendLabels: Record<string, string> = {
-    action_words: "واژگان کنشی",
-    passive_words: "واژگان غیرکنشی",
+    action_words: hasDirectActionData ? "واژگان کنشی" : "تولید جایگزین",
+    passive_words: hasDirectActionData ? "واژگان غیرکنشی" : "ادراک کنترل",
   };
-  const confidenceScore = toNum(analysis.confidence_level?.score);
-  const confidenceAngle = Math.min(Math.max(confidenceScore, 0), 10) * 36;
+  const semanticFieldsFallback = analysis.linguistic_semantic_analysis?.semantic_fields;
   const problemSolvingData = analysis.problem_solving_approach
     ? Object.entries(analysis.problem_solving_approach).map(([name, value]) => ({
       name,
       value: toNum(value),
     }))
-    : [];
+    : Array.isArray(semanticFieldsFallback)
+      ? semanticFieldsFallback
+        .map((field: any) => ({
+          name: field.field || field.name || "مولفه",
+          value: toNum(field.mentions ?? field.value),
+        }))
+        .filter((item: any) => Number.isFinite(item.value) && item.value > 0)
+      : [];
   const commStyle = analysis.communication_style
     ? Object.entries(analysis.communication_style).map(([name, value]) => ({
       name,
@@ -1067,18 +1086,25 @@ const AdminReportDetail = () => {
     (analysis as Record<string, unknown>).total_score ??
     (analysis as Record<string, unknown>).overall_score;
   const overallScore = toNum(overallScoreRaw);
-  const confidenceScoreDisplay =
-    analysis.confidence_level && typeof analysis.confidence_level.score !== "undefined"
-      ? toNum(analysis.confidence_level.score)
-      : null;
-
   const maxScore = toNum(report.max_score ?? (analysis as Record<string, unknown>).max_score ?? 100) || 100;
   const normalizedOverallScore =
     Number.isFinite(overallScore) && maxScore
       ? clamp((overallScore / maxScore) * 100, 0, 100)
       : null;
   const normalizedConfidence =
-    confidenceScoreDisplay !== null ? clamp(confidenceScoreDisplay * 10, 0, 100) : null;
+    analysis.confidence_level && typeof analysis.confidence_level.score !== "undefined"
+      ? clamp(toNum(analysis.confidence_level.score) * 10, 0, 100)
+      : normalizedOverallScore !== null
+        ? clamp(normalizedOverallScore, 0, 100)
+        : null;
+  const confidenceScore =
+    analysis.confidence_level && typeof analysis.confidence_level.score !== "undefined"
+      ? clamp(toNum(analysis.confidence_level.score), 0, 10)
+      : normalizedOverallScore !== null
+        ? clamp(normalizedOverallScore / 10, 0, 10)
+        : null;
+  const confidenceScoreDisplay = confidenceScore;
+  const confidenceAngle = (confidenceScore ?? 0) * 36;
 
   const radialSummaryData = [
     normalizedOverallScore !== null && normalizedOverallScore > 0
@@ -1156,7 +1182,7 @@ const AdminReportDetail = () => {
   const rawGaugeValue =
     analysis.readiness_index ??
     analysis.score ??
-    (Number.isFinite(confidenceScore) && confidenceScore > 0 ? (confidenceScore / 10) * 100 : null);
+    (confidenceScore !== null ? confidenceScore * 10 : null);
   const gaugeValue =
     rawGaugeValue === null || rawGaugeValue === undefined ? null : clamp(toNum(rawGaugeValue), 0, 100);
   const gaugeValueAngle =
@@ -1285,11 +1311,21 @@ const AdminReportDetail = () => {
     "recommendations",
     "development_plan",
     "risk_flags",
+    "keyword_analysis",
+    "verbosity_trend",
+    "action_orientation",
+    "problem_solving_approach",
+    "communication_style",
+    "linguistic_semantic_analysis",
     "factor_scores",
+    "factor_scatter",
+    "factor_contribution",
     "sentiment_analysis",
     "sentiment_insight",
+    "cognitive_flexibility_dimensions",
     "power_wheel",
     "progress_timeline",
+    "additional_details",
     "report",
     "score",
     "total_score",
