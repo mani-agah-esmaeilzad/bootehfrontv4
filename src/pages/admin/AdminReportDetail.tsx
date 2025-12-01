@@ -417,6 +417,78 @@ const hydrateAnalysis = (raw: any) => {
     });
   }
 
+  // ۲) کلیدهای عجیب را قبل از تبدیل آرایه/آبجکت به کلیدهای استاندارد نگاشت می‌کنیم
+  const aliasEntries = Object.entries(base);
+  aliasEntries.forEach(([key, value]) => {
+    const normalized = normalizeKey(key);
+
+    if (!base.factor_scatter && normalized.includes("factorscatter")) {
+      base.factor_scatter = value;
+    }
+
+    if (!base.factor_contribution && normalized.includes("factorcontribution")) {
+      base.factor_contribution = value;
+    }
+
+    if (!base.factor_scores && normalized.includes("factorscores")) {
+      base.factor_scores = value;
+    }
+
+    if (!base.keyword_analysis && normalized.includes("keywordanalysis")) {
+      base.keyword_analysis = value;
+    }
+
+    if (!base.verbosity_trend && normalized.includes("verbositytrend")) {
+      base.verbosity_trend = value;
+    }
+
+    if (!base.action_orientation && normalized.includes("actionorientation")) {
+      base.action_orientation = value;
+    }
+
+    if (!base.problem_solving_approach && normalized.includes("problemsolving")) {
+      base.problem_solving_approach = value;
+    }
+
+    if (!base.communication_style && normalized.includes("communicationstyle")) {
+      base.communication_style = value;
+    }
+
+    if (!base.linguistic_semantic_analysis && normalized.includes("linguisticsemanticanalysis")) {
+      base.linguistic_semantic_analysis = value;
+    }
+  });
+
+  // ❗❗ ۳ خط مهم — اینجا، بعد از نگاشت اولیه
+  if (!base.factor_scatter) {
+    base.factor_scatter =
+      base.factorScores ||
+      base.factor_scores ||
+      base["factor scatter"] ||
+      base["scatter"] ||
+      base.scatterData ||
+      base.factorCorrelation;
+  }
+
+  if (!base.factor_contribution) {
+    base.factor_contribution =
+      base.factorContribution ||
+      base["factor contribution"] ||
+      base.factor_share ||
+      base["factor share"] ||
+      base.share ||
+      base.contribution;
+  }
+
+  if (!base.factor_scores) {
+    base.factor_scores =
+      base.factorScore ||
+      base["factor scores"] ||
+      base.scores ||
+      base.factors ||
+      base.factorData;
+  }
+
   const coerceArrayField = (fieldName: string) => {
     const current = base[fieldName];
     if (Array.isArray(current)) return;
@@ -457,77 +529,6 @@ const hydrateAnalysis = (raw: any) => {
     "factor_scatter",
     "factor_contribution",
   ].forEach(coerceObjectField);
-
-  // ۲) هر کلید عجیب مدل رو normalize کن و بندازش روی کلیدهای استاندارد
-  Object.entries(base).forEach(([key, value]) => {
-    const normalized = normalizeKey(key);
-
-    if (!base.factor_scatter && normalized.includes("factorscatter")) {
-      base.factor_scatter = value;
-    }
-
-    if (!base.factor_contribution && normalized.includes("factorcontribution")) {
-      base.factor_contribution = value;
-    }
-
-    if (!base.factor_scores && normalized.includes("factorscores")) {
-      base.factor_scores = value;
-    }
-
-    if (!base.keyword_analysis && normalized.includes("keywordanalysis")) {
-      base.keyword_analysis = value;
-    }
-
-    if (!base.verbosity_trend && normalized.includes("verbositytrend")) {
-      base.verbosity_trend = value;
-    }
-
-    if (!base.action_orientation && normalized.includes("actionorientation")) {
-      base.action_orientation = value;
-    }
-
-    if (!base.problem_solving_approach && normalized.includes("problemsolving")) {
-      base.problem_solving_approach = value;
-    }
-
-    if (!base.communication_style && normalized.includes("communicationstyle")) {
-      base.communication_style = value;
-    }
-
-    if (!base.linguistic_semantic_analysis && normalized.includes("linguisticsemanticanalysis")) {
-      base.linguistic_semantic_analysis = value;
-    }
-  });
-
-  // ❗❗ ۳ خط مهم — اینجا، خارج از حلقه
-  if (!base.factor_scatter) {
-    base.factor_scatter =
-      base.factorScores ||
-      base.factor_scores ||
-      base["factor scatter"] ||
-      base["scatter"] ||
-      base.scatterData ||
-      base.factorCorrelation;
-  }
-
-  if (!base.factor_contribution) {
-    base.factor_contribution =
-      base.factorContribution ||
-      base["factor contribution"] ||
-      base.factor_share ||
-      base["factor share"] ||
-      base.share ||
-      base.contribution;
-  }
-
-  if (!base.factor_scores) {
-    base.factor_scores =
-      base.factorScore ||
-      base["factor scores"] ||
-      base.scores ||
-      base.factors ||
-      base.factorData;
-  }
 
   // 🔥 تبدیل ساختار شیء → آرایه برای charts
   // 🔥 تبدیل ساختار شیء → آرایه برای charts
@@ -1296,6 +1297,9 @@ const AdminReportDetail = () => {
     "confidence_level",
     "phase_breakdown",
   ]);
+  const hiddenAnalysisKeysNormalized = new Set(
+    Array.from(hiddenAnalysisKeys).map((key) => normalizeKey(key)),
+  );
 
   const analysisKeyLabels: Record<string, string> = {
     dominant_behaviors: "رفتارهای غالب",
@@ -1315,7 +1319,12 @@ const AdminReportDetail = () => {
       .replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
-  const analysisEntries = Object.entries(analysis).filter(([key, value]) => value !== undefined && !hiddenAnalysisKeys.has(key));
+  const analysisEntries = Object.entries(analysis).filter(([key, value]) => {
+    if (value === undefined) return false;
+    if (hiddenAnalysisKeys.has(key)) return false;
+    if (hiddenAnalysisKeysNormalized.has(normalizeKey(key))) return false;
+    return true;
+  });
 
   const formatSupplementaryLabel = (key: string, index: number) => {
     const numericMatch = key.match(/\d+/);
