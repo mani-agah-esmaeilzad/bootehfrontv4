@@ -1030,43 +1030,41 @@ const AdminReportDetail = () => {
     analysis.average_word_count !== undefined && analysis.average_word_count !== null
       ? toNum(analysis.average_word_count)
       : null;
-  const cognitiveFlex = analysis.cognitive_flexibility_dimensions;
-  const hasDirectActionData = Boolean(
-    analysis.action_orientation && typeof analysis.action_orientation === "object",
-  );
-  const actionOrientation = analysis.action_orientation || cognitiveFlex;
+  const actionOrientation = analysis.action_orientation;
   const actionData =
     actionOrientation && typeof actionOrientation === "object"
       ? [
         {
           name: "مقایسه",
-          action_words: toNum(
-            actionOrientation.action_words ?? actionOrientation.alternative_generation,
-          ),
-          passive_words: toNum(
-            actionOrientation.passive_words ?? actionOrientation.control_perception,
-          ),
+          action_words: toNum(actionOrientation.action_words),
+          passive_words: toNum(actionOrientation.passive_words),
         },
       ]
       : [];
   const actionLegendLabels: Record<string, string> = {
-    action_words: hasDirectActionData ? "واژگان کنشی" : "تولید جایگزین",
-    passive_words: hasDirectActionData ? "واژگان غیرکنشی" : "ادراک کنترل",
+    action_words: "واژگان کنشی",
+    passive_words: "واژگان غیرکنشی",
   };
   const semanticFieldsFallback = analysis.linguistic_semantic_analysis?.semantic_fields;
+  const factorScoreFallback = chartData.map((item) => ({
+    name: item.subject || item.name || "مولفه",
+    value: toNum(item.score ?? item.value),
+  }));
   const problemSolvingData = analysis.problem_solving_approach
     ? Object.entries(analysis.problem_solving_approach).map(([name, value]) => ({
       name,
       value: toNum(value),
     }))
-    : Array.isArray(semanticFieldsFallback)
-      ? semanticFieldsFallback
-        .map((field: any) => ({
-          name: field.field || field.name || "مولفه",
-          value: toNum(field.mentions ?? field.value),
-        }))
-        .filter((item: any) => Number.isFinite(item.value) && item.value > 0)
-      : [];
+    : factorScoreFallback.length > 0
+      ? factorScoreFallback
+      : Array.isArray(semanticFieldsFallback)
+        ? semanticFieldsFallback
+          .map((field: any) => ({
+            name: field.field || field.name || "مولفه",
+            value: toNum(field.mentions ?? field.value),
+          }))
+          .filter((item: any) => Number.isFinite(item.value) && item.value > 0)
+        : [];
   const commStyle = analysis.communication_style
     ? Object.entries(analysis.communication_style).map(([name, value]) => ({
       name,
