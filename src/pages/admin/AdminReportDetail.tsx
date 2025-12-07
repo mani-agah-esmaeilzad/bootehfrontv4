@@ -730,9 +730,15 @@ const buildGaugeSegments = (value: number) => {
   return segments;
 };
 
-const KeywordWordCloud = ({ data }: { data: { keyword: string; mentions: number }[] }) => {
+const KeywordWordCloud = ({
+  data,
+  emptyMessage = "کلمه کلیدی ثبت نشده است.",
+}: {
+  data: { keyword: string; mentions: number }[];
+  emptyMessage?: string;
+}) => {
   if (data.length === 0) {
-    return noData("کلمه کلیدی ثبت نشده است.");
+    return noData(emptyMessage);
   }
 
   const minMentions = Math.min(...data.map((item) => item.mentions));
@@ -1020,6 +1026,11 @@ const AdminReportDetail = () => {
     analysis.keyword_analysis?.map((i: any) => ({
       keyword: i.keyword || i.term || i.word || i.label || "عبارت",
       mentions: toNum(i.mentions ?? i.count ?? i.value),
+    })) || [];
+  const conversationWordCloudData =
+    analysis.word_cloud_full?.map((i: any) => ({
+      keyword: i.word || i.keyword || i.term || "واژه",
+      mentions: toNum(i.count ?? i.mentions ?? i.value),
     })) || [];
   const verbosityData =
     analysis.verbosity_trend?.map((i: any) => ({
@@ -2029,7 +2040,28 @@ const AdminReportDetail = () => {
           }
         />
         <ChartFlipCard
-          title="۳. روند حجم پاسخ‌ها"
+          title="۳. ابر واژگان کامل گفتگو"
+          front={
+            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+              <KeywordWordCloud
+                data={conversationWordCloudData}
+                emptyMessage="داده‌ای برای واژه‌های گفتگو ثبت نشده است."
+              />
+            </div>
+          }
+          back={
+            <>
+              <p>این ابر واژگان تمام واژه‌های کاربر در طول گفتگو را بر اساس فراوانی نمایش می‌دهد.</p>
+              <ul className="list-disc space-y-1 pr-5">
+                <li>کل مکالمه پردازش شده تا بسامد واقعی واژه‌ها مشخص شود.</li>
+                <li>کلمات پرتکرار با اندازه و شدت رنگ بالاتر دیده می‌شوند.</li>
+                <li>از این نمودار برای ردیابی کلیدواژه‌های طبیعی کاربر و تحلیل لحن استفاده کنید.</li>
+              </ul>
+            </>
+          }
+        />
+        <ChartFlipCard
+          title="۴. روند حجم پاسخ‌ها"
           front={
             <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {verbosityData.length === 0 ? (
@@ -2079,7 +2111,7 @@ const AdminReportDetail = () => {
           }
         />
         <ChartFlipCard
-          title="۴. کنش‌محوری"
+          title="۵. کنش‌محوری"
           front={
             <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {actionData.length === 0 ? (
@@ -2125,7 +2157,7 @@ const AdminReportDetail = () => {
           }
         />
         <ChartFlipCard
-          title="۵. رویکرد حل مسئله"
+          title="۶. رویکرد حل مسئله"
           front={
             <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {problemSolvingData.length === 0 ? (
@@ -2172,7 +2204,7 @@ const AdminReportDetail = () => {
           }
         />
         <ChartFlipCard
-          title="۶. سطح اطمینان"
+          title="۷. سطح اطمینان"
           front={
             <div
               className="flex h-72 flex-col items-center justify-center gap-3"
@@ -2217,7 +2249,7 @@ const AdminReportDetail = () => {
           }
         />
         <ChartFlipCard
-          title="۷. سبک ارتباطی"
+          title="۸. سبک ارتباطی"
           front={
             <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {commStyle.length === 0 ? (
@@ -2253,7 +2285,7 @@ const AdminReportDetail = () => {
           }
         />
         <ChartFlipCard
-          title="۸. توزیع نمرات"
+          title="۹. توزیع نمرات"
           front={
             <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {chartData.length === 0 ? (
@@ -2296,7 +2328,7 @@ const AdminReportDetail = () => {
           }
         />
         <ChartFlipCard
-          title="۹. همبستگی فاکتورها"
+          title="۱۰. همبستگی فاکتورها"
           front={
             <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {scatterSeries.length === 0 ? (
@@ -2335,7 +2367,7 @@ const AdminReportDetail = () => {
           }
         />
         <ChartFlipCard
-          title="۱۰. سهم فاکتورها"
+          title="۱۱. سهم فاکتورها"
           front={
             <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {treemapSeries.length === 0 ? (
@@ -2366,7 +2398,7 @@ const AdminReportDetail = () => {
           }
         />
         <ChartFlipCard
-          title="۱۱. شاخص‌های زبانی"
+          title="۱۲. شاخص‌های زبانی"
           front={
             <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {semanticRadar.every((entry) => !entry.value) ? (
@@ -2402,7 +2434,7 @@ const AdminReportDetail = () => {
           }
         />
         <ChartFlipCard
-          title="۱۲. استفاده از ضمایر"
+          title="۱۳. استفاده از ضمایر"
           front={
             <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {pronouns.every((entry) => !entry.value) ? (
@@ -2447,7 +2479,7 @@ const AdminReportDetail = () => {
           }
         />
         <ChartFlipCard
-          title="۱۳. حوزه‌های معنایی پرتکرار"
+          title="۱۴. حوزه‌های معنایی پرتکرار"
           front={
             <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {semanticFields.length === 0 ? (
@@ -2483,7 +2515,7 @@ const AdminReportDetail = () => {
           }
         />
         <ChartFlipCard
-          title="۱۴. شاخص آمادگی"
+          title="۱۵. شاخص آمادگی"
           front={
             <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {gaugeValue === null ? (
@@ -2577,7 +2609,7 @@ const AdminReportDetail = () => {
           }
         />
         <ChartFlipCard
-          title="۱۵. پراکندگی پیشرفت با خط روند"
+          title="۱۶. پراکندگی پیشرفت با خط روند"
           front={
             <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {scatterLineData.length === 0 ? (
