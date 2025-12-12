@@ -32,6 +32,8 @@ export const useSpeechRecognition = (
     onPartialResult,
     onError,
     onUnsupported,
+    onStart,
+    onEnd,
   }: UseSpeechRecognitionOptions = {}
 ): UseSpeechRecognitionReturn => {
   const recognitionRef = useRef<any | null>(null);
