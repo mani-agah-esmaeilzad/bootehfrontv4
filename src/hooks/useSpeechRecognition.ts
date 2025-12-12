@@ -41,6 +41,7 @@ export const useSpeechRecognition = (
   const errorHandlerRef = useRef(onError);
   const unsupportedHandlerRef = useRef(onUnsupported);
   const unsupportedNotifiedRef = useRef(false);
+  const processedResultsRef = useRef(0);
 
   useEffect(() => {
     finalHandlerRef.current = onFinalResult;
@@ -75,11 +76,23 @@ export const useSpeechRecognition = (
     recognition.interimResults = interimResults;
     recognition.lang = lang;
 
-    recognition.onstart = () => setIsRecording(true);
-    recognition.onend = () => setIsRecording(false);
+    recognition.onstart = () => {
+      processedResultsRef.current = 0;
+      setIsRecording(true);
+    };
+
+    recognition.onend = () => {
+      processedResultsRef.current = 0;
+      setIsRecording(false);
+    };
 
     recognition.onresult = (event: any) => {
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      const startIndex = Math.max(
+        typeof event.resultIndex === "number" ? event.resultIndex : 0,
+        processedResultsRef.current
+      );
+
+      for (let i = startIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0]?.transcript ?? "";
         if (!transcript) continue;
         if (event.results[i].isFinal) {
@@ -88,6 +101,8 @@ export const useSpeechRecognition = (
           partialHandlerRef.current?.(transcript);
         }
       }
+
+      processedResultsRef.current = event.results.length;
     };
 
     recognition.onerror = (event: any) => {
