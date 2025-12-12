@@ -207,6 +207,7 @@ const AssessmentChat = () => {
   const userTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const responseLockIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const micWarningShownRef = useRef(false);
+  const speechTranscriptRef = useRef("");
 
   // متغیرهای محاسبه شده
   const isResponseLocked = responseLockRemaining > 0;
@@ -225,16 +226,35 @@ const AssessmentChat = () => {
   const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
 
   // هوک ضبط صدا (فرض می‌شود درست کار می‌کند)
+  const appendSpeechTranscript = useCallback((rawTranscript: string) => {
+    const transcript = rawTranscript?.trim();
+    if (!transcript) return;
+    const previous = speechTranscriptRef.current;
+    let addition = transcript;
+    if (previous && transcript.startsWith(previous)) {
+      addition = transcript.slice(previous.length).trimStart();
+    }
+    speechTranscriptRef.current = transcript;
+    if (!addition) return;
+    setInputValue((prev) => {
+      const needsSpace = prev.length > 0 && !prev.endsWith(" ");
+      return `${prev}${needsSpace ? " " : ""}${addition}`;
+    });
+  }, []);
+
+  const resetSpeechTranscriptBuffer = useCallback(() => {
+    speechTranscriptRef.current = "";
+  }, []);
+
   const {
     isSupported: isSpeechSupported,
     isRecording,
     toggle: toggleSpeechRecording,
     stop: stopSpeechRecording,
   } = useSpeechRecognition({
-    onFinalResult: (transcript) => {
-      if (!transcript) return;
-      setInputValue((prev) => prev + transcript);
-    },
+    onStart: resetSpeechTranscriptBuffer,
+    onEnd: resetSpeechTranscriptBuffer,
+    onFinalResult: appendSpeechTranscript,
     onError: () => {
       toast.error("خطا در ضبط صدا. لطفاً دوباره تلاش کنید.");
     },

@@ -82,6 +82,39 @@ const SupplementaryQuestions = () => {
 
   const activeRecordingKeyRef = useRef<"q1" | "q2" | null>(null);
   const micWarningShownRef = useRef(false);
+  const speechBuffersRef = useRef<Record<"q1" | "q2", string>>({
+    q1: "",
+    q2: "",
+  });
+
+  const appendSupplementaryTranscript = (rawTranscript: string) => {
+    const targetKey = activeRecordingKeyRef.current;
+    if (!targetKey) return;
+    const transcript = rawTranscript?.trim();
+    if (!transcript) return;
+    const previous = speechBuffersRef.current[targetKey] || "";
+    let addition = transcript;
+    if (previous && transcript.startsWith(previous)) {
+      addition = transcript.slice(previous.length).trimStart();
+    }
+    speechBuffersRef.current[targetKey] = transcript;
+    if (!addition) return;
+    setAnswers((prev) => {
+      const current = prev[targetKey] ?? "";
+      const needsSpace = current.length > 0 && !current.endsWith(" ");
+      return {
+        ...prev,
+        [targetKey]: `${current}${needsSpace ? " " : ""}${addition}`,
+      };
+    });
+  };
+
+  const resetSupplementarySpeechBuffer = () => {
+    const targetKey = activeRecordingKeyRef.current;
+    if (targetKey) {
+      speechBuffersRef.current[targetKey] = "";
+    }
+  };
 
   const {
     isSupported: isSpeechSupported,
@@ -90,20 +123,9 @@ const SupplementaryQuestions = () => {
     stop: stopSpeechRecording,
     restart: restartSpeechRecording,
   } = useSpeechRecognition({
-    onFinalResult: (transcript) => {
-      const targetKey = activeRecordingKeyRef.current;
-      if (!targetKey) return;
-      const trimmed = transcript.trim();
-      if (!trimmed) return;
-      setAnswers((prev) => {
-        const current = prev[targetKey] ?? "";
-        const needsSpace = current.length > 0 && !current.endsWith(" ");
-        return {
-          ...prev,
-          [targetKey]: `${current}${needsSpace ? " " : ""}${trimmed}`,
-        };
-      });
-    },
+    onStart: resetSupplementarySpeechBuffer,
+    onEnd: resetSupplementarySpeechBuffer,
+    onFinalResult: appendSupplementaryTranscript,
   });
 
   const setRecordingTarget = (target: "q1" | "q2" | null) => {

@@ -10,6 +10,8 @@ interface UseSpeechRecognitionOptions {
   onPartialResult?: (transcript: string) => void;
   onError?: (event: any) => void;
   onUnsupported?: () => void;
+  onStart?: () => void;
+  onEnd?: () => void;
 }
 
 export interface UseSpeechRecognitionReturn {
@@ -41,7 +43,8 @@ export const useSpeechRecognition = (
   const errorHandlerRef = useRef(onError);
   const unsupportedHandlerRef = useRef(onUnsupported);
   const unsupportedNotifiedRef = useRef(false);
-  const processedResultsRef = useRef(0);
+  const startHandlerRef = useRef(onStart);
+  const endHandlerRef = useRef(onEnd);
 
   useEffect(() => {
     finalHandlerRef.current = onFinalResult;
@@ -58,6 +61,14 @@ export const useSpeechRecognition = (
   useEffect(() => {
     unsupportedHandlerRef.current = onUnsupported;
   }, [onUnsupported]);
+
+  useEffect(() => {
+    startHandlerRef.current = onStart;
+  }, [onStart]);
+
+  useEffect(() => {
+    endHandlerRef.current = onEnd;
+  }, [onEnd]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -77,22 +88,17 @@ export const useSpeechRecognition = (
     recognition.lang = lang;
 
     recognition.onstart = () => {
-      processedResultsRef.current = 0;
       setIsRecording(true);
+      startHandlerRef.current?.();
     };
 
     recognition.onend = () => {
-      processedResultsRef.current = 0;
       setIsRecording(false);
+      endHandlerRef.current?.();
     };
 
     recognition.onresult = (event: any) => {
-      const startIndex = Math.max(
-        typeof event.resultIndex === "number" ? event.resultIndex : 0,
-        processedResultsRef.current
-      );
-
-      for (let i = startIndex; i < event.results.length; i++) {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0]?.transcript ?? "";
         if (!transcript) continue;
         if (event.results[i].isFinal) {
@@ -101,8 +107,6 @@ export const useSpeechRecognition = (
           partialHandlerRef.current?.(transcript);
         }
       }
-
-      processedResultsRef.current = event.results.length;
     };
 
     recognition.onerror = (event: any) => {
