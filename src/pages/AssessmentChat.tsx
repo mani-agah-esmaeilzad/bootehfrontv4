@@ -209,8 +209,22 @@ const AssessmentChat = () => {
   const responseLockIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const micWarningShownRef = useRef(false);
   const speechTranscriptRef = useRef("");
-  const ttsPlayedMessagesRef = useRef<Set<number>>(new Set());
-  const { enqueueSpeech: enqueueTtsSpeech } = useAvalaiTts();
+  const ttsPrefetchedMessagesRef = useRef<Set<number>>(new Set());
+  const lastSpokenMessageIdRef = useRef<number | null>(null);
+  const { prefetchSpeech, speakWithPrefetch } = useAvalaiTts();
+  const prefetchAiSpeech = useCallback(
+    (items: ChatMessage[]) => {
+      items.forEach((msg) => {
+        if (msg.sender !== "ai") return;
+        if (ttsPrefetchedMessagesRef.current.has(msg.id)) return;
+        ttsPrefetchedMessagesRef.current.add(msg.id);
+        prefetchSpeech(msg.text, msg.personaName).catch((error) => {
+          console.error("TTS prefetch error:", error);
+        });
+      });
+    },
+    [prefetchSpeech]
+  );
 
   // متغیرهای محاسبه شده
   const isResponseLocked = responseLockRemaining > 0;
@@ -374,6 +388,7 @@ const AssessmentChat = () => {
       const aiMessages = extractAiMessages(response);
       if (aiMessages.length > 0) {
         setMessages((prev) => [...prev, ...aiMessages]);
+        prefetchAiSpeech(aiMessages);
         startResponseLock();
       }
 
@@ -417,6 +432,7 @@ const AssessmentChat = () => {
       const aiMessages = extractAiMessages(response);
       if (aiMessages.length > 0) {
         setMessages(aiMessages);
+        prefetchAiSpeech(aiMessages);
         setHasConversationStarted(true);
         startResponseLock();
         requestAnimationFrame(() => {
@@ -540,13 +556,26 @@ const AssessmentChat = () => {
   }, [messages, isHistoryView]);
 
   useEffect(() => {
-    messages.forEach((msg) => {
-      if (msg.sender !== "ai") return;
-      if (ttsPlayedMessagesRef.current.has(msg.id)) return;
-      ttsPlayedMessagesRef.current.add(msg.id);
-      enqueueTtsSpeech(msg.text, msg.personaName);
-    });
-  }, [messages, enqueueTtsSpeech]);
+    ttsPrefetchedMessagesRef.current.clear();
+    lastSpokenMessageIdRef.current = null;
+  }, [assessmentState?.sessionId]);
+
+  useEffect(() => {
+    prefetchAiSpeech(messages);
+  }, [messages, prefetchAiSpeech]);
+
+  useEffect(() => {
+    const lastAiMessage = [...messages].reverse().find((msg) => msg.sender === "ai");
+    if (!lastAiMessage) return;
+    if (lastSpokenMessageIdRef.current === lastAiMessage.id) return;
+    speakWithPrefetch(lastAiMessage.text, lastAiMessage.personaName)
+      .then(() => {
+        lastSpokenMessageIdRef.current = lastAiMessage.id;
+      })
+      .catch((error) => {
+        console.error("TTS playback error:", error);
+      });
+  }, [messages, speakWithPrefetch]);
 
   // مدیریت تایمر قفل پاسخ‌دهی
   useEffect(() => {
