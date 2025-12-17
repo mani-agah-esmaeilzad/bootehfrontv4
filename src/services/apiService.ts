@@ -1,7 +1,7 @@
 // src/services/apiService.ts
 
 // const API_BASE_URL = import.meta.env.API_BASE_URL;
-const API_BASE_URL = 'https://hrbooteh.com/api';
+export const API_BASE_URL = 'https://hrbooteh.com/api';
 const API_BASE_ORIGIN =
     typeof window !== "undefined"
         ? window.location.origin

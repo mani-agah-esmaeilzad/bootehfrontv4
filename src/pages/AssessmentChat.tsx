@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import apiFetch from "@/services/apiService";
 import { cn } from "@/lib/utils";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { useAvalaiTts } from "@/hooks/useAvalaiTts";
 import { SceneCanvas } from "@/components/SceneCanvas"; // فرض بر این است که این کامپوننت وجود دارد
 
 // =========================================================================
@@ -208,6 +209,8 @@ const AssessmentChat = () => {
   const responseLockIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const micWarningShownRef = useRef(false);
   const speechTranscriptRef = useRef("");
+  const ttsPlayedMessagesRef = useRef<Set<number>>(new Set());
+  const { enqueueSpeech: enqueueTtsSpeech } = useAvalaiTts();
 
   // متغیرهای محاسبه شده
   const isResponseLocked = responseLockRemaining > 0;
@@ -535,6 +538,15 @@ const AssessmentChat = () => {
     if (!container) return;
     container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
   }, [messages, isHistoryView]);
+
+  useEffect(() => {
+    messages.forEach((msg) => {
+      if (msg.sender !== "ai") return;
+      if (ttsPlayedMessagesRef.current.has(msg.id)) return;
+      ttsPlayedMessagesRef.current.add(msg.id);
+      enqueueTtsSpeech(msg.text, msg.personaName);
+    });
+  }, [messages, enqueueTtsSpeech]);
 
   // مدیریت تایمر قفل پاسخ‌دهی
   useEffect(() => {
