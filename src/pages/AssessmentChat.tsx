@@ -218,16 +218,23 @@ const AssessmentChat = () => {
   const lastSpokenMessageIdRef = useRef<number | null>(null);
   const { prefetchSpeech, speakWithPrefetch, stopAll } = useAvalaiTts();
   const prefetchAiSpeech = useCallback(
-    (items: ChatMessage[], force = false) => {
+    async (items: ChatMessage[], force = false) => {
       if (!isAudioConsentGranted && !force) return;
+      const tasks: Promise<void>[] = [];
       items.forEach((msg) => {
         if (msg.sender !== "ai") return;
         if (ttsPrefetchedMessagesRef.current.has(msg.id)) return;
         ttsPrefetchedMessagesRef.current.add(msg.id);
-        prefetchSpeech(msg.text, msg.personaName).catch((error) => {
-          console.error("TTS prefetch error:", error);
-        });
+        const task = prefetchSpeech(msg.text, msg.personaName)
+          .then(() => undefined)
+          .catch((error) => {
+            console.error("TTS prefetch error:", error);
+            ttsPrefetchedMessagesRef.current.delete(msg.id);
+          });
+        tasks.push(task);
       });
+      if (tasks.length === 0) return;
+      await Promise.allSettled(tasks);
     },
     [isAudioConsentGranted, prefetchSpeech]
   );
@@ -241,7 +248,7 @@ const AssessmentChat = () => {
   );
 
   const handleAudioConsentDecision = useCallback(
-    (granted: boolean) => {
+    async (granted: boolean) => {
       if (!assessmentState?.sessionId) return;
       const storageKey = `${AUDIO_CONSENT_STORAGE_PREFIX}${assessmentState.sessionId}`;
       sessionStorage.setItem(storageKey, granted ? "granted" : "denied");
@@ -253,7 +260,7 @@ const AssessmentChat = () => {
         ttsPrefetchedMessagesRef.current.clear();
         lastSpokenMessageIdRef.current = null;
       } else {
-        prefetchAiSpeech(messages, true);
+        await prefetchAiSpeech(messages, true);
       }
     },
     [assessmentState?.sessionId, messages, prefetchAiSpeech, stopAll]
@@ -420,8 +427,10 @@ const AssessmentChat = () => {
 
       const aiMessages = extractAiMessages(response);
       if (aiMessages.length > 0) {
+        if (isAudioConsentGranted) {
+          await prefetchAiSpeech(aiMessages, true);
+        }
         setMessages((prev) => [...prev, ...aiMessages]);
-        prefetchAiSpeech(aiMessages);
         startResponseLock();
       }
 
@@ -464,8 +473,10 @@ const AssessmentChat = () => {
 
       const aiMessages = extractAiMessages(response);
       if (aiMessages.length > 0) {
+        if (isAudioConsentGranted) {
+          await prefetchAiSpeech(aiMessages, true);
+        }
         setMessages(aiMessages);
-        prefetchAiSpeech(aiMessages);
         setHasConversationStarted(true);
         startResponseLock();
         requestAnimationFrame(() => {
@@ -612,7 +623,7 @@ const AssessmentChat = () => {
 
   useEffect(() => {
     if (!isAudioConsentGranted) return;
-    prefetchAiSpeech(messages);
+    void prefetchAiSpeech(messages);
   }, [messages, prefetchAiSpeech, isAudioConsentGranted]);
 
   useEffect(() => {
@@ -1082,14 +1093,18 @@ const AssessmentChat = () => {
           <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-start">
             <Button
               className="flex-1 rounded-full bg-gradient-to-r from-violet-500 to-sky-500 text-white"
-              onClick={() => handleAudioConsentDecision(true)}
+              onClick={() => {
+                void handleAudioConsentDecision(true);
+              }}
             >
               بله، فعال شود
             </Button>
             <Button
               variant="outline"
               className="flex-1 rounded-full border-slate-300 text-slate-700"
-              onClick={() => handleAudioConsentDecision(false)}
+              onClick={() => {
+                void handleAudioConsentDecision(false);
+              }}
             >
               خیر، نیاز ندارم
             </Button>
