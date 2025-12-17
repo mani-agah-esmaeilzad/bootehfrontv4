@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Mic } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import apiFetch from "@/services/apiService";
 import { cn } from "@/lib/utils";
@@ -131,6 +132,7 @@ const resolveUserAvatarByProfile = (gender?: string | null, ageInput?: number | 
 
 const PROCTOR_AVATAR_SRC = "/mobser%20photo/21.png";
 const NARRATOR_AVATAR_SRC = "/ravi%20photo/19.png";
+const AUDIO_CONSENT_STORAGE_PREFIX = "audioConsent_";
 
 // الگوی شناسایی گوینده در پیام
 const SPEAKER_PATTERNS = [
@@ -202,6 +204,9 @@ const AssessmentChat = () => {
   const [hasConversationStarted, setHasConversationStarted] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [responseLockRemaining, setResponseLockRemaining] = useState(0);
+  const [isAudioConsentGranted, setIsAudioConsentGranted] = useState(false);
+  const [isAudioConsentResolved, setIsAudioConsentResolved] = useState(false);
+  const [isAudioConsentModalOpen, setIsAudioConsentModalOpen] = useState(false);
 
   // مراجع (Refs)
   const messageScrollRef = useRef<HTMLDivElement | null>(null);
@@ -211,9 +216,10 @@ const AssessmentChat = () => {
   const speechTranscriptRef = useRef("");
   const ttsPrefetchedMessagesRef = useRef<Set<number>>(new Set());
   const lastSpokenMessageIdRef = useRef<number | null>(null);
-  const { prefetchSpeech, speakWithPrefetch } = useAvalaiTts();
+  const { prefetchSpeech, speakWithPrefetch, stopAll } = useAvalaiTts();
   const prefetchAiSpeech = useCallback(
-    (items: ChatMessage[]) => {
+    (items: ChatMessage[], force = false) => {
+      if (!isAudioConsentGranted && !force) return;
       items.forEach((msg) => {
         if (msg.sender !== "ai") return;
         if (ttsPrefetchedMessagesRef.current.has(msg.id)) return;
@@ -223,7 +229,34 @@ const AssessmentChat = () => {
         });
       });
     },
-    [prefetchSpeech]
+    [isAudioConsentGranted, prefetchSpeech]
+  );
+
+  const handleAudioConsentModalChange = useCallback(
+    (open: boolean) => {
+      if (!open && !isAudioConsentResolved) return;
+      setIsAudioConsentModalOpen(open);
+    },
+    [isAudioConsentResolved]
+  );
+
+  const handleAudioConsentDecision = useCallback(
+    (granted: boolean) => {
+      if (!assessmentState?.sessionId) return;
+      const storageKey = `${AUDIO_CONSENT_STORAGE_PREFIX}${assessmentState.sessionId}`;
+      sessionStorage.setItem(storageKey, granted ? "granted" : "denied");
+      setIsAudioConsentGranted(granted);
+      setIsAudioConsentResolved(true);
+      setIsAudioConsentModalOpen(false);
+      if (!granted) {
+        stopAll();
+        ttsPrefetchedMessagesRef.current.clear();
+        lastSpokenMessageIdRef.current = null;
+      } else {
+        prefetchAiSpeech(messages, true);
+      }
+    },
+    [assessmentState?.sessionId, messages, prefetchAiSpeech, stopAll]
   );
 
   // متغیرهای محاسبه شده
@@ -556,15 +589,40 @@ const AssessmentChat = () => {
   }, [messages, isHistoryView]);
 
   useEffect(() => {
+    const sessionId = assessmentState?.sessionId;
+    if (!sessionId) return;
+    const storageKey = `${AUDIO_CONSENT_STORAGE_PREFIX}${sessionId}`;
+    const stored = sessionStorage.getItem(storageKey);
+    if (stored === "granted" || stored === "denied") {
+      setIsAudioConsentGranted(stored === "granted");
+      setIsAudioConsentResolved(true);
+      setIsAudioConsentModalOpen(false);
+      if (stored !== "granted") {
+        stopAll();
+      }
+    } else {
+      setIsAudioConsentGranted(false);
+      setIsAudioConsentResolved(false);
+      setIsAudioConsentModalOpen(true);
+      stopAll();
+    }
     ttsPrefetchedMessagesRef.current.clear();
     lastSpokenMessageIdRef.current = null;
-  }, [assessmentState?.sessionId]);
+  }, [assessmentState?.sessionId, stopAll]);
 
   useEffect(() => {
+    if (!isAudioConsentGranted) return;
     prefetchAiSpeech(messages);
-  }, [messages, prefetchAiSpeech]);
+  }, [messages, prefetchAiSpeech, isAudioConsentGranted]);
 
   useEffect(() => {
+    if (!isAudioConsentGranted) {
+      stopAll();
+    }
+  }, [isAudioConsentGranted, stopAll]);
+
+  useEffect(() => {
+    if (!isAudioConsentGranted) return;
     const lastAiMessage = [...messages].reverse().find((msg) => msg.sender === "ai");
     if (!lastAiMessage) return;
     if (lastSpokenMessageIdRef.current === lastAiMessage.id) return;
@@ -575,7 +633,7 @@ const AssessmentChat = () => {
       .catch((error) => {
         console.error("TTS playback error:", error);
       });
-  }, [messages, speakWithPrefetch]);
+  }, [messages, speakWithPrefetch, isAudioConsentGranted]);
 
   // مدیریت تایمر قفل پاسخ‌دهی
   useEffect(() => {
@@ -1008,6 +1066,36 @@ const AssessmentChat = () => {
           </div>
         </footer>
       </div>
+
+      <Dialog open={isAudioConsentModalOpen} onOpenChange={handleAudioConsentModalChange}>
+        <DialogContent className="max-w-md rounded-3xl border border-white/20 bg-white/90 p-8 text-right text-slate-800 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-slate-900">فعال‌سازی خوانش صوتی پیام‌ها</DialogTitle>
+            <DialogDescription className="text-sm leading-6 text-slate-600">
+              می‌توانیم پاسخ‌های هوش مصنوعی را با صدای فارسی/دری برایت بخوانیم. این قابلیت از اینترنت استفاده می‌کند و برای تجربه بهتر پیشنهاد می‌شود.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm leading-6 text-slate-700">
+            <p>آیا مایل هستی در طول این ارزیابی، پیام‌های دستیار به‌صورت صوتی هم پخش شود؟</p>
+            <p className="text-xs text-slate-500">می‌توانی بعداً از تنظیمات مرورگر صدای صفحه را قطع کنی.</p>
+          </div>
+          <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-start">
+            <Button
+              className="flex-1 rounded-full bg-gradient-to-r from-violet-500 to-sky-500 text-white"
+              onClick={() => handleAudioConsentDecision(true)}
+            >
+              بله، فعال شود
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 rounded-full border-slate-300 text-slate-700"
+              onClick={() => handleAudioConsentDecision(false)}
+            >
+              خیر، نیاز ندارم
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }; // <--- اینجا تابع AssessmentChat بسته می‌شود. این بریس، خطای 1005 را رفع می‌کند.
