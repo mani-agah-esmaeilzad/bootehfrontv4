@@ -339,10 +339,9 @@ const buildSentimentNarrative = (data: { name: string; value: number }[]): Senti
     bullets.push(
       `احساسات ${leadingPositive ? "مثبت" : "منفی"} با ${formatPercentValue(
         Math.max(positive.percentage, negative.percentage),
-      )}٪ سهم، ${formatPercentValue(gap)}٪ از سویه مقابل جلوتر است؛ ${
-        leadingPositive
-          ? "این انرژی را می‌توان برای تقویت انگیزش فرد حفظ کرد."
-          : "بهتر است ریشه دغدغه‌ها را سریع‌تر پیگیری کنید."
+      )}٪ سهم، ${formatPercentValue(gap)}٪ از سویه مقابل جلوتر است؛ ${leadingPositive
+        ? "این انرژی را می‌توان برای تقویت انگیزش فرد حفظ کرد."
+        : "بهتر است ریشه دغدغه‌ها را سریع‌تر پیگیری کنید."
       }`,
     );
   } else if (positive || negative) {
@@ -398,8 +397,8 @@ const normalizeSentimentInsight = (value: unknown): SentimentNarrative | null =>
   const headline = typeof raw.headline === "string" ? raw.headline.trim() : "";
   const bullets = Array.isArray(raw.bullets)
     ? raw.bullets
-        .map((item) => (typeof item === "string" ? item.trim() : ""))
-        .filter((item) => item.length > 0)
+      .map((item) => (typeof item === "string" ? item.trim() : ""))
+      .filter((item) => item.length > 0)
     : [];
   if (!headline && bullets.length === 0) return null;
   return {
@@ -592,21 +591,21 @@ const normalizeFactorEntries = (input: unknown): any[] => {
 
         const score = toNum(
           record.score ??
-            record.value ??
-            record.actual ??
-            record.current ??
-            record.raw ??
-            record.scoreValue
+          record.value ??
+          record.actual ??
+          record.current ??
+          record.raw ??
+          record.scoreValue
         );
 
         const fullMark =
           toNum(
             record.maxScore ??
-              (record as Record<string, unknown>).max_score ??
-              record.fullMark ??
-              record.target ??
-              record.max ??
-              5,
+            (record as Record<string, unknown>).max_score ??
+            record.fullMark ??
+            record.target ??
+            record.max ??
+            5,
           ) || 5;
 
         return {
@@ -1506,9 +1505,22 @@ const AdminReportDetail = () => {
 
   return (
     <div dir="rtl" className="space-y-6">
-      <div style={{ position: "absolute", left: -9999, top: 0, pointerEvents: "none" }}>
-        {report && <ReportPDFLayout report={report} ref={pdfPrintRef} />}
+      <div
+        style={{
+          width: "100%",
+          maxHeight: "80vh",
+          overflow: "auto",
+          background: "#11182710",
+          padding: "16px",
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
+        <div style={{ width: "794px" }}>
+          <ReportPDFLayout ref={ref} report={report} />
+        </div>
       </div>
+
 
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-right" style={{ fontFamily: rtlFontStack }}>
