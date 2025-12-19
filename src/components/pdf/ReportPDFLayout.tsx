@@ -112,8 +112,8 @@ const PlainTable = ({
   </table>
 );
 const ChartBox = ({ height = 240, children }: { height?: number; children: React.ReactNode }) => (
-  <div style={{ width: "100%", height: `${height}px` }}>
-    <div style={{ width: "100%", height: "100%", direction: "ltr" }}>{children}</div>
+  <div style={{ width: "100%", minHeight: `${height}px`, height: `${height}px`, overflow: "visible" }}>
+    <div style={{ width: "100%", height: "100%", direction: "ltr", overflow: "visible" }}>{children}</div>
   </div>
 );
 const SectionCard = ({
@@ -134,6 +134,7 @@ const SectionCard = ({
       display: "flex",
       flexDirection: "column",
       gap: "12px",
+      overflow: "visible",
       background: "white",
       ...style,
     }}
@@ -543,6 +544,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
       display: "grid",
       gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
       gap: "16px",
+      alignItems: "start",
     };
 
     return (
@@ -931,7 +933,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             <SectionCard title="حوزه‌های معنایی پرتکرار" style={{ gridColumn: "span 2" }}>
               {semanticRowsLimited.length ? (
                 <>
-                  <ChartBox height={240}>
+                  <ChartBox height={280}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={semanticRowsLimited} layout="vertical">
                         <XAxis type="number" tick={baseAxisTick} />

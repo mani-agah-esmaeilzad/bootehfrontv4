@@ -915,12 +915,12 @@ const ChartFlipCard = ({ title, front, back, className, corner = "left" }: Chart
           </CardHeader>
           <CardContent className="flex-1" style={{ direction: "rtl" }}>
             <div
-              className="relative h-full min-h-[420px] overflow-visible rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 p-4 shadow-inner"
+              className="relative h-full min-h-[520px] overflow-visible rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 p-4 shadow-inner"
               dir="rtl"
               style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}
             >
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(148,163,184,0.28),transparent_65%)]" />
-              <div className="relative h-full">{front}</div>
+              <div className="relative flex h-full w-full items-center justify-center">{front}</div>
             </div>
           </CardContent>
         </div>
