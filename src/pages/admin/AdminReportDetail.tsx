@@ -1505,22 +1505,9 @@ const AdminReportDetail = () => {
 
   return (
     <div dir="rtl" className="space-y-6">
-      <div
-        style={{
-          width: "100%",
-          maxHeight: "80vh",
-          overflow: "auto",
-          background: "#11182710",
-          padding: "16px",
-          display: "flex",
-          justifyContent: "center",
-        }}
-      >
-        <div style={{ width: "794px" }}>
-          <ReportPDFLayout ref={ref} report={report} />
-        </div>
+      <div style={{ width: "794px" }}>
+        <ReportPDFLayout ref={pdfPrintRef} report={report} />
       </div>
-
 
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-right" style={{ fontFamily: rtlFontStack }}>
