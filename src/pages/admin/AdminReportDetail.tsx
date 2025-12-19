@@ -915,7 +915,7 @@ const ChartFlipCard = ({ title, front, back, className, corner = "left" }: Chart
           </CardHeader>
           <CardContent className="flex-1" style={{ direction: "rtl" }}>
             <div
-              className="relative h-full min-h-[420px] overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 p-4 shadow-inner"
+              className="relative h-full min-h-[420px] overflow-visible rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 p-4 shadow-inner"
               dir="rtl"
               style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}
             >
@@ -2389,7 +2389,11 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۸. سبک ارتباطی"
           front={
-            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            <div
+              className="min-h-[360px] w-full overflow-visible"
+              dir="rtl"
+              style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}
+            >
               {commStyle.length === 0 ? (
                 noData("تحلیلی برای سبک ارتباطی موجود نیست.")
               ) : (
@@ -2425,7 +2429,11 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۹. توزیع نمرات"
           front={
-            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            <div
+              className="min-h-[360px] w-full overflow-visible"
+              dir="rtl"
+              style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}
+            >
               {chartData.length === 0 ? (
                 noData("داده‌ای برای نمرات فاکتور‌ها موجود نیست.")
               ) : (

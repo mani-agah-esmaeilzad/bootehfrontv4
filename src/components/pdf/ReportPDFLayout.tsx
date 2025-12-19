@@ -843,7 +843,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             <SectionCard title="سبک ارتباطی">
               {commStyle.length ? (
                 <>
-                  <ChartBox height={220}>
+                  <ChartBox height={260}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={commStyle}>
                         <XAxis dataKey="name" tick={baseAxisTick} />
@@ -863,7 +863,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             <SectionCard title="توزیع نمرات">
               {chartData.length ? (
                 <>
-                  <ChartBox height={220}>
+                  <ChartBox height={260}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={chartData}>
                         <XAxis dataKey="subject" tick={baseAxisTick} />
@@ -888,7 +888,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             <SectionCard title="شاخص‌های زبانی">
               {radarRows.length ? (
                 <>
-                  <ChartBox height={220}>
+                  <ChartBox height={240}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={radarRows}>
                         <XAxis dataKey="label" tick={baseAxisTick} />
@@ -908,7 +908,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             <SectionCard title="استفاده از ضمایر">
               {pronounRows.length ? (
                 <>
-                  <ChartBox height={220}>
+                  <ChartBox height={260}>
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie data={pronounRows} dataKey="value" nameKey="label" outerRadius={70}>
@@ -931,7 +931,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             <SectionCard title="حوزه‌های معنایی پرتکرار" style={{ gridColumn: "span 2" }}>
               {semanticRowsLimited.length ? (
                 <>
-                  <ChartBox height={180}>
+                  <ChartBox height={240}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={semanticRowsLimited} layout="vertical">
                         <XAxis type="number" tick={baseAxisTick} />
