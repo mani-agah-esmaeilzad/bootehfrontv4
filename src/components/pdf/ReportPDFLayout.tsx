@@ -1,6 +1,5 @@
 // src/components/pdf/ReportPDFLayout.tsx
 import React from "react";
-import React from "react";
 import ReactMarkdown from "react-markdown";
 import { Logo } from "@/components/ui/logo";
 import { withRtlFields } from "@/lib/reports";
@@ -112,19 +111,23 @@ const PlainTable = ({
   </table>
 );
 const ChartBox = ({ height = 240, children }: { height?: number; children: React.ReactNode }) => (
-  <div style={{ width: "100%", minHeight: `${height}px`, height: `${height}px`, overflow: "visible" }}>
-    <div style={{ width: "100%", height: "100%", direction: "ltr", overflow: "visible" }}>{children}</div>
+  <div
+    style={{
+      width: "100%",
+      height: `${height}px`,
+      minHeight: `${height}px`,
+      overflow: "hidden",          // ✅ مهم: جلوگیری از بیرون‌زدن
+      position: "relative",        // ✅ کمک به کِلیپ SVG
+      borderRadius: "12px",        // (اختیاری) خوشگل‌تر
+    }}
+  >
+    <div style={{ width: "100%", height: "100%", direction: "ltr", overflow: "hidden" }}>
+      {children}
+    </div>
   </div>
 );
-const SectionCard = ({
-  title,
-  children,
-  style,
-}: {
-  title: string;
-  children: React.ReactNode;
-  style?: React.CSSProperties;
-}) => (
+
+const SectionCard = ({ title, children, style }: { title: string; children: React.ReactNode; style?: React.CSSProperties }) => (
   <div
     style={{
       border: "1px solid #e5e7eb",
@@ -134,7 +137,7 @@ const SectionCard = ({
       display: "flex",
       flexDirection: "column",
       gap: "12px",
-      overflow: "visible",
+      overflow: "hidden",          // ✅ قبلاً visible بود
       background: "white",
       ...style,
     }}
@@ -143,6 +146,7 @@ const SectionCard = ({
     {children}
   </div>
 );
+
 const ProgressItem = ({ label, value }: { label: string; value: number }) => {
   const percent = Math.max(0, Math.min(100, value));
   return (
@@ -370,9 +374,9 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
     const sentimentData =
       analysis.sentiment_analysis
         ? Object.entries(analysis.sentiment_analysis).map(([name, value]) => ({
-            name,
-            value: toNum(value),
-          }))
+          name,
+          value: toNum(value),
+        }))
         : [];
 
     const keywordData =
@@ -389,28 +393,28 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
     const actionData = analysis.action_orientation
       ? [
-          {
-            name: "مقایسه",
-            action_words: toNum(analysis.action_orientation.action_words),
-            passive_words: toNum(analysis.action_orientation.passive_words),
-          },
-        ]
+        {
+          name: "مقایسه",
+          action_words: toNum(analysis.action_orientation.action_words),
+          passive_words: toNum(analysis.action_orientation.passive_words),
+        },
+      ]
       : [];
 
     const problemSolvingData =
       analysis.problem_solving_approach
         ? Object.entries(analysis.problem_solving_approach).map(([name, value]) => ({
-            name,
-            value: toNum(value),
-          }))
+          name,
+          value: toNum(value),
+        }))
         : [];
 
     const commStyle =
       analysis.communication_style
         ? Object.entries(analysis.communication_style).map(([name, value]) => ({
-            name,
-            value: toNum(value),
-          }))
+          name,
+          value: toNum(value),
+        }))
         : [];
 
     const semanticRadar = [
@@ -514,9 +518,9 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
     }));
     const actionRows = actionData.length
       ? [
-          { label: "واژگان کنشی", value: actionData[0].action_words ?? 0 },
-          { label: "واژگان خنثی/غیرکنشی", value: actionData[0].passive_words ?? 0 },
-        ]
+        { label: "واژگان کنشی", value: actionData[0].action_words ?? 0 },
+        { label: "واژگان خنثی/غیرکنشی", value: actionData[0].passive_words ?? 0 },
+      ]
       : [];
     const problemRows = problemSolvingData.map((entry: any) => ({
       label: entry.name,
@@ -673,7 +677,8 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+
                   gap: "16px",
                 }}
               >
