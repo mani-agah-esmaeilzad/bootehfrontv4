@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
 
-const spiderChartFontFamily = 'Vazirmatn, Tahoma, sans-serif';
+const spiderChartFontFamily = "Vazirmatn, Tahoma, sans-serif";
 
 // --- Type Definitions ---
 interface ChartData {
@@ -50,20 +50,20 @@ export function SpiderChart({ data }: SpiderChartProps) {
       config={{
         score: { label: "امتیاز", color: chartColor },
       }}
-      className="mx-auto h-full w-full max-h-[420px] rounded-2xl bg-[#0b0f19] p-4 shadow-lg"
+      className="mx-auto h-full w-full max-h-[420px] rounded-2xl bg-white p-4 shadow-lg"
     >
       <ResponsiveContainer className="chart-ltr">
         <RadarChart data={data}>
-          <PolarGrid gridType="polygon" stroke="#555" strokeDasharray="3 3" radialLines />
+          <PolarGrid gridType="polygon" stroke="#94a3b8" strokeDasharray="3 3" radialLines />
           <PolarAngleAxis
             dataKey="subject"
-            tick={{ fill: '#fff', fontSize: 13, fontWeight: 600, fontFamily: spiderChartFontFamily }}
+            tick={{ fill: "#0f172a", fontSize: 13, fontWeight: 600, fontFamily: spiderChartFontFamily }}
           />
           <PolarRadiusAxis
             angle={90}
             domain={domain}
-            tick={{ fill: '#888', fontSize: 12, fontFamily: spiderChartFontFamily }}
-            stroke="#666"
+            tick={{ fill: "#334155", fontSize: 12, fontFamily: spiderChartFontFamily }}
+            stroke="#cbd5f5"
             axisLine={false}
           />
           <defs>
@@ -89,10 +89,10 @@ export function SpiderChart({ data }: SpiderChartProps) {
           <Legend
             verticalAlign="bottom"
             wrapperStyle={{
-              color: "white",
+              color: "#0f172a",
               fontSize: "14px",
               fontWeight: 600,
-              paddingTop: '20px',
+              paddingTop: "20px",
               fontFamily: spiderChartFontFamily,
             }}
           />

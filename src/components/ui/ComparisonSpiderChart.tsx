@@ -57,20 +57,20 @@ export const ComparisonSpiderChart = ({ data, series, maxDomain }: ComparisonSpi
   return (
     <ChartContainer
       config={{}}
-      className="mx-auto h-full w-full max-h-[480px] rounded-2xl bg-transparent p-2 text-white"
+      className="mx-auto h-full w-full max-h-[480px] rounded-2xl bg-white p-2 text-slate-900"
     >
       <ResponsiveContainer className="chart-ltr">
         <RadarChart data={data}>
-          <PolarGrid gridType="polygon" stroke="#444" strokeDasharray="4 4" radialLines />
+          <PolarGrid gridType="polygon" stroke="#94a3b8" strokeDasharray="4 4" radialLines />
           <PolarAngleAxis
             dataKey="subject"
-            tick={{ fill: "#f8fafc", fontSize: 13, fontWeight: 600, fontFamily }}
+            tick={{ fill: "#0f172a", fontSize: 13, fontWeight: 600, fontFamily }}
           />
           <PolarRadiusAxis
             angle={90}
             domain={[0, computedMax]}
-            tick={{ fill: "#cbd5f5", fontSize: 12, fontFamily }}
-            stroke="#555"
+            tick={{ fill: "#334155", fontSize: 12, fontFamily }}
+            stroke="#cbd5f5"
             axisLine={false}
           />
           {series.map((serie) => (
@@ -90,7 +90,7 @@ export const ComparisonSpiderChart = ({ data, series, maxDomain }: ComparisonSpi
           <Legend
             verticalAlign="bottom"
             wrapperStyle={{
-              color: "white",
+              color: "#0f172a",
               fontSize: 13,
               fontFamily,
               paddingTop: 16,
