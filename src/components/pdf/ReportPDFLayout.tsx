@@ -42,8 +42,8 @@ const A4_WIDTH = 794;
 const A4_HEIGHT = 1123;
 const pageStyle: React.CSSProperties = {
   width: `${A4_WIDTH}px`,
-  height: `${A4_HEIGHT}px`,
-  padding: "48px",
+  minHeight: `${A4_HEIGHT}px`,
+  padding: "40px",
   backgroundColor: "white",
   color: "#111827",
   boxSizing: "border-box",
@@ -53,7 +53,7 @@ const pageStyle: React.CSSProperties = {
   fontFamily: "Vazirmatn, Tahoma, sans-serif",
   display: "flex",
   flexDirection: "column",
-  gap: "24px",
+  gap: "20px",
 };
 const COLORS = ["#0ea5e9", "#22c55e", "#f97316", "#6366f1", "#facc15", "#ec4899"];
 const chartFontFamily = "Vazirmatn, Tahoma, sans-serif";
@@ -621,13 +621,6 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
     }));
     const semanticRowsLimited = semanticRows.slice(0, 6);
 
-    const twoColumnGrid: React.CSSProperties = {
-      display: "grid",
-      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-      gap: "16px",
-      alignItems: "start",
-    };
-
     return (
       <div
         ref={ref}
@@ -650,6 +643,19 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             }
             .chart-ltr {
               direction: ltr;
+            }
+            .pdf-grid {
+              display: grid;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 16px;
+              align-items: start;
+              grid-auto-rows: min-content;
+            }
+            .pdf-break {
+              break-before: page;
+              page-break-before: always;
+              width: 100%;
+              height: 0;
             }
           `}
         </style>
@@ -680,6 +686,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
               display: "grid",
               gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, 0.8fr)",
               gap: "16px",
+              gridAutoRows: "min-content",
             }}
           >
             <SectionCard title="اطلاعات و نمودار شایستگی‌ها" style={{ gap: "16px" }}>
@@ -800,7 +807,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
         <section className="pdf-page" style={pageStyle}>
           <h2 className="text-2xl font-bold text-gray-900">تحلیل‌های تکمیلی - بخش اول</h2>
-          <div style={twoColumnGrid}>
+          <div className="pdf-grid">
             <SectionCard title="تحلیل احساسات">
               {sentimentData.length ? (
                 <>
@@ -947,7 +954,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
 
         <section className="pdf-page" style={pageStyle}>
           <h2 className="text-2xl font-bold text-gray-900">تحلیل‌های تکمیلی - بخش دوم</h2>
-          <div style={twoColumnGrid}>
+          <div className="pdf-grid">
             <SectionCard title="سبک ارتباطی">
               {commStyle.length ? (
                 <>
@@ -1047,6 +1054,7 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
               )}
             </SectionCard>
 
+            <div className="pdf-break" style={{ gridColumn: "1 / -1" }} />
             <SectionCard title="حوزه‌های معنایی پرتکرار" style={{ gridColumn: "span 2" }}>
               {semanticRowsLimited.length ? (
                 <>
