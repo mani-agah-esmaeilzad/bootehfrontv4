@@ -4,7 +4,6 @@ import ReactMarkdown from "react-markdown";
 import { Logo } from "@/components/ui/logo";
 import { withRtlFields } from "@/lib/reports";
 import {
-  ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
@@ -16,8 +15,12 @@ import {
   LineChart,
   Line,
   Legend,
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
 } from "recharts";
-import { SpiderChart } from "@/components/ui/SpiderChart";
 
 interface ReportDetail {
   id: number;
@@ -44,6 +47,8 @@ const pageStyle: React.CSSProperties = {
   backgroundColor: "white",
   color: "#111827",
   boxSizing: "border-box",
+  minWidth: 0,
+  overflow: "hidden",
   direction: "rtl",
   fontFamily: "Vazirmatn, Tahoma, sans-serif",
   display: "flex",
@@ -57,7 +62,18 @@ const legendStyle: React.CSSProperties = {
   fontFamily: chartFontFamily,
   fontSize: "12px",
   direction: "rtl",
+  color: "#111827",
 };
+const CHART_SIZES = {
+  HALF: { width: 320, height: 220 },
+  HALF_TALL: { width: 320, height: 260 },
+  HALF_MEDIUM: { width: 320, height: 240 },
+  FULL: { width: 680, height: 220 },
+  FULL_TALL: { width: 680, height: 260 },
+  FULL_WIDE: { width: 680, height: 280 },
+} as const;
+const defaultChartMargin = { top: 12, right: 16, bottom: 16, left: 16 };
+const semanticChartMargin = { top: 12, right: 16, bottom: 12, left: 140 };
 const PlainTable = ({
   columns,
   rows,
@@ -110,22 +126,81 @@ const PlainTable = ({
     </tbody>
   </table>
 );
-const ChartBox = ({ height = 240, children }: { height?: number; children: React.ReactNode }) => (
+const ChartBox = ({
+  width,
+  height,
+  children,
+}: {
+  width: number;
+  height: number;
+  children: React.ReactNode;
+}) => (
   <div
     style={{
-      width: "100%",
+      width: `${width}px`,
       height: `${height}px`,
+      minWidth: `${width}px`,
       minHeight: `${height}px`,
-      overflow: "hidden",          // ✅ مهم: جلوگیری از بیرون‌زدن
-      position: "relative",        // ✅ کمک به کِلیپ SVG
-      borderRadius: "12px",        // (اختیاری) خوشگل‌تر
+      overflow: "hidden",
+      position: "relative",
+      borderRadius: "12px",
+      boxSizing: "border-box",
+      margin: "0 auto",
     }}
   >
-    <div style={{ width: "100%", height: "100%", direction: "ltr", overflow: "hidden" }}>
-      {children}
-    </div>
+    <div style={{ width: "100%", height: "100%", direction: "ltr", overflow: "hidden" }}>{children}</div>
   </div>
 );
+
+const PdfRadarChart = ({
+  data,
+  width,
+  height,
+  stroke = "#2563eb",
+}: {
+  data: Array<{ subject: string; score: number; fullMark: number }>;
+  width: number;
+  height: number;
+  stroke?: string;
+}) => {
+  if (!data?.length) return null;
+  const maxScore = Math.max(5, ...data.map((item) => Math.max(toNum(item.fullMark), toNum(item.score))));
+  const outerRadius = Math.min(width, height) / 2 - 24;
+  return (
+    <RadarChart
+      width={width}
+      height={height}
+      data={data}
+      cx={width / 2}
+      cy={height / 2}
+      outerRadius={outerRadius}
+      margin={{ top: 12, right: 12, bottom: 12, left: 12 }}
+    >
+      <PolarGrid stroke="#cbd5f5" radialLines />
+      <PolarAngleAxis
+        dataKey="subject"
+        tick={{ fill: "#111827", fontSize: 11, fontFamily: chartFontFamily }}
+        tickLine={false}
+      />
+      <PolarRadiusAxis
+        angle={90}
+        domain={[0, maxScore]}
+        tick={{ fill: "#374151", fontSize: 10, fontFamily: chartFontFamily }}
+        tickLine={false}
+        axisLine={false}
+        stroke="#e2e8f0"
+      />
+      <Radar
+        dataKey="score"
+        stroke={stroke}
+        strokeWidth={2}
+        fill={stroke}
+        fillOpacity={0.2}
+        dot={{ r: 3, fill: stroke, strokeWidth: 1, stroke: "#fff" }}
+      />
+    </RadarChart>
+  );
+};
 
 const SectionCard = ({ title, children, style }: { title: string; children: React.ReactNode; style?: React.CSSProperties }) => (
   <div
@@ -139,6 +214,8 @@ const SectionCard = ({ title, children, style }: { title: string; children: Reac
       gap: "12px",
       overflow: "hidden",          // ✅ قبلاً visible بود
       background: "white",
+      minWidth: 0,
+      boxSizing: "border-box",
       ...style,
     }}
   >
@@ -620,8 +697,8 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
                 <p style={{ fontSize: "13px", color: "#6b7280" }}>از {report.max_score || 100}</p>
               </div>
               {chartData.length > 0 ? (
-                <ChartBox height={220}>
-                  <SpiderChart data={chartData} />
+                <ChartBox width={CHART_SIZES.HALF.width} height={CHART_SIZES.HALF.height}>
+                  <PdfRadarChart data={chartData} width={CHART_SIZES.HALF.width} height={CHART_SIZES.HALF.height} />
                 </ChartBox>
               ) : (
                 <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای برای نمایش نمودار وجود ندارد.</p>
@@ -663,6 +740,9 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
                       borderRadius: "14px",
                       padding: "12px 16px",
                       background: "#f8fafc",
+                      minWidth: 0,
+                      overflow: "hidden",
+                      boxSizing: "border-box",
                     }}
                   >
                     <p style={{ fontSize: "13px", fontWeight: 700, color: "#111827" }}>{item.title}</p>
@@ -693,6 +773,9 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
                       display: "flex",
                       flexDirection: "column",
                       gap: "8px",
+                      minWidth: 0,
+                      overflow: "hidden",
+                      boxSizing: "border-box",
                     }}
                   >
                     <div>
@@ -701,8 +784,12 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
                         نمایش مستقل ابعاد این مرحله برای مقایسه دقیق‌تر
                       </p>
                     </div>
-                    <ChartBox height={220}>
-                      <SpiderChart data={phase.data} />
+                    <ChartBox width={CHART_SIZES.HALF.width} height={CHART_SIZES.HALF.height}>
+                      <PdfRadarChart
+                        data={phase.data}
+                        width={CHART_SIZES.HALF.width}
+                        height={CHART_SIZES.HALF.height}
+                      />
                     </ChartBox>
                   </div>
                 ))}
@@ -717,18 +804,20 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             <SectionCard title="تحلیل احساسات">
               {sentimentData.length ? (
                 <>
-                  <ChartBox height={220}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={sentimentData} dataKey="value" nameKey="name" outerRadius={70}>
-                          {sentimentData.map((entry, index) => (
-                            <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend wrapperStyle={legendStyle} />
-                      </PieChart>
-                    </ResponsiveContainer>
+                  <ChartBox width={CHART_SIZES.HALF.width} height={CHART_SIZES.HALF.height}>
+                    <PieChart
+                      width={CHART_SIZES.HALF.width}
+                      height={CHART_SIZES.HALF.height}
+                      margin={defaultChartMargin}
+                    >
+                      <Pie data={sentimentData} dataKey="value" nameKey="name" outerRadius={70}>
+                        {sentimentData.map((entry, index) => (
+                          <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend wrapperStyle={legendStyle} />
+                    </PieChart>
                   </ChartBox>
                   <SimpleList items={sentimentList} />
                 </>
@@ -740,15 +829,19 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             <SectionCard title="کلمات کلیدی پرتکرار">
               {keywordData.length ? (
                 <>
-                  <ChartBox height={220}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={keywordData} layout="vertical">
-                        <XAxis type="number" tick={baseAxisTick} />
-                        <YAxis dataKey="keyword" type="category" width={110} tick={baseAxisTick} />
-                        <Tooltip />
-                        <Bar dataKey="mentions" fill="#22c55e" />
-                      </BarChart>
-                    </ResponsiveContainer>
+                  <ChartBox width={CHART_SIZES.HALF.width} height={CHART_SIZES.HALF.height}>
+                    <BarChart
+                      data={keywordData}
+                      layout="vertical"
+                      width={CHART_SIZES.HALF.width}
+                      height={CHART_SIZES.HALF.height}
+                      margin={defaultChartMargin}
+                    >
+                      <XAxis type="number" tick={baseAxisTick} />
+                      <YAxis dataKey="keyword" type="category" width={120} tick={baseAxisTick} />
+                      <Tooltip />
+                      <Bar dataKey="mentions" fill="#22c55e" />
+                    </BarChart>
                   </ChartBox>
                   <PlainTable
                     columns={[
@@ -766,15 +859,18 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             <SectionCard title="روند کلمات">
               {verbosityData.length ? (
                 <>
-                  <ChartBox height={220}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={verbosityData}>
-                        <XAxis dataKey="turn" tick={baseAxisTick} />
-                        <YAxis tick={baseAxisTick} />
-                        <Tooltip />
-                        <Line dataKey="word_count" stroke="#f97316" strokeWidth={2} />
-                      </LineChart>
-                    </ResponsiveContainer>
+                  <ChartBox width={CHART_SIZES.HALF.width} height={CHART_SIZES.HALF.height}>
+                    <LineChart
+                      data={verbosityData}
+                      width={CHART_SIZES.HALF.width}
+                      height={CHART_SIZES.HALF.height}
+                      margin={defaultChartMargin}
+                    >
+                      <XAxis dataKey="turn" tick={baseAxisTick} />
+                      <YAxis tick={baseAxisTick} />
+                      <Tooltip />
+                      <Line dataKey="word_count" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} />
+                    </LineChart>
                   </ChartBox>
                   <PlainTable
                     columns={[
@@ -792,17 +888,20 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             <SectionCard title="کنش‌محوری">
               {actionData.length ? (
                 <>
-                  <ChartBox height={220}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={actionData}>
-                        <XAxis dataKey="name" tick={baseAxisTick} />
-                        <YAxis tick={baseAxisTick} />
-                        <Tooltip />
-                        <Legend wrapperStyle={legendStyle} />
-                        <Bar dataKey="action_words" fill="#6366f1" />
-                        <Bar dataKey="passive_words" fill="#94a3b8" />
-                      </BarChart>
-                    </ResponsiveContainer>
+                  <ChartBox width={CHART_SIZES.HALF.width} height={CHART_SIZES.HALF.height}>
+                    <BarChart
+                      data={actionData}
+                      width={CHART_SIZES.HALF.width}
+                      height={CHART_SIZES.HALF.height}
+                      margin={defaultChartMargin}
+                    >
+                      <XAxis dataKey="name" tick={baseAxisTick} />
+                      <YAxis tick={baseAxisTick} />
+                      <Tooltip />
+                      <Legend wrapperStyle={legendStyle} />
+                      <Bar dataKey="action_words" fill="#6366f1" />
+                      <Bar dataKey="passive_words" fill="#94a3b8" />
+                    </BarChart>
                   </ChartBox>
                   <SimpleList items={actionRows} />
                 </>
@@ -814,17 +913,19 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             <SectionCard title="رویکرد حل مسئله">
               {problemSolvingData.length ? (
                 <>
-                  <ChartBox height={220}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={problemSolvingData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80}>
-                          {problemSolvingData.map((entry, index) => (
-                            <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
+                  <ChartBox width={CHART_SIZES.HALF.width} height={CHART_SIZES.HALF.height}>
+                    <PieChart
+                      width={CHART_SIZES.HALF.width}
+                      height={CHART_SIZES.HALF.height}
+                      margin={defaultChartMargin}
+                    >
+                      <Pie data={problemSolvingData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80}>
+                        {problemSolvingData.map((entry, index) => (
+                          <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
                   </ChartBox>
                   <SimpleList items={problemRows} />
                 </>
@@ -850,15 +951,18 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             <SectionCard title="سبک ارتباطی">
               {commStyle.length ? (
                 <>
-                  <ChartBox height={260}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={commStyle}>
-                        <XAxis dataKey="name" tick={baseAxisTick} />
-                        <YAxis tick={baseAxisTick} />
-                        <Tooltip />
-                        <Bar dataKey="value" fill="#a855f7" />
-                      </BarChart>
-                    </ResponsiveContainer>
+                  <ChartBox width={CHART_SIZES.HALF_TALL.width} height={CHART_SIZES.HALF_TALL.height}>
+                    <BarChart
+                      data={commStyle}
+                      width={CHART_SIZES.HALF_TALL.width}
+                      height={CHART_SIZES.HALF_TALL.height}
+                      margin={defaultChartMargin}
+                    >
+                      <XAxis dataKey="name" tick={baseAxisTick} />
+                      <YAxis tick={baseAxisTick} />
+                      <Tooltip />
+                      <Bar dataKey="value" fill="#a855f7" />
+                    </BarChart>
                   </ChartBox>
                   <SimpleList items={commRows} />
                 </>
@@ -870,15 +974,18 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             <SectionCard title="توزیع نمرات">
               {chartData.length ? (
                 <>
-                  <ChartBox height={260}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartData}>
-                        <XAxis dataKey="subject" tick={baseAxisTick} />
-                        <YAxis tick={baseAxisTick} />
-                        <Tooltip />
-                        <Bar dataKey="score" fill="#3b82f6" />
-                      </BarChart>
-                    </ResponsiveContainer>
+                  <ChartBox width={CHART_SIZES.HALF_TALL.width} height={CHART_SIZES.HALF_TALL.height}>
+                    <BarChart
+                      data={chartData}
+                      width={CHART_SIZES.HALF_TALL.width}
+                      height={CHART_SIZES.HALF_TALL.height}
+                      margin={defaultChartMargin}
+                    >
+                      <XAxis dataKey="subject" tick={baseAxisTick} />
+                      <YAxis tick={baseAxisTick} />
+                      <Tooltip />
+                      <Bar dataKey="score" fill="#3b82f6" />
+                    </BarChart>
                   </ChartBox>
                   <SimpleList
                     items={factorProgress.map((item) => ({
@@ -895,15 +1002,18 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             <SectionCard title="شاخص‌های زبانی">
               {radarRows.length ? (
                 <>
-                  <ChartBox height={240}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={radarRows}>
-                        <XAxis dataKey="label" tick={baseAxisTick} />
-                        <YAxis tick={baseAxisTick} />
-                        <Tooltip />
-                        <Bar dataKey="value" fill="#14b8a6" />
-                      </BarChart>
-                    </ResponsiveContainer>
+                  <ChartBox width={CHART_SIZES.HALF_MEDIUM.width} height={CHART_SIZES.HALF_MEDIUM.height}>
+                    <BarChart
+                      data={radarRows}
+                      width={CHART_SIZES.HALF_MEDIUM.width}
+                      height={CHART_SIZES.HALF_MEDIUM.height}
+                      margin={defaultChartMargin}
+                    >
+                      <XAxis dataKey="label" tick={baseAxisTick} />
+                      <YAxis tick={baseAxisTick} />
+                      <Tooltip />
+                      <Bar dataKey="value" fill="#14b8a6" />
+                    </BarChart>
                   </ChartBox>
                   <SimpleList items={radarRows.map((item) => ({ label: item.label, value: item.value }))} />
                 </>
@@ -915,18 +1025,20 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             <SectionCard title="استفاده از ضمایر">
               {pronounRows.length ? (
                 <>
-                  <ChartBox height={260}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={pronounRows} dataKey="value" nameKey="label" outerRadius={70}>
-                          {pronounRows.map((entry, index) => (
-                            <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend wrapperStyle={legendStyle} />
-                      </PieChart>
-                    </ResponsiveContainer>
+                  <ChartBox width={CHART_SIZES.HALF_TALL.width} height={CHART_SIZES.HALF_TALL.height}>
+                    <PieChart
+                      width={CHART_SIZES.HALF_TALL.width}
+                      height={CHART_SIZES.HALF_TALL.height}
+                      margin={defaultChartMargin}
+                    >
+                      <Pie data={pronounRows} dataKey="value" nameKey="label" outerRadius={70}>
+                        {pronounRows.map((entry, index) => (
+                          <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend wrapperStyle={legendStyle} />
+                    </PieChart>
                   </ChartBox>
                   <SimpleList items={pronounRows.map((item) => ({ label: item.label, value: item.value }))} />
                 </>
@@ -938,15 +1050,24 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             <SectionCard title="حوزه‌های معنایی پرتکرار" style={{ gridColumn: "span 2" }}>
               {semanticRowsLimited.length ? (
                 <>
-                  <ChartBox height={280}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={semanticRowsLimited} layout="vertical">
-                        <XAxis type="number" tick={baseAxisTick} />
-                        <YAxis dataKey="label" type="category" width={140} tick={baseAxisTick} />
-                        <Tooltip />
-                        <Bar dataKey="value" fill="#34d399" />
-                      </BarChart>
-                    </ResponsiveContainer>
+                  <ChartBox width={CHART_SIZES.FULL_WIDE.width} height={CHART_SIZES.FULL_WIDE.height}>
+                    <BarChart
+                      data={semanticRowsLimited}
+                      layout="vertical"
+                      width={CHART_SIZES.FULL_WIDE.width}
+                      height={CHART_SIZES.FULL_WIDE.height}
+                      margin={semanticChartMargin}
+                    >
+                      <XAxis type="number" tick={baseAxisTick} />
+                      <YAxis
+                        dataKey="label"
+                        type="category"
+                        width={160}
+                        tick={{ ...baseAxisTick, fontSize: 10 }}
+                      />
+                      <Tooltip />
+                      <Bar dataKey="value" fill="#34d399" />
+                    </BarChart>
                   </ChartBox>
                   <PlainTable
                     columns={[

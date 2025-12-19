@@ -969,6 +969,21 @@ const AdminReportDetail = () => {
     }
   };
 
+  const stabilizeBeforeCapture = async () => {
+    if (typeof window === "undefined" || typeof document === "undefined") return;
+    const fonts = (document as any).fonts as FontFaceSet | undefined;
+    if (fonts?.ready) {
+      try {
+        await fonts.ready;
+      } catch (err) {
+        console.warn("Waiting for font readiness failed", err);
+      }
+    }
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    window.dispatchEvent(new Event("resize"));
+    await new Promise<void>((resolve) => requestAnimationFrame(resolve));
+  };
+
   useEffect(() => {
     if (!id || isNaN(Number(id))) {
       toast.error("شناسه گزارش معتبر نیست.");
@@ -1005,6 +1020,7 @@ const AdminReportDetail = () => {
 
       for (let index = 0; index < targets.length; index += 1) {
         const page = targets[index];
+        await stabilizeBeforeCapture();
         const canvas = await html2canvas(page, {
           scale: 2,
           useCORS: true,
