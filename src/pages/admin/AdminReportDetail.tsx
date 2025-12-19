@@ -1642,19 +1642,19 @@ const AdminReportDetail = () => {
               هر پرسشنامه چندمرحله‌ای حالا تمام نمودارها و تحلیل‌ها را در یک بخش جداگانه نمایش می‌دهد تا مقایسه‌ی مستقیم آسان‌تر شود.
             </p>
           </div>
-          <div className="space-y-6">
+          <div className="flex flex-col gap-6">
             {phaseFullReports.map((phase) => (
               <div
                 key={`phase-report-${phase.id}`}
-                className="space-y-3 rounded-3xl border border-slate-200 bg-slate-50/80 p-4 shadow-inner"
+                className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-slate-50/80 p-4 shadow-inner"
               >
                 <div className="flex flex-col gap-1 text-right">
                   <p className="text-xs font-semibold text-slate-500">پرسشنامه {phase.phaseNumber}</p>
                   <p className="text-base font-bold text-slate-900">{phase.label}</p>
                   {phase.personaName && <p className="text-sm text-slate-600">پرسونا: {phase.personaName}</p>}
                 </div>
-                <div className="overflow-auto rounded-2xl border border-slate-200 bg-white">
-                  <div className="mx-auto flex min-w-[840px] justify-center bg-slate-100 p-4">
+                <div className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                  <div className="flex flex-col items-center justify-center bg-slate-100/80 p-4">
                     <ReportPDFLayout report={phase.report} />
                   </div>
                 </div>
