@@ -2247,7 +2247,11 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۵. کنش‌محوری"
           front={
-            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            <div
+              className="min-h-[320px] w-full overflow-visible"
+              dir="rtl"
+              style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}
+            >
               {actionData.length === 0 ? (
                 noData("داده‌ای برای مقایسه واژگان کنشی موجود نیست.")
               ) : (
@@ -2570,7 +2574,11 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۱۳. استفاده از ضمایر"
           front={
-            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            <div
+              className="min-h-[320px] w-full overflow-visible"
+              dir="rtl"
+              style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}
+            >
               {pronouns.every((entry) => !entry.value) ? (
                 noData("تحلیلی از ضمایر یافت نشد.")
               ) : (
@@ -2615,7 +2623,11 @@ const AdminReportDetail = () => {
         <ChartFlipCard
           title="۱۴. حوزه‌های معنایی پرتکرار"
           front={
-            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            <div
+              className="min-h-[340px] w-full overflow-visible"
+              dir="rtl"
+              style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}
+            >
               {semanticFields.length === 0 ? (
                 noData("حوزه معنایی شناسایی نشد.")
               ) : (
