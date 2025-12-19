@@ -1,6 +1,6 @@
 // src/components/modals/ResultsModal.tsx
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { LoaderCircle, AlertTriangle } from 'lucide-react';
@@ -18,6 +18,12 @@ interface FinalAnalysis {
     score: number;
     report: string;
     factor_scores: FactorScore[];
+    phase_breakdown?: PhaseBreakdownEntry[];
+}
+interface PhaseBreakdownEntry {
+    phase?: number;
+    personaName?: string | null;
+    analysis?: Record<string, unknown> | null;
 }
 interface AssessmentResult {
     questionnaire_title: string;
@@ -31,6 +37,68 @@ interface ResultsModalProps {
     onClose: () => void;
     assessmentId: number | null;
 }
+
+const persianDigitMap: Record<string, string> = {
+    "۰": "0",
+    "۱": "1",
+    "۲": "2",
+    "۳": "3",
+    "۴": "4",
+    "۵": "5",
+    "۶": "6",
+    "۷": "7",
+    "۸": "8",
+    "۹": "9",
+};
+
+const toNum = (val: unknown): number => {
+    if (typeof val === "number" && Number.isFinite(val)) return val;
+    if (val === null || val === undefined) return 0;
+    const normalized = String(val)
+        .trim()
+        .replace(/[۰-۹]/g, (digit) => persianDigitMap[digit] ?? digit)
+        .replace(/,/g, "")
+        .replace(/%/g, "")
+        .replace(/[^\d.-]/g, "");
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const parseArrayLike = (input: unknown): unknown[] => {
+    if (Array.isArray(input)) return input;
+    if (typeof input === "string") {
+        try {
+            const parsed = JSON.parse(input);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    }
+    return [];
+};
+
+const normalizeSpiderData = (input: unknown): Array<{ subject: string; score: number; fullMark: number }> => {
+    const candidateArray = parseArrayLike(input);
+    if (!Array.isArray(candidateArray)) return [];
+    return candidateArray
+        .map((entry, index) => {
+            if (entry && typeof entry === "object") {
+                const record = entry as Record<string, unknown>;
+                const subject =
+                    (record.factor as string) ||
+                    (record.subject as string) ||
+                    (record.name as string) ||
+                    (record.label as string) ||
+                    `مولفه ${index + 1}`;
+                const score = toNum(record.score ?? record.value ?? record.actual ?? record.current);
+                const fullMark = toNum(record.maxScore ?? record.fullMark ?? record.max ?? 5) || 5;
+                return { subject, score, fullMark };
+            }
+            const numericValue = toNum(entry);
+            return { subject: `مولفه ${index + 1}`, score: numericValue, fullMark: 5 };
+        })
+        .filter((item) => Number.isFinite(item.score));
+};
 
 const ResultsModal = ({ isOpen, onClose, assessmentId }: ResultsModalProps) => {
     const [analysis, setAnalysis] = useState<FinalAnalysis | null>(null);
@@ -77,6 +145,31 @@ const ResultsModal = ({ isOpen, onClose, assessmentId }: ResultsModalProps) => {
         score: item.score,
         fullMark: item.maxScore,
     })) || [];
+    const phaseSpiderCharts = useMemo(() => {
+        const phases = analysis?.phase_breakdown;
+        if (!Array.isArray(phases)) return [];
+        return phases
+            .map((phase, index) => {
+                const phaseNumber = typeof phase.phase === "number" ? phase.phase : index + 1;
+                const persona = phase.personaName?.trim();
+                const label = persona ? `پرسشنامه ${phaseNumber} · ${persona}` : `پرسشنامه ${phaseNumber}`;
+                const phaseAnalysis = (phase.analysis ?? {}) as Record<string, unknown>;
+                const baseData = normalizeSpiderData(phaseAnalysis["factor_scores"]);
+                const fallbackScatter = normalizeSpiderData(phaseAnalysis["factor_scatter"]);
+                const fallbackTreemap = normalizeSpiderData(phaseAnalysis["factor_contribution"]);
+                const finalData =
+                    baseData.length > 0
+                        ? baseData
+                        : fallbackScatter.length > 0
+                            ? fallbackScatter
+                            : fallbackTreemap.length > 0
+                                ? fallbackTreemap
+                                : [];
+                if (finalData.length === 0) return null;
+                return { id: `phase-spider-${phaseNumber}-${index}`, label, data: finalData };
+            })
+            .filter((item): item is { id: string; label: string; data: Array<{ subject: string; score: number; fullMark: number }> } => Boolean(item));
+    }, [analysis]);
 
     const renderContent = () => {
         if (isLoading) {
@@ -106,6 +199,24 @@ const ResultsModal = ({ isOpen, onClose, assessmentId }: ResultsModalProps) => {
                                 <SpiderChart data={chartData} />
                             ) : <p className="text-sm text-gray-500">داده‌ای برای نمایش نمودار وجود ندارد.</p>}
                         </div>
+                        {phaseSpiderCharts.length > 0 && (
+                            <div className="space-y-3">
+                                <h4 className="text-base font-semibold text-hrbooteh-text-primary">نمودار هر مرحله</h4>
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                    {phaseSpiderCharts.map((phase) => (
+                                        <div
+                                            key={phase.id}
+                                            className="rounded-xl border border-hrbooteh-surface-elevated bg-hrbooteh-surface p-4"
+                                        >
+                                            <p className="text-sm font-medium text-hrbooteh-text-secondary mb-2">{phase.label}</p>
+                                            <div className="h-64 flex items-center justify-center">
+                                                <SpiderChart data={phase.data} />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                         <div className="text-center">
                             <p className="text-hrbooteh-text-secondary">امتیاز کل</p>
                             <p className="text-4xl font-bold text-hrbooteh-primary">{analysis.score}</p>

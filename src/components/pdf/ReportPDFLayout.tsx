@@ -443,6 +443,45 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
         summary,
       };
     });
+    const phaseSpiderCharts = phaseBreakdown
+      .map((phase: any, index: number) => {
+        const phaseNumber = phase?.phase ?? index + 1;
+        const persona = phase?.personaName?.trim();
+        const label = persona ? `پرسشنامه ${phaseNumber} · ${persona}` : `پرسشنامه ${phaseNumber}`;
+        const phaseAnalysis = hydrateAnalysis(phase?.analysis ?? {});
+        const phaseFactorRaw = resolveAnalysisField(phaseAnalysis, ["factor_scores", "factor score", "factor-score"]);
+        const phaseScatterRaw = resolveAnalysisField(phaseAnalysis, [
+          "factor_scatter",
+          "scatter_data",
+          "factor_correlation",
+          "scatter",
+          "factor scatter",
+        ]);
+        const phaseTreemapRaw = resolveAnalysisField(phaseAnalysis, [
+          "factor_contribution",
+          "factor_share",
+          "factor_treemap",
+          "factor contribution",
+        ]);
+        const baseData = normalizeFactorEntries(phaseFactorRaw);
+        const fallbackScatter = normalizeFactorEntries(phaseScatterRaw);
+        const fallbackTreemap = normalizeFactorEntries(phaseTreemapRaw);
+        const finalData =
+          baseData.length > 0
+            ? baseData
+            : fallbackScatter.length > 0
+              ? fallbackScatter
+              : fallbackTreemap.length > 0
+                ? fallbackTreemap
+                : [];
+        if (finalData.length === 0) return null;
+        return {
+          id: `phase-spider-${phaseNumber}-${index}`,
+          label,
+          data: finalData,
+        };
+      })
+      .filter(Boolean) as Array<{ id: string; label: string; data: Array<{ subject: string; score: number; fullMark: number }> }>;
 
     const infoItems = [
       { label: "نام کامل", value: `${report.firstName} ${report.lastName}`.trim() || "—" },
@@ -620,6 +659,42 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
                   >
                     <p style={{ fontSize: "13px", fontWeight: 700, color: "#111827" }}>{item.title}</p>
                     <p style={{ fontSize: "12px", color: "#4b5563", lineHeight: 1.7 }}>{item.summary}</p>
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+          )}
+          {phaseSpiderCharts.length > 0 && (
+            <SectionCard title="نمودار عنکبوتی هر مرحله">
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                  gap: "16px",
+                }}
+              >
+                {phaseSpiderCharts.map((phase) => (
+                  <div
+                    key={phase.id}
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "16px",
+                      padding: "12px",
+                      backgroundColor: "#f8fafc",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "8px",
+                    }}
+                  >
+                    <div>
+                      <p style={{ fontSize: "12px", color: "#475569" }}>{phase.label}</p>
+                      <p style={{ fontSize: "11px", color: "#94a3b8" }}>
+                        نمایش مستقل ابعاد این مرحله برای مقایسه دقیق‌تر
+                      </p>
+                    </div>
+                    <ChartBox height={220}>
+                      <SpiderChart data={phase.data} />
+                    </ChartBox>
                   </div>
                 ))}
               </div>

@@ -1,7 +1,7 @@
 // src/pages/admin/AdminReportDetail.tsx
 
 "use client";
-import { useEffect, useState, useRef, ReactNode } from "react";
+import { useEffect, useState, useRef, ReactNode, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import apiFetch from "@/services/apiService";
 import { toast } from "sonner";
@@ -56,6 +56,14 @@ interface PhaseBreakdownEntry {
   prompt?: string | null;
   analysis?: Record<string, any> | null;
   supplementary_answers?: Record<string, any> | null;
+}
+
+interface PhaseFullReportView {
+  id: string;
+  label: string;
+  phaseNumber: number;
+  personaName?: string | null;
+  report: ReportDetail;
 }
 
 interface ReportDetail {
@@ -956,6 +964,36 @@ const AdminReportDetail = () => {
     }
   };
 
+  const analysis = hydrateAnalysis(report?.analysis ?? {});
+  const phaseBreakdown: PhaseBreakdownEntry[] = Array.isArray(analysis?.phase_breakdown)
+    ? (analysis.phase_breakdown as PhaseBreakdownEntry[])
+    : [];
+  const phaseFullReports = useMemo<PhaseFullReportView[]>(() => {
+    if (!report) return [];
+    return phaseBreakdown
+      .map((phase, index) => {
+        if (!phase.analysis) return null;
+        const phaseNumber = typeof phase.phase === "number" && phase.phase > 0 ? phase.phase : index + 1;
+        const personaLabel = phase.personaName?.trim() || null;
+        const tabLabel = personaLabel
+          ? `پرسشنامه ${phaseNumber} · ${personaLabel}`
+          : `پرسشنامه ${phaseNumber}`;
+        const clonedReport: ReportDetail = {
+          ...report,
+          questionnaire_title: `${report.questionnaire_title} | ${tabLabel}`,
+          analysis: phase.analysis,
+        };
+        return {
+          id: `phase-full-${phaseNumber}-${index}`,
+          label: tabLabel,
+          phaseNumber,
+          personaName: personaLabel,
+          report: clonedReport,
+        };
+      })
+      .filter((item): item is PhaseFullReportView => Boolean(item));
+  }, [phaseBreakdown, report]);
+
   if (isLoading)
     return (
       <div className="flex h-full items-center justify-center p-10">
@@ -969,11 +1007,6 @@ const AdminReportDetail = () => {
         <p className="mt-4 font-semibold text-destructive">خطا: {error}</p>
       </div>
     );
-
-  const analysis = hydrateAnalysis(report.analysis);
-  const phaseBreakdown: PhaseBreakdownEntry[] = Array.isArray(analysis?.phase_breakdown)
-    ? (analysis.phase_breakdown as PhaseBreakdownEntry[])
-    : [];
 
   const factorScoreRaw = resolveAnalysisField(analysis, ["factor_scores", "factor score", "factor-score"]);
   const scatterRaw = resolveAnalysisField(analysis, [
@@ -1530,6 +1563,35 @@ const AdminReportDetail = () => {
                 </Card>
               );
             })}
+          </div>
+        </section>
+      )}
+      {phaseFullReports.length > 0 && (
+        <section className="space-y-4 rounded-3xl border border-indigo-100 bg-white/95 p-6 shadow-lg shadow-indigo-500/10" dir="rtl">
+          <div className="flex flex-col gap-2 text-right">
+            <h2 className="text-xl font-bold text-slate-900">نمودار و گزارش کامل هر مرحله</h2>
+            <p className="text-sm text-slate-500">
+              هر پرسشنامه چندمرحله‌ای حالا تمام نمودارها و تحلیل‌ها را در یک بخش جداگانه نمایش می‌دهد تا مقایسه‌ی مستقیم آسان‌تر شود.
+            </p>
+          </div>
+          <div className="space-y-6">
+            {phaseFullReports.map((phase) => (
+              <div
+                key={`phase-report-${phase.id}`}
+                className="space-y-3 rounded-3xl border border-slate-200 bg-slate-50/80 p-4 shadow-inner"
+              >
+                <div className="flex flex-col gap-1 text-right">
+                  <p className="text-xs font-semibold text-slate-500">پرسشنامه {phase.phaseNumber}</p>
+                  <p className="text-base font-bold text-slate-900">{phase.label}</p>
+                  {phase.personaName && <p className="text-sm text-slate-600">پرسونا: {phase.personaName}</p>}
+                </div>
+                <div className="overflow-auto rounded-2xl border border-slate-200 bg-white">
+                  <div className="mx-auto flex min-w-[840px] justify-center bg-slate-100 p-4">
+                    <ReportPDFLayout report={phase.report} />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       )}
