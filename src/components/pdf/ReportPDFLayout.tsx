@@ -325,7 +325,9 @@ const normalizeFactorEntries = (input: unknown): Array<{ subject: string; score:
         const score = toNum(
           record.score ?? record.value ?? record.actual ?? record.current ?? record.raw ?? record.scoreValue
         );
-        const fullMark = toNum(record.maxScore ?? record.fullMark ?? record.target ?? record.max ?? 5) || 5;
+        const fullMark =
+          toNum(record.maxScore ?? (record as Record<string, unknown>).max_score ?? record.fullMark ?? record.target ?? record.max ?? 5) ||
+          5;
         return { subject, score, fullMark };
       }
 

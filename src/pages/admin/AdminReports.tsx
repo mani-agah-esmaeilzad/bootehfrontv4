@@ -231,7 +231,15 @@ const normalizeFactorEntries = (input: unknown): any[] => {
                     record.scoreValue
                 );
 
-                const fullMark = toNum(record.maxScore ?? record.fullMark ?? 5) || 5;
+        const fullMark =
+          toNum(
+            record.maxScore ??
+              (record as Record<string, unknown>).max_score ??
+              record.fullMark ??
+              record.target ??
+              record.max ??
+              5,
+          ) || 5;
 
                 return {
                     name,

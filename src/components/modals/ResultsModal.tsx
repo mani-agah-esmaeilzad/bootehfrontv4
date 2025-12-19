@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LoaderCircle, AlertTriangle } from 'lucide-react';
 import apiFetch from '@/services/apiService';
 import { SpiderChart } from '@/components/ui/SpiderChart';
+import { ComparisonSpiderChart } from '@/components/ui/ComparisonSpiderChart';
 import ReactMarkdown from 'react-markdown';
 
 // --- Type Definitions ---
@@ -100,6 +101,78 @@ const normalizeSpiderData = (input: unknown): Array<{ subject: string; score: nu
         .filter((item) => Number.isFinite(item.score));
 };
 
+const normalizeKey = (key: string) => key.toLowerCase().replace(/[\s_-]+/g, "");
+
+const resolvePhaseField = (source: Record<string, any>, candidates: string[]) => {
+    const normalizedMap = new Map<string, string>();
+    Object.keys(source).forEach((key) => normalizedMap.set(normalizeKey(key), key));
+    for (const candidate of candidates) {
+        const normalized = normalizeKey(candidate);
+        if (normalizedMap.has(normalized)) {
+            return source[normalizedMap.get(normalized)!];
+        }
+    }
+    return undefined;
+};
+
+const comparisonPalette = ["#6366f1", "#f97316", "#0ea5e9", "#14b8a6"];
+
+const extractPhaseSpiderEntries = (phaseAnalysis?: Record<string, unknown> | null) => {
+    if (!phaseAnalysis || typeof phaseAnalysis !== "object") return [];
+    const source = phaseAnalysis as Record<string, any>;
+    const candidates = [
+        resolvePhaseField(source, ["factor_scores", "factor score", "factor-score"]),
+        resolvePhaseField(source, ["factor_scatter", "scatter_data", "factor scatter"]),
+        resolvePhaseField(source, ["factor_contribution", "factor share", "factor contribution"]),
+    ];
+    for (const candidate of candidates) {
+        const normalized = normalizeSpiderData(candidate);
+        if (normalized.length > 0) return normalized;
+    }
+    return [];
+};
+
+const buildPhaseComparison = (phases: PhaseBreakdownEntry[] | undefined | null) => {
+    const usablePhases = Array.isArray(phases) ? phases : [];
+    const series: Array<{ key: string; label: string; color: string }> = [];
+    const dataMap = new Map<string, Record<string, number | string | undefined>>();
+
+    usablePhases.forEach((phase, index) => {
+        const entries = extractPhaseSpiderEntries(phase.analysis);
+        if (entries.length === 0) return;
+        const phaseNumber = phase.phase ?? index + 1;
+        const key = `phase_${phaseNumber}`;
+        const label = phase.personaName
+            ? `پرسشنامه ${phaseNumber} – ${phase.personaName}`
+            : `پرسشنامه ${phaseNumber}`;
+        series.push({
+            key,
+            label,
+            color: comparisonPalette[index % comparisonPalette.length],
+        });
+
+        entries.forEach((entry) => {
+            const subjectKey = entry.subject || `مولفه ${phaseNumber}`;
+            const existing = dataMap.get(subjectKey) ?? { subject: subjectKey, fullMark: entry.fullMark };
+            const currentFullMark = typeof existing.fullMark === "number" ? existing.fullMark : toNum(existing.fullMark);
+            existing.fullMark = Math.max(currentFullMark || 0, entry.fullMark || 0);
+            existing[key] = entry.score;
+            dataMap.set(subjectKey, existing);
+        });
+    });
+
+    const data = Array.from(dataMap.values()).map((entry) => {
+        series.forEach((serie) => {
+            if (typeof entry[serie.key] !== "number") {
+                entry[serie.key] = 0;
+            }
+        });
+        return entry;
+    });
+
+    return { data, series };
+};
+
 const ResultsModal = ({ isOpen, onClose, assessmentId }: ResultsModalProps) => {
     const [analysis, setAnalysis] = useState<FinalAnalysis | null>(null);
     const [title, setTitle] = useState('');
@@ -153,22 +226,32 @@ const ResultsModal = ({ isOpen, onClose, assessmentId }: ResultsModalProps) => {
                 const phaseNumber = typeof phase.phase === "number" ? phase.phase : index + 1;
                 const persona = phase.personaName?.trim();
                 const label = persona ? `پرسشنامه ${phaseNumber} · ${persona}` : `پرسشنامه ${phaseNumber}`;
-                const phaseAnalysis = (phase.analysis ?? {}) as Record<string, unknown>;
-                const baseData = normalizeSpiderData(phaseAnalysis["factor_scores"]);
-                const fallbackScatter = normalizeSpiderData(phaseAnalysis["factor_scatter"]);
-                const fallbackTreemap = normalizeSpiderData(phaseAnalysis["factor_contribution"]);
-                const finalData =
-                    baseData.length > 0
-                        ? baseData
-                        : fallbackScatter.length > 0
-                            ? fallbackScatter
-                            : fallbackTreemap.length > 0
-                                ? fallbackTreemap
-                                : [];
+                const finalData = extractPhaseSpiderEntries(phase.analysis);
                 if (finalData.length === 0) return null;
                 return { id: `phase-spider-${phaseNumber}-${index}`, label, data: finalData };
             })
-            .filter((item): item is { id: string; label: string; data: Array<{ subject: string; score: number; fullMark: number }> } => Boolean(item));
+            .filter(
+                (item): item is { id: string; label: string; data: Array<{ subject: string; score: number; fullMark: number }> } =>
+                    Boolean(item)
+            );
+    }, [analysis]);
+    const phaseComparison = useMemo(() => buildPhaseComparison(analysis?.phase_breakdown), [analysis]);
+    const phaseSummaries = useMemo(() => {
+        const phases = analysis?.phase_breakdown;
+        if (!Array.isArray(phases)) return [];
+        return phases
+            .map((phase, index) => {
+                const phaseNumber = typeof phase.phase === "number" ? phase.phase : index + 1;
+                const persona = phase.personaName?.trim();
+                const title = persona ? `پرسشنامه ${phaseNumber} – ${persona}` : `پرسشنامه ${phaseNumber}`;
+                const report =
+                    phase.analysis && typeof (phase.analysis as Record<string, unknown>)?.report === "string"
+                        ? ((phase.analysis as Record<string, unknown>).report as string).trim()
+                        : "";
+                if (!report) return null;
+                return { id: `phase-summary-${phaseNumber}-${index}`, title, report };
+            })
+            .filter((item): item is { id: string; title: string; report: string } => Boolean(item));
     }, [analysis]);
 
     const renderContent = () => {
@@ -196,8 +279,14 @@ const ResultsModal = ({ isOpen, onClose, assessmentId }: ResultsModalProps) => {
                         <h3 className="text-lg font-semibold text-hrbooteh-text-primary">نمودار شایستگی‌ها</h3>
                         <div className="w-full h-80 flex items-center justify-center">
                             {chartData.length > 0 ? (
-                                <SpiderChart data={chartData} />
-                            ) : <p className="text-sm text-gray-500">داده‌ای برای نمایش نمودار وجود ندارد.</p>}
+                                phaseComparison.series.length >= 2 ? (
+                                    <ComparisonSpiderChart data={phaseComparison.data} series={phaseComparison.series} />
+                                ) : (
+                                    <SpiderChart data={chartData} />
+                                )
+                            ) : (
+                                <p className="text-sm text-gray-500">داده‌ای برای نمایش نمودار وجود ندارد.</p>
+                            )}
                         </div>
                         {phaseSpiderCharts.length > 0 && (
                             <div className="space-y-3">
@@ -229,6 +318,21 @@ const ResultsModal = ({ isOpen, onClose, assessmentId }: ResultsModalProps) => {
                                 {analysis.report}
                             </ReactMarkdown>
                          </div>
+                         {phaseSummaries.length > 0 && (
+                             <div className="space-y-3 rounded-xl border border-hrbooteh-surface-elevated bg-hrbooteh-surface p-4">
+                                 <p className="text-sm font-semibold text-hrbooteh-text-primary">تحلیل هر پرسشنامه</p>
+                                 <div className="space-y-3">
+                                     {phaseSummaries.map((summary) => (
+                                         <div key={summary.id} className="rounded-lg border border-hrbooteh-surface-elevated/70 bg-hrbooteh-surface-elevated p-3">
+                                             <p className="text-xs font-semibold text-hrbooteh-text-secondary">{summary.title}</p>
+                                             <div className="prose prose-sm dark:prose-invert max-w-none text-hrbooteh-text-secondary">
+                                                 <ReactMarkdown>{summary.report}</ReactMarkdown>
+                                             </div>
+                                         </div>
+                                     ))}
+                                 </div>
+                             </div>
+                         )}
                     </div>
                 </div>
             );

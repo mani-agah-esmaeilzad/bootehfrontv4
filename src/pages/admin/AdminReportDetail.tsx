@@ -46,6 +46,7 @@ import {
 } from "recharts";
 
 import { SpiderChart } from "@/components/ui/SpiderChart";
+import { ComparisonSpiderChart } from "@/components/ui/ComparisonSpiderChart";
 import { ReportPDFLayout } from "@/components/pdf/ReportPDFLayout";
 import { withRtlFields } from "@/lib/reports";
 import { cn } from "@/lib/utils";
@@ -598,8 +599,15 @@ const normalizeFactorEntries = (input: unknown): any[] => {
             record.scoreValue
         );
 
-        // ❗ نسخه صحیح — همیشه ۵ یا maxScore ثابت
-        const fullMark = toNum(record.maxScore ?? 5) || 5;
+        const fullMark =
+          toNum(
+            record.maxScore ??
+              (record as Record<string, unknown>).max_score ??
+              record.fullMark ??
+              record.target ??
+              record.max ??
+              5,
+          ) || 5;
 
         return {
           name,
@@ -624,6 +632,65 @@ const normalizeFactorEntries = (input: unknown): any[] => {
     .filter((item) => Number.isFinite(item.score));
 };
 
+const phaseComparisonColors = ["#6366f1", "#f97316", "#0ea5e9", "#14b8a6"];
+
+const extractPhaseFactorEntries = (phaseAnalysis?: Record<string, unknown> | null) => {
+  if (!phaseAnalysis || typeof phaseAnalysis !== "object") return [];
+  const candidates = [
+    resolveAnalysisField(phaseAnalysis as Record<string, any>, ["factor_scores", "factor score", "factor-score"]),
+    resolveAnalysisField(phaseAnalysis as Record<string, any>, ["factor_scatter", "scatter_data", "factor scatter"]),
+    resolveAnalysisField(phaseAnalysis as Record<string, any>, [
+      "factor_contribution",
+      "factor_share",
+      "factor contribution",
+    ]),
+  ];
+  for (const candidate of candidates) {
+    const normalized = normalizeFactorEntries(candidate);
+    if (normalized.length > 0) return normalized;
+  }
+  return [];
+};
+
+const buildPhaseSpiderComparison = (phases: PhaseBreakdownEntry[]) => {
+  const series: Array<{ key: string; label: string; color: string }> = [];
+  const dataMap = new Map<string, Record<string, number | string | undefined>>();
+
+  phases.forEach((phase, index) => {
+    const factorEntries = extractPhaseFactorEntries(phase.analysis);
+    if (factorEntries.length === 0) return;
+    const phaseNumber = phase.phase ?? index + 1;
+    const key = `phase_${phaseNumber}`;
+    const label = phase.personaName
+      ? `پرسشنامه ${phaseNumber} – ${phase.personaName}`
+      : `پرسشنامه ${phaseNumber}`;
+    series.push({
+      key,
+      label,
+      color: phaseComparisonColors[index % phaseComparisonColors.length],
+    });
+
+    factorEntries.forEach((entry) => {
+      const subjectKey = entry.subject || entry.name || `مولفه ${phaseNumber}`;
+      const existing = dataMap.get(subjectKey) ?? { subject: subjectKey, fullMark: entry.fullMark };
+      const currentFullMark = typeof existing.fullMark === "number" ? existing.fullMark : toNum(existing.fullMark);
+      existing.fullMark = Math.max(currentFullMark || 0, entry.fullMark || 0);
+      existing[key] = entry.score;
+      dataMap.set(subjectKey, existing);
+    });
+  });
+
+  const data = Array.from(dataMap.values()).map((entry) => {
+    series.forEach((serie) => {
+      if (typeof entry[serie.key] !== "number") {
+        entry[serie.key] = 0;
+      }
+    });
+    return entry;
+  });
+
+  return { data, series };
+};
 
 const rtlFontStack = "'Vazirmatn', 'IRANSans', 'Tahoma', sans-serif";
 
@@ -993,6 +1060,7 @@ const AdminReportDetail = () => {
       })
       .filter((item): item is PhaseFullReportView => Boolean(item));
   }, [phaseBreakdown, report]);
+  const phaseComparison = useMemo(() => buildPhaseSpiderComparison(phaseBreakdown), [phaseBreakdown]);
 
   if (isLoading)
     return (
@@ -1895,7 +1963,11 @@ const AdminReportDetail = () => {
           front={
             <div className="h-[380px]" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
               {chartData.length > 0 ? (
-                <SpiderChart data={chartData} />
+                phaseComparison.series.length >= 2 ? (
+                  <ComparisonSpiderChart data={phaseComparison.data} series={phaseComparison.series} />
+                ) : (
+                  <SpiderChart data={chartData} />
+                )
               ) : (
                 <p className="flex h-full items-center justify-center text-center text-sm text-muted-foreground">
                   داده‌ای وجود ندارد.
