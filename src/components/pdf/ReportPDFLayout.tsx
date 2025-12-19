@@ -621,11 +621,8 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
               </div>
               {chartData.length > 0 ? (
                 <ChartBox height={220}>
-                  <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
-                    <SpiderChart data={chartData} />
-                  </div>
+                  <SpiderChart data={chartData} />
                 </ChartBox>
-
               ) : (
                 <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای برای نمایش نمودار وجود ندارد.</p>
               )}
