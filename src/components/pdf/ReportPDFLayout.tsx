@@ -20,6 +20,8 @@ import {
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
+  CartesianGrid,
+  ReferenceLine,
 } from "recharts";
 
 interface ReportDetail {
@@ -423,6 +425,153 @@ const normalizeFactorEntries = (input: unknown): Array<{ subject: string; score:
     .filter((item) => Number.isFinite(item.score));
 };
 
+const buildSentimentChartData = (entries: { name: string; value: number }[]) => {
+  const sanitized = entries
+    .map((entry) => ({
+      name: entry.name,
+      value: Math.max(0, toNum(entry.value)),
+    }))
+    .filter((entry) => entry.name && Number.isFinite(entry.value));
+  const total = sanitized.reduce((sum, entry) => sum + entry.value, 0);
+  if (!total) return [];
+  let remainder = 100;
+  const rounded = sanitized.map((entry, index) => {
+    const normalized = (entry.value / total) * 100;
+    const isLast = index === sanitized.length - 1;
+    const percent = isLast ? remainder : Math.round(normalized * 10) / 10;
+    remainder = Math.max(0, remainder - percent);
+    return {
+      name: entry.name,
+      raw: entry.value,
+      value: percent,
+    };
+  });
+  if (rounded.length > 0) {
+    const adjustment = 100 - rounded.reduce((sum, entry) => sum + entry.value, 0);
+    if (Math.abs(adjustment) >= 0.1) {
+      rounded[rounded.length - 1].value = Math.round((rounded[rounded.length - 1].value + adjustment) * 10) / 10;
+    }
+  }
+  return rounded;
+};
+
+const WORD_CLOUD_STOP_WORDS = new Set(
+  [
+    "را",
+    "از",
+    "با",
+    "به",
+    "در",
+    "برای",
+    "که",
+    "و",
+    "یا",
+    "اما",
+    "ولی",
+    "اگر",
+    "تا",
+    "هر",
+    "یک",
+    "دو",
+    "سه",
+    "این",
+    "اون",
+    "آن",
+    "هم",
+    "همه",
+    "نیز",
+    "من",
+    "تو",
+    "او",
+    "ما",
+    "شما",
+    "آنها",
+    "اینجا",
+    "آنجا",
+    "چرا",
+    "چه",
+    "چطور",
+    "چگونه",
+    "می",
+    "است",
+    "بود",
+    "هست",
+    "شد",
+    "شود",
+    "خواهد",
+    "کرد",
+    "کردن",
+    "کن",
+    "میکند",
+    "میکنم",
+    "کنم",
+    "کردم",
+    "کردند",
+    "پس",
+    "بلکه",
+    "اگرچه",
+    "چنانکه",
+    "باید",
+    "نباید",
+  ].map((word) => word.trim().toLowerCase()),
+);
+
+const sanitizeWordCloudPhrase = (phrase: string) => {
+  if (!phrase) return "";
+  const tokens = phrase
+    .split(/\s+/)
+    .map((token) =>
+      token
+        .replace(/[0-9۰-۹]+/g, "")
+        .replace(/[^\u0600-\u06FFA-Za-z]/g, "")
+        .trim()
+        .toLowerCase(),
+    )
+    .filter((token) => token.length > 1 && !WORD_CLOUD_STOP_WORDS.has(token));
+  return tokens.join(" ");
+};
+
+const prepareWordCloudData = (raw: unknown): { keyword: string; mentions: number }[] => {
+  const entries = parseArrayLike(raw);
+  if (!Array.isArray(entries)) return [];
+  const frequency = new Map<string, number>();
+
+  entries.forEach((entry) => {
+    if (!entry) return;
+    let phrase = "";
+    let mentions = 1;
+    if (typeof entry === "string") {
+      phrase = entry;
+    } else if (typeof entry === "object") {
+      const record = entry as Record<string, unknown>;
+      const rawKeyword =
+        record.keyword ?? record.term ?? record.word ?? record.label ?? record.text ?? record.name;
+      if (typeof rawKeyword === "string") {
+        phrase = rawKeyword;
+      }
+      mentions = toNum(record.mentions ?? record.count ?? record.value ?? 1);
+    }
+
+    const sanitized = sanitizeWordCloudPhrase(String(phrase));
+    if (!sanitized) return;
+    const current = frequency.get(sanitized) ?? 0;
+    frequency.set(sanitized, current + (Number.isFinite(mentions) && mentions > 0 ? mentions : 1));
+  });
+
+  return Array.from(frequency.entries())
+    .map(([keyword, mentions]) => ({ keyword, mentions }))
+    .filter((item) => item.keyword.length > 1 && item.mentions > 0)
+    .sort((a, b) => b.mentions - a.mentions);
+};
+
+const getHeatmapColor = (percent: number) => {
+  if (percent >= 75) return "#312e81";
+  if (percent >= 55) return "#4338ca";
+  if (percent >= 35) return "#6366f1";
+  if (percent >= 20) return "#818cf8";
+  return "#c7d2fe";
+};
+
 export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
   ({ report }, ref) => {
     const analysis = hydrateAnalysis(report.analysis);
@@ -447,26 +596,66 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
     const treemapSeries = normalizeFactorEntries(treemapRaw);
     const scatterChartData = scatterSeries.length > 0 ? scatterSeries : chartData;
     const treemapChartData = treemapSeries.length > 0 ? treemapSeries : chartData;
+    const factorHeatmapData = (() => {
+      if (treemapChartData.length === 0) return [];
+      const total = treemapChartData.reduce((sum, entry) => sum + toNum(entry.score ?? entry.value), 0);
+      if (!total) return [];
+      return treemapChartData.map((entry) => {
+        const score = toNum(entry.score ?? entry.value);
+        const percent = Math.round(((score / total) * 100) * 10) / 10;
+        return {
+          name: entry.subject,
+          value: score,
+          percent,
+        };
+      });
+    })();
 
-    const sentimentData =
+    const sentimentRawData =
       analysis.sentiment_analysis
         ? Object.entries(analysis.sentiment_analysis).map(([name, value]) => ({
           name,
           value: toNum(value),
         }))
         : [];
+    const sentimentData = buildSentimentChartData(sentimentRawData);
 
-    const keywordData =
-      analysis.keyword_analysis?.map((item: any) => ({
-        keyword: item.keyword ?? item.name,
-        mentions: toNum(item.mentions ?? item.value),
-      })) || [];
+    const keywordData = prepareWordCloudData(analysis.keyword_analysis);
+    const conversationWordCloudData = prepareWordCloudData(
+      analysis.word_cloud_full ?? (analysis as Record<string, unknown>).conversation_word_cloud ?? analysis.keyword_analysis,
+    );
 
     const verbosityData =
       analysis.verbosity_trend?.map((item: any, index: number) => ({
         turn: item.turn ?? item.iteration ?? index + 1,
         word_count: toNum(item.word_count ?? item.value),
       })) || [];
+
+    const progressTimelineRaw = Array.isArray((analysis as any).progress_timeline)
+      ? ((analysis as any).progress_timeline as any[]).map((entry: any, index: number) => ({
+        iteration: toNum(entry?.iteration ?? entry?.turn ?? index + 1),
+        performance: toNum(entry?.score ?? entry?.value ?? entry?.performance ?? 0),
+      }))
+      : verbosityData.map((entry, index) => ({
+        iteration: toNum(entry.turn ?? index + 1),
+        performance: toNum(entry.word_count),
+      }));
+
+    const scatterLineData = progressTimelineRaw
+      .filter((item) => Number.isFinite(item.performance))
+      .map((item, index, array) => {
+        const cumulative = array.slice(0, index + 1).reduce((sum, entry) => sum + entry.performance, 0);
+        const trend = cumulative / (index + 1 || 1);
+        return {
+          iteration: item.iteration || index + 1,
+          performance: Math.round(item.performance * 100) / 100,
+          trend: Math.round(trend * 100) / 100,
+        };
+      });
+    const scatterAverage =
+      scatterLineData.length > 0
+        ? scatterLineData.reduce((total, item) => total + toNum(item.performance), 0) / scatterLineData.length
+        : 0;
 
     const actionData = analysis.action_orientation
       ? [
@@ -567,6 +756,29 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
       })
       .filter(Boolean) as Array<{ id: string; label: string; data: Array<{ subject: string; score: number; fullMark: number }> }>;
 
+    const rawReportedScore =
+      analysis.score ??
+      (analysis as Record<string, unknown>).total_score ??
+      (analysis as Record<string, unknown>).overall_score;
+    const numericReportedScore = Number.isFinite(toNum(rawReportedScore)) ? toNum(rawReportedScore) : null;
+    const phaseScoreValues = phaseBreakdown
+      .map((phase: any) =>
+        phase?.analysis && typeof phase.analysis.score !== "undefined" && phase.analysis.score !== null
+          ? toNum(phase.analysis.score)
+          : null,
+      )
+      .filter((value): value is number => value !== null && Number.isFinite(value));
+    const averagedPhaseScore =
+      phaseScoreValues.length > 0
+        ? phaseScoreValues.reduce((sum, value) => sum + value, 0) / phaseScoreValues.length
+        : null;
+    const overallScore = averagedPhaseScore ?? numericReportedScore ?? null;
+    const overallScoreDisplay =
+      typeof overallScore === "number" && Number.isFinite(overallScore)
+        ? Math.round(overallScore * 10) / 10
+        : null;
+    const maxAvailableScore = toNum(report.max_score ?? (analysis as Record<string, unknown>).max_score ?? 100) || 100;
+
     const infoItems = [
       { label: "نام کامل", value: `${report.firstName} ${report.lastName}`.trim() || "—" },
       { label: "نام کاربری", value: report.username },
@@ -589,9 +801,22 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
       label: item.keyword ?? `کلیدواژه ${index + 1}`,
       value: item.mentions ?? 0,
     }));
+    const conversationKeywordList = conversationWordCloudData.slice(0, 8).map((item: any, index: number) => ({
+      label: item.keyword ?? `عبارت ${index + 1}`,
+      value: item.mentions ?? 0,
+    }));
+    const factorHeatmapRows = factorHeatmapData.map((entry) => ({
+      label: entry.name,
+      value: `${entry.percent}%`,
+    }));
     const verbosityRows = verbosityData.slice(0, 8).map((entry: any, index: number) => ({
       turn: entry.turn ?? index + 1,
-      words: entry.word_count ?? entry.performance ?? 0,
+      word_count: entry.word_count ?? entry.performance ?? 0,
+    }));
+    const scatterRows = scatterLineData.slice(0, 8).map((entry) => ({
+      iteration: entry.iteration,
+      performance: entry.performance,
+      trend: entry.trend,
     }));
     const actionRows = actionData.length
       ? [
@@ -700,8 +925,10 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
                   background: "#f8fafc",
                 }}
               >
-                <p style={{ fontSize: "36px", fontWeight: 800, color: "#2563eb" }}>{toNum(analysis.score)}</p>
-                <p style={{ fontSize: "13px", color: "#6b7280" }}>از {report.max_score || 100}</p>
+                <p style={{ fontSize: "36px", fontWeight: 800, color: "#2563eb" }}>
+                  {overallScoreDisplay !== null ? overallScoreDisplay : "—"}
+                </p>
+                <p style={{ fontSize: "13px", color: "#6b7280" }}>از {maxAvailableScore}</p>
               </div>
               {chartData.length > 0 ? (
                 <ChartBox width={CHART_SIZES.HALF.width} height={CHART_SIZES.HALF.height}>
@@ -803,6 +1030,120 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
               </div>
             </SectionCard>
           )}
+        </section>
+
+        <section className="pdf-page" style={pageStyle}>
+          <h2 className="text-2xl font-bold text-gray-900">تحلیل‌های کلیدی گفتگو</h2>
+          <div className="pdf-grid">
+            <SectionCard title="ابر واژگان کامل گفتگو">
+              {conversationWordCloudData.length ? (
+                <>
+                  <ChartBox width={CHART_SIZES.HALF.width} height={CHART_SIZES.HALF.height}>
+                    <BarChart
+                      data={conversationWordCloudData.slice(0, 10)}
+                      layout="vertical"
+                      width={CHART_SIZES.HALF.width}
+                      height={CHART_SIZES.HALF.height}
+                      margin={defaultChartMargin}
+                    >
+                      <XAxis type="number" tick={baseAxisTick} />
+                      <YAxis dataKey="keyword" type="category" width={120} tick={baseAxisTick} />
+                      <Tooltip />
+                      <Bar dataKey="mentions" fill="#0ea5e9" />
+                    </BarChart>
+                  </ChartBox>
+                  <PlainTable
+                    columns={[
+                      { key: "keyword", label: "عبارت" },
+                      { key: "mentions", label: "دفعات" },
+                    ]}
+                    rows={conversationKeywordList.map((item) => ({ keyword: item.label, mentions: item.value }))}
+                  />
+                </>
+              ) : (
+                <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای برای ابر واژگان ثبت نشده است.</p>
+              )}
+            </SectionCard>
+
+            <SectionCard title="نقشه حرارتی سهم فاکتورها">
+              {factorHeatmapData.length ? (
+                <>
+                  <ChartBox width={CHART_SIZES.HALF.width} height={CHART_SIZES.HALF.height}>
+                    <BarChart
+                      data={factorHeatmapData}
+                      layout="vertical"
+                      width={CHART_SIZES.HALF.width}
+                      height={CHART_SIZES.HALF.height}
+                      margin={defaultChartMargin}
+                    >
+                      <XAxis type="number" domain={[0, 100]} tick={baseAxisTick} />
+                      <YAxis dataKey="name" type="category" width={140} tick={baseAxisTick} />
+                      <Tooltip />
+                      <Bar dataKey="percent">
+                        {factorHeatmapData.map((entry, index) => (
+                          <Cell key={`heatmap-pdf-${entry.name}-${index}`} fill={getHeatmapColor(entry.percent)} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ChartBox>
+                  <SimpleList items={factorHeatmapRows} />
+                </>
+              ) : (
+                <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای برای سهم فاکتورها وجود ندارد.</p>
+              )}
+            </SectionCard>
+
+            <SectionCard title="پراکندگی پیشرفت با خط روند">
+              {scatterLineData.length ? (
+                <>
+                  <ChartBox width={CHART_SIZES.FULL.width} height={CHART_SIZES.FULL.height}>
+                    <LineChart
+                      data={scatterLineData}
+                      width={CHART_SIZES.FULL.width}
+                      height={CHART_SIZES.FULL.height}
+                      margin={defaultChartMargin}
+                    >
+                      <CartesianGrid strokeDasharray="6 6" />
+                      <XAxis dataKey="iteration" tick={baseAxisTick} />
+                      <YAxis tick={baseAxisTick} />
+                      <Tooltip />
+                      <Legend wrapperStyle={legendStyle} />
+                      <ReferenceLine
+                        y={scatterAverage}
+                        stroke="#c084fc"
+                        strokeDasharray="4 4"
+                        label={{ value: "میانگین عملکرد", position: "right", fill: "#7c3aed", fontSize: 11 }}
+                      />
+                      <Line
+                        dataKey="trend"
+                        name="خط روند"
+                        stroke="#2563eb"
+                        strokeWidth={3}
+                        dot={false}
+                      />
+                      <Line
+                        dataKey="performance"
+                        name="نتیجه مشاهده‌شده"
+                        stroke="transparent"
+                        activeDot={{ r: 5, fill: "#f97316" }}
+                        dot={{ r: 5, fill: "#f97316" }}
+                      />
+                    </LineChart>
+                  </ChartBox>
+                  <PlainTable
+                    columns={[
+                      { key: "iteration", label: "مرحله" },
+                      { key: "performance", label: "نتیجه" },
+                      { key: "trend", label: "میانگین متحرک" },
+                    ]}
+                    rows={scatterRows}
+                  />
+                </>
+              ) : (
+                <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای برای روند پیشرفت ثبت نشده است.</p>
+              )}
+            </SectionCard>
+          </div>
         </section>
 
         <section className="pdf-page" style={pageStyle}>
