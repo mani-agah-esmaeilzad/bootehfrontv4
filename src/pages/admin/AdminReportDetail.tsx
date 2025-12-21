@@ -2041,42 +2041,6 @@ const AdminReportDetail = () => {
         </div>
       )}
 
-      {factorScores.length > 0 && (
-        <Card dir="rtl">
-          <CardHeader className="text-right">
-            <CardTitle className="text-right">جدول امتیاز ابعاد</CardTitle>
-            <CardDescription className="text-right">نمایش جزئی امتیاز هر بعد نسبت به حداکثر امتیاز تعریف‌شده.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>بعد ارزیابی</TableHead>
-                    <TableHead className="text-center">امتیاز کسب‌شده</TableHead>
-                    <TableHead className="text-center">حداکثر امتیاز</TableHead>
-                    <TableHead className="text-center">درصد تحقق</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {factorScores.map((item, index) => {
-                    const percent = item.maxScore ? Math.round((item.score / item.maxScore) * 1000) / 10 : 0;
-                    return (
-                      <TableRow key={`factor-row-${index}`}>
-                        <TableCell className="font-medium text-slate-800">{item.factor}</TableCell>
-                        <TableCell className="text-center">{item.score}</TableCell>
-                        <TableCell className="text-center">{item.maxScore}</TableCell>
-                        <TableCell className="text-center">{percent}%</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {sentimentRawData.length > 0 && (
         <Card dir="rtl">
           <CardHeader className="text-right">
