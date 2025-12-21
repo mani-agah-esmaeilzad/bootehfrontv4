@@ -53,6 +53,7 @@ const questionnaireSchema = z
     phase_two_analysis_prompt: z.string().optional(),
     phase_two_welcome_message: z.string().optional(),
     chart_modules: z.array(chartModuleSchema).optional(),
+    is_active: z.boolean().default(true),
   })
   .superRefine((data, ctx) => {
     if (data.enable_second_phase) {
@@ -101,6 +102,7 @@ const NewQuestionnaire = () => {
       phase_two_analysis_prompt: "",
       phase_two_welcome_message: "",
       chart_modules: buildDefaultChartModules(),
+      is_active: true,
     },
   });
   const enableSecondPhase = form.watch("enable_second_phase");
@@ -164,6 +166,21 @@ const NewQuestionnaire = () => {
                   </FormItem>
                 )}/>
                 <FormField control={form.control} name="welcome_message" render={({ field }) => ( <FormItem> <FormLabel>پیام خوشامدگویی</FormLabel> <FormControl><Textarea placeholder="پیامی که در ابتدای چت به کاربر نمایش داده می‌شود" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
+                <FormField
+                  control={form.control}
+                  name="is_active"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel>وضعیت نمایش</FormLabel>
+                        <FormDescription>کاربران عمومی تنها می‌توانند پرسشنامه‌های فعال را آغاز کنند.</FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
               </CardContent>
             </Card>
 

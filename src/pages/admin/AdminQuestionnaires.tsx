@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { LoaderCircle, PlusCircle, Trash, Edit } from "lucide-react";
 import { toast } from "sonner";
 import apiFetch from "@/services/apiService";
@@ -26,11 +28,13 @@ interface Questionnaire {
   description: string;
   display_order: number;
   category: QuestionnaireCategory;
+  is_active: boolean;
 }
 
 const AdminQuestionnaires = () => {
   const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null); // State to hold the ID of the questionnaire to be deleted
   const navigate = useNavigate();
 
@@ -39,7 +43,12 @@ const AdminQuestionnaires = () => {
     try {
       const response = await apiFetch("admin/questionnaires");
       if (response.success) {
-        setQuestionnaires(response.data);
+        setQuestionnaires(
+          response.data.map((item: any) => ({
+            ...item,
+            is_active: Boolean(item.is_active),
+          }))
+        );
       }
     } catch (error: any) {
       toast.error(error.message || "خطا در دریافت لیست پرسشنامه‌ها");
@@ -51,6 +60,28 @@ const AdminQuestionnaires = () => {
   useEffect(() => {
     fetchQuestionnaires();
   }, []);
+
+  const handleToggleStatus = async (id: number, currentStatus: boolean) => {
+    const newStatus = !currentStatus;
+    setTogglingId(id);
+    setQuestionnaires(prev =>
+      prev.map(q => (q.id === id ? { ...q, is_active: newStatus } : q))
+    );
+    try {
+      await apiFetch(`admin/questionnaires/${id}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ is_active: newStatus }),
+      });
+      toast.success(`وضعیت پرسشنامه به ${newStatus ? 'فعال' : 'غیرفعال'} تغییر کرد.`);
+    } catch (error: any) {
+      toast.error(error.message || "خطا در بروزرسانی وضعیت پرسشنامه");
+      setQuestionnaires(prev =>
+        prev.map(q => (q.id === id ? { ...q, is_active: currentStatus } : q))
+      );
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   const handleDelete = async () => {
     if (deleteId === null) return;
@@ -91,7 +122,8 @@ const AdminQuestionnaires = () => {
                   <TableHead>عنوان پرسشنامه</TableHead>
                   <TableHead>توضیحات</TableHead>
                   <TableHead>دسته‌بندی</TableHead>
-                  <TableHead className="w-[120px]">عملیات</TableHead>
+                  <TableHead>وضعیت</TableHead>
+                  <TableHead className="w-[140px]">عملیات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -101,6 +133,18 @@ const AdminQuestionnaires = () => {
                     <TableCell className="font-medium">{q.title}</TableCell>
                     <TableCell className="text-sm text-muted-foreground max-w-sm truncate">{q.description}</TableCell>
                     <TableCell>{q.category}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Badge variant={q.is_active ? "default" : "destructive"}>
+                          {q.is_active ? "فعال" : "غیرفعال"}
+                        </Badge>
+                        <Switch
+                          checked={q.is_active}
+                          onCheckedChange={() => handleToggleStatus(q.id, q.is_active)}
+                          disabled={togglingId === q.id}
+                        />
+                      </div>
+                    </TableCell>
                     <TableCell className="text-left">
                       <div className="flex gap-2">
                         <Button variant="outline" size="icon" onClick={() => navigate(`/admin/questionnaires/edit/${q.id}`)}>

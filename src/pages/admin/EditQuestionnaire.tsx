@@ -54,6 +54,7 @@ const questionnaireSchema = z
     phase_two_analysis_prompt: z.string().optional().nullable(),
     phase_two_welcome_message: z.string().optional().nullable(),
     chart_modules: z.array(chartModuleSchema).optional(),
+    is_active: z.boolean().default(true),
   })
   .superRefine((data, ctx) => {
     if (data.enable_second_phase) {
@@ -105,6 +106,7 @@ const EditQuestionnaire = () => {
       phase_two_analysis_prompt: "",
       phase_two_welcome_message: "",
       chart_modules: buildDefaultChartModules(),
+      is_active: true,
     },
   });
   const enableSecondPhase = form.watch("enable_second_phase");
@@ -137,6 +139,7 @@ const EditQuestionnaire = () => {
             phase_two_analysis_prompt: data.phase_two_analysis_prompt ?? "",
             phase_two_welcome_message: data.phase_two_welcome_message ?? "",
             chart_modules: Array.isArray(data.chart_modules) && data.chart_modules.length > 0 ? data.chart_modules : buildDefaultChartModules(),
+            is_active: Boolean(data.is_active),
           });
         } else {
           throw new Error("پرسشنامه یافت نشد.");
@@ -222,6 +225,21 @@ const EditQuestionnaire = () => {
                   </FormItem>
                 )}/>
                 <FormField control={form.control} name="welcome_message" render={({ field }) => ( <FormItem> <FormLabel>پیام خوشامدگویی</FormLabel> <FormControl><Textarea {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
+                <FormField
+                  control={form.control}
+                  name="is_active"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel>وضعیت نمایش</FormLabel>
+                        <FormDescription>اگر غیرفعال باشد، کاربران عمومی قادر به شروع این مرحله نخواهند بود.</FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
               </CardContent>
             </Card>
 
