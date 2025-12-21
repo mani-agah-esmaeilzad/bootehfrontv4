@@ -963,6 +963,123 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
             )}
           </SectionCard>
 
+          <SectionCard title="تحلیل‌های کلیدی گفتگو">
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                gap: "16px",
+              }}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                <h4 style={{ fontSize: "14px", fontWeight: 700, color: "#111827" }}>ابر واژگان کامل گفتگو</h4>
+                {conversationWordCloudData.length ? (
+                  <>
+                    <ChartBox width={CHART_SIZES.HALF.width} height={CHART_SIZES.HALF.height}>
+                      <BarChart
+                        data={conversationWordCloudData.slice(0, 10)}
+                        layout="vertical"
+                        width={CHART_SIZES.HALF.width}
+                        height={CHART_SIZES.HALF.height}
+                        margin={defaultChartMargin}
+                      >
+                        <XAxis type="number" tick={baseAxisTick} />
+                        <YAxis dataKey="keyword" type="category" width={120} tick={baseAxisTick} />
+                        <Tooltip />
+                        <Bar dataKey="mentions" fill="#0ea5e9" />
+                      </BarChart>
+                    </ChartBox>
+                    <PlainTable
+                      columns={[
+                        { key: "keyword", label: "عبارت" },
+                        { key: "mentions", label: "دفعات" },
+                      ]}
+                      rows={conversationKeywordList.map((item) => ({ keyword: item.label, mentions: item.value }))}
+                    />
+                  </>
+                ) : (
+                  <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای برای ابر واژگان ثبت نشده است.</p>
+                )}
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                <h4 style={{ fontSize: "14px", fontWeight: 700, color: "#111827" }}>نقشه حرارتی سهم فاکتورها</h4>
+                {factorHeatmapData.length ? (
+                  <>
+                    <ChartBox width={CHART_SIZES.HALF.width} height={CHART_SIZES.HALF.height}>
+                      <BarChart
+                        data={factorHeatmapData}
+                        layout="vertical"
+                        width={CHART_SIZES.HALF.width}
+                        height={CHART_SIZES.HALF.height}
+                        margin={defaultChartMargin}
+                      >
+                        <XAxis type="number" domain={[0, 100]} tick={baseAxisTick} />
+                        <YAxis dataKey="name" type="category" width={140} tick={baseAxisTick} />
+                        <Tooltip />
+                        <Bar dataKey="percent">
+                          {factorHeatmapData.map((entry, index) => (
+                            <Cell key={`heatmap-inline-${entry.name}-${index}`} fill={getHeatmapColor(entry.percent)} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ChartBox>
+                    <SimpleList items={factorHeatmapRows} />
+                  </>
+                ) : (
+                  <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای برای سهم فاکتورها وجود ندارد.</p>
+                )}
+              </div>
+
+              <div style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", gap: "12px" }}>
+                <h4 style={{ fontSize: "14px", fontWeight: 700, color: "#111827" }}>پراکندگی پیشرفت با خط روند</h4>
+                {scatterLineData.length ? (
+                  <>
+                    <ChartBox width={CHART_SIZES.FULL.width} height={CHART_SIZES.FULL.height}>
+                      <LineChart
+                        data={scatterLineData}
+                        width={CHART_SIZES.FULL.width}
+                        height={CHART_SIZES.FULL.height}
+                        margin={defaultChartMargin}
+                      >
+                        <CartesianGrid strokeDasharray="6 6" />
+                        <XAxis dataKey="iteration" tick={baseAxisTick} />
+                        <YAxis tick={baseAxisTick} />
+                        <Tooltip />
+                        <Legend wrapperStyle={legendStyle} />
+                        <ReferenceLine
+                          y={scatterAverage}
+                          stroke="#c084fc"
+                          strokeDasharray="4 4"
+                          label={{ value: "میانگین عملکرد", position: "right", fill: "#7c3aed", fontSize: 11 }}
+                        />
+                        <Line dataKey="trend" name="خط روند" stroke="#2563eb" strokeWidth={3} dot={false} />
+                        <Line
+                          dataKey="performance"
+                          name="نتیجه مشاهده‌شده"
+                          stroke="transparent"
+                          activeDot={{ r: 5, fill: "#f97316" }}
+                          dot={{ r: 5, fill: "#f97316" }}
+                        />
+                      </LineChart>
+                    </ChartBox>
+                    <PlainTable
+                      columns={[
+                        { key: "iteration", label: "مرحله" },
+                        { key: "performance", label: "نتیجه" },
+                        { key: "trend", label: "میانگین متحرک" },
+                      ]}
+                      rows={scatterRows}
+                    />
+                  </>
+                ) : (
+                  <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای برای روند پیشرفت ثبت نشده است.</p>
+                )}
+              </div>
+            </div>
+          </SectionCard>
+
+
           {phaseInsights.length > 0 && (
             <SectionCard title="تحلیل تفکیکی مراحل">
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -1030,120 +1147,6 @@ export const ReportPDFLayout = React.forwardRef<HTMLDivElement, PDFLayoutProps>(
               </div>
             </SectionCard>
           )}
-        </section>
-
-        <section className="pdf-page" style={pageStyle}>
-          <h2 className="text-2xl font-bold text-gray-900">تحلیل‌های کلیدی گفتگو</h2>
-          <div className="pdf-grid">
-            <SectionCard title="ابر واژگان کامل گفتگو">
-              {conversationWordCloudData.length ? (
-                <>
-                  <ChartBox width={CHART_SIZES.HALF.width} height={CHART_SIZES.HALF.height}>
-                    <BarChart
-                      data={conversationWordCloudData.slice(0, 10)}
-                      layout="vertical"
-                      width={CHART_SIZES.HALF.width}
-                      height={CHART_SIZES.HALF.height}
-                      margin={defaultChartMargin}
-                    >
-                      <XAxis type="number" tick={baseAxisTick} />
-                      <YAxis dataKey="keyword" type="category" width={120} tick={baseAxisTick} />
-                      <Tooltip />
-                      <Bar dataKey="mentions" fill="#0ea5e9" />
-                    </BarChart>
-                  </ChartBox>
-                  <PlainTable
-                    columns={[
-                      { key: "keyword", label: "عبارت" },
-                      { key: "mentions", label: "دفعات" },
-                    ]}
-                    rows={conversationKeywordList.map((item) => ({ keyword: item.label, mentions: item.value }))}
-                  />
-                </>
-              ) : (
-                <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای برای ابر واژگان ثبت نشده است.</p>
-              )}
-            </SectionCard>
-
-            <SectionCard title="نقشه حرارتی سهم فاکتورها">
-              {factorHeatmapData.length ? (
-                <>
-                  <ChartBox width={CHART_SIZES.HALF.width} height={CHART_SIZES.HALF.height}>
-                    <BarChart
-                      data={factorHeatmapData}
-                      layout="vertical"
-                      width={CHART_SIZES.HALF.width}
-                      height={CHART_SIZES.HALF.height}
-                      margin={defaultChartMargin}
-                    >
-                      <XAxis type="number" domain={[0, 100]} tick={baseAxisTick} />
-                      <YAxis dataKey="name" type="category" width={140} tick={baseAxisTick} />
-                      <Tooltip />
-                      <Bar dataKey="percent">
-                        {factorHeatmapData.map((entry, index) => (
-                          <Cell key={`heatmap-pdf-${entry.name}-${index}`} fill={getHeatmapColor(entry.percent)} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ChartBox>
-                  <SimpleList items={factorHeatmapRows} />
-                </>
-              ) : (
-                <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای برای سهم فاکتورها وجود ندارد.</p>
-              )}
-            </SectionCard>
-
-            <SectionCard title="پراکندگی پیشرفت با خط روند">
-              {scatterLineData.length ? (
-                <>
-                  <ChartBox width={CHART_SIZES.FULL.width} height={CHART_SIZES.FULL.height}>
-                    <LineChart
-                      data={scatterLineData}
-                      width={CHART_SIZES.FULL.width}
-                      height={CHART_SIZES.FULL.height}
-                      margin={defaultChartMargin}
-                    >
-                      <CartesianGrid strokeDasharray="6 6" />
-                      <XAxis dataKey="iteration" tick={baseAxisTick} />
-                      <YAxis tick={baseAxisTick} />
-                      <Tooltip />
-                      <Legend wrapperStyle={legendStyle} />
-                      <ReferenceLine
-                        y={scatterAverage}
-                        stroke="#c084fc"
-                        strokeDasharray="4 4"
-                        label={{ value: "میانگین عملکرد", position: "right", fill: "#7c3aed", fontSize: 11 }}
-                      />
-                      <Line
-                        dataKey="trend"
-                        name="خط روند"
-                        stroke="#2563eb"
-                        strokeWidth={3}
-                        dot={false}
-                      />
-                      <Line
-                        dataKey="performance"
-                        name="نتیجه مشاهده‌شده"
-                        stroke="transparent"
-                        activeDot={{ r: 5, fill: "#f97316" }}
-                        dot={{ r: 5, fill: "#f97316" }}
-                      />
-                    </LineChart>
-                  </ChartBox>
-                  <PlainTable
-                    columns={[
-                      { key: "iteration", label: "مرحله" },
-                      { key: "performance", label: "نتیجه" },
-                      { key: "trend", label: "میانگین متحرک" },
-                    ]}
-                    rows={scatterRows}
-                  />
-                </>
-              ) : (
-                <p style={{ fontSize: "12px", color: "#6b7280" }}>داده‌ای برای روند پیشرفت ثبت نشده است.</p>
-              )}
-            </SectionCard>
-          </div>
         </section>
 
         <section className="pdf-page" style={pageStyle}>
