@@ -24,25 +24,16 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
   Line,
   Legend,
-  RadarChart,
-  Radar,
   RadialBarChart,
   RadialBar,
-  PolarGrid,
   PolarAngleAxis,
-  PolarRadiusAxis,
-  AreaChart,
   Area,
-  ScatterChart,
   Scatter,
   ComposedChart,
-  Treemap,
   CartesianGrid,
   ReferenceLine,
-  Customized,
 } from "recharts";
 
 import { SpiderChart } from "@/components/ui/SpiderChart";
@@ -756,54 +747,158 @@ const interpolateColor = (start: string, end: string, ratio: number) => {
   return rgbToHex(r, g, b);
 };
 
-const gaugeGradientStops = [
-  { value: 0, color: "#22c55e" },
-  { value: 50, color: "#facc15" },
-  { value: 75, color: "#f97316" },
-  { value: 100, color: "#ef4444" },
-];
-
-const computeGaugeColor = (value: number) => {
-  const capped = clamp(value, 0, 100);
-  for (let i = 0; i < gaugeGradientStops.length - 1; i += 1) {
-    const current = gaugeGradientStops[i];
-    const next = gaugeGradientStops[i + 1];
-    if (capped <= next.value) {
-      const span = next.value - current.value || 1;
-      const ratio = (capped - current.value) / span;
-      return interpolateColor(current.color, next.color, ratio);
+const buildSentimentChartData = (entries: { name: string; value: number }[]) => {
+  const sanitized = entries
+    .map((entry) => ({
+      name: entry.name,
+      value: Math.max(0, toNum(entry.value)),
+    }))
+    .filter((entry) => entry.name && Number.isFinite(entry.value));
+  const total = sanitized.reduce((sum, entry) => sum + entry.value, 0);
+  if (!total) {
+    return [];
+  }
+  let remainder = 100;
+  const rounded = sanitized.map((entry, index) => {
+    const normalized = (entry.value / total) * 100;
+    const isLast = index === sanitized.length - 1;
+    const percent = isLast ? remainder : Math.round(normalized * 10) / 10;
+    remainder = Math.max(0, remainder - percent);
+    return {
+      name: entry.name,
+      raw: entry.value,
+      value: percent,
+    };
+  });
+  if (rounded.length > 0) {
+    const adjustment = 100 - rounded.reduce((sum, entry) => sum + entry.value, 0);
+    if (Math.abs(adjustment) >= 0.1) {
+      const lastIndex = rounded.length - 1;
+      rounded[lastIndex].value = Math.round((rounded[lastIndex].value + adjustment) * 10) / 10;
     }
   }
-  return gaugeGradientStops[gaugeGradientStops.length - 1].color;
+  return rounded;
 };
 
-const buildGaugeSegments = (value: number) => {
-  const sanitized = clamp(value, 0, 100);
-  const segments: { name: string; value: number; fill: string }[] = [];
-  const step = 5;
-  const wholeSteps = Math.floor(sanitized / step);
+const WORD_CLOUD_STOP_WORDS = new Set(
+  [
+    "را",
+    "از",
+    "با",
+    "به",
+    "در",
+    "برای",
+    "که",
+    "و",
+    "یا",
+    "اما",
+    "ولی",
+    "اگر",
+    "تا",
+    "هر",
+    "یک",
+    "دو",
+    "سه",
+    "این",
+    "اون",
+    "آن",
+    "هم",
+    "همه",
+    "نیز",
+    "من",
+    "تو",
+    "او",
+    "ما",
+    "شما",
+    "آنها",
+    "اینجا",
+    "آنجا",
+    "چرا",
+    "چه",
+    "چطور",
+    "چگونه",
+    "می",
+    "است",
+    "بود",
+    "هست",
+    "شد",
+    "شدن",
+    "خواهد",
+    "کرد",
+    "کردن",
+    "کن",
+    "میکند",
+    "میکنم",
+    "کنم",
+    "کردم",
+    "کردند",
+    "که",
+    "تا",
+    "پس",
+    "اما",
+    "بلکه",
+    "یا",
+    "اگرچه",
+    "چنانکه",
+    "باید",
+    "نباید",
+  ].map((word) => word.trim().toLowerCase()),
+);
 
-  for (let index = 0; index < wholeSteps; index += 1) {
-    const midpoint = index * step + step / 2;
-    segments.push({
-      name: `active-${index}`,
-      value: step,
-      fill: computeGaugeColor(midpoint),
-    });
-  }
-
-  const remainder = sanitized - wholeSteps * step;
-  if (remainder > 0) {
-    const midpoint = wholeSteps * step + remainder / 2;
-    segments.push({
-      name: `active-${wholeSteps}`,
-      value: remainder,
-      fill: computeGaugeColor(midpoint),
-    });
-  }
-
-  return segments;
+const sanitizeWordCloudPhrase = (phrase: string) => {
+  if (!phrase) return "";
+  const tokens = phrase
+    .split(/\s+/)
+    .map((token) =>
+      token
+        .replace(/[0-9۰-۹]+/g, "")
+        .replace(/[^\u0600-\u06FFA-Za-z]/g, "")
+        .trim()
+        .toLowerCase(),
+    )
+    .filter((token) => token.length > 1 && !WORD_CLOUD_STOP_WORDS.has(token));
+  return tokens.join(" ");
 };
+
+const prepareWordCloudData = (raw: unknown): { keyword: string; mentions: number }[] => {
+  const entries = parseArrayLike(raw);
+  if (!Array.isArray(entries)) return [];
+  const frequency = new Map<string, number>();
+
+  entries.forEach((entry) => {
+    if (!entry) return;
+    let phrase = "";
+    let mentions = 1;
+    if (typeof entry === "string") {
+      phrase = entry;
+    } else if (typeof entry === "object") {
+      const record = entry as Record<string, unknown>;
+      const rawKeyword =
+        record.keyword ??
+        record.term ??
+        record.word ??
+        record.label ??
+        record.text ??
+        record.name;
+      if (typeof rawKeyword === "string") {
+        phrase = rawKeyword;
+      }
+      mentions = toNum(record.mentions ?? record.count ?? record.value ?? 1);
+    }
+
+    const sanitized = sanitizeWordCloudPhrase(String(phrase));
+    if (!sanitized) return;
+    const current = frequency.get(sanitized) ?? 0;
+    frequency.set(sanitized, current + (Number.isFinite(mentions) && mentions > 0 ? mentions : 1));
+  });
+
+  return Array.from(frequency.entries())
+    .map(([keyword, mentions]) => ({ keyword, mentions }))
+    .filter((item) => item.keyword.length > 1 && item.mentions > 0)
+    .sort((a, b) => b.mentions - a.mentions);
+};
+
+const getHeatmapColor = (percent: number) => interpolateColor("#c7d2fe", "#4338ca", clamp(percent / 100, 0, 1));
 
 const KeywordWordCloud = ({
   data,
@@ -1132,23 +1227,32 @@ const AdminReportDetail = () => {
     size: item.score,
     value: item.score,
   }));
+  const factorHeatmapData = (() => {
+    if (treemapSeries.length === 0) return [];
+    const total = treemapSeries.reduce((sum, entry) => sum + toNum(entry.value ?? entry.size), 0);
+    if (!total) return [];
+    return treemapSeries.map((entry) => {
+      const score = toNum(entry.value ?? entry.size);
+      const percent = (score / total) * 100;
+      return {
+        name: entry.name,
+        value: score,
+        percent: Math.round(percent * 10) / 10,
+      };
+    });
+  })();
 
-  const sentimentData = analysis.sentiment_analysis
+  const sentimentRawData = analysis.sentiment_analysis
     ? Object.entries(analysis.sentiment_analysis).map(([name, value]) => ({
       name,
       value: toNum(value),
     }))
     : [];
-  const keywordData =
-    analysis.keyword_analysis?.map((i: any) => ({
-      keyword: i.keyword || i.term || i.word || i.label || "عبارت",
-      mentions: toNum(i.mentions ?? i.count ?? i.value),
-    })) || [];
-  const conversationWordCloudData =
-    analysis.word_cloud_full?.map((i: any) => ({
-      keyword: i.word || i.keyword || i.term || "واژه",
-      mentions: toNum(i.count ?? i.mentions ?? i.value),
-    })) || [];
+  const sentimentChartData = buildSentimentChartData(sentimentRawData);
+  const keywordData = prepareWordCloudData(analysis.keyword_analysis);
+  const conversationWordCloudData = prepareWordCloudData(
+    analysis.word_cloud_full ?? (analysis as Record<string, unknown>).conversation_word_cloud ?? analysis.keyword_analysis,
+  );
   const verbosityData =
     analysis.verbosity_trend?.map((i: any) => ({
       ...i,
@@ -1158,69 +1262,32 @@ const AdminReportDetail = () => {
     analysis.average_word_count !== undefined && analysis.average_word_count !== null
       ? toNum(analysis.average_word_count)
       : null;
-  const actionOrientation = analysis.action_orientation;
-  const actionData =
-    actionOrientation && typeof actionOrientation === "object"
-      ? [
-        {
-          name: "مقایسه",
-          action_words: toNum(actionOrientation.action_words),
-          passive_words: toNum(actionOrientation.passive_words),
-        },
-      ]
-      : [];
-  const actionLegendLabels: Record<string, string> = {
-    action_words: "واژگان کنشی",
-    passive_words: "واژگان غیرکنشی",
-  };
-  const semanticFieldsFallback = analysis.linguistic_semantic_analysis?.semantic_fields;
-  const factorScoreFallback = chartData.map((item) => ({
-    name: item.subject || item.name || "مولفه",
-    value: toNum(item.score ?? item.value),
-  }));
-  const problemSolvingData = analysis.problem_solving_approach
-    ? Object.entries(analysis.problem_solving_approach).map(([name, value]) => ({
-      name,
-      value: toNum(value),
-    }))
-    : factorScoreFallback.length > 0
-      ? factorScoreFallback
-      : Array.isArray(semanticFieldsFallback)
-        ? semanticFieldsFallback
-          .map((field: any) => ({
-            name: field.field || field.name || "مولفه",
-            value: toNum(field.mentions ?? field.value),
-          }))
-          .filter((item: any) => Number.isFinite(item.value) && item.value > 0)
-        : [];
-  const commStyle = analysis.communication_style
-    ? Object.entries(analysis.communication_style).map(([name, value]) => ({
-      name,
-      value: toNum(value),
-    }))
-    : [];
-  const semanticRadar = [
-    { name: "تنوع واژگانی", value: toNum(analysis.linguistic_semantic_analysis?.lexical_diversity) },
-    { name: "انسجام معنایی", value: toNum(analysis.linguistic_semantic_analysis?.semantic_coherence) },
-    { name: "عینیت", value: toNum(analysis.linguistic_semantic_analysis?.concreteness_level) },
-    { name: "انتزاع", value: toNum(analysis.linguistic_semantic_analysis?.abstractness_level) },
-  ];
-  const pronouns = [
-    { name: "اول شخص", value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.first_person) },
-    { name: "دوم شخص", value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.second_person) },
-    { name: "سوم شخص", value: toNum(analysis.linguistic_semantic_analysis?.pronoun_usage?.third_person) },
-  ];
-  const semanticFields = withRtlFields(analysis.linguistic_semantic_analysis?.semantic_fields);
 
-  const overallScoreRaw =
+  const rawReportedScore =
     analysis.score ??
     (analysis as Record<string, unknown>).total_score ??
     (analysis as Record<string, unknown>).overall_score;
-  const overallScore = toNum(overallScoreRaw);
+  const numericReportedScore = Number.isFinite(toNum(rawReportedScore)) ? toNum(rawReportedScore) : null;
+  const phaseScoreValues = phaseBreakdown
+    .map((phase) =>
+      phase.analysis && typeof phase.analysis.score !== "undefined" && phase.analysis.score !== null
+        ? toNum(phase.analysis.score)
+        : null,
+    )
+    .filter((value): value is number => value !== null && Number.isFinite(value));
+  const averagedPhaseScore =
+    phaseScoreValues.length > 0
+      ? phaseScoreValues.reduce((sum, value) => sum + value, 0) / phaseScoreValues.length
+      : null;
+  const overallScore = averagedPhaseScore ?? numericReportedScore ?? null;
+  const overallScoreDisplay =
+    typeof overallScore === "number" && Number.isFinite(overallScore)
+      ? Math.round(overallScore * 10) / 10
+      : null;
   const maxScore = toNum(report.max_score ?? (analysis as Record<string, unknown>).max_score ?? 100) || 100;
   const normalizedOverallScore =
-    Number.isFinite(overallScore) && maxScore
-      ? clamp((overallScore / maxScore) * 100, 0, 100)
+    overallScoreDisplay !== null && maxScore
+      ? clamp((overallScoreDisplay / maxScore) * 100, 0, 100)
       : null;
   const normalizedConfidence =
     analysis.confidence_level && typeof analysis.confidence_level.score !== "undefined"
@@ -1245,98 +1312,6 @@ const AdminReportDetail = () => {
       ? { name: "اطمینان تحلیل", value: normalizedConfidence, fill: "#f97316" }
       : null,
   ].filter(Boolean) as { name: string; value: number; fill: string }[];
-
-  type WheelEntry = {
-    dimension: string;
-    categoryKey: string;
-    categoryLabel: string;
-    score: number;
-  };
-
-  const factorEntriesForWheel =
-    Array.isArray(analysis.factor_scores) && analysis.factor_scores.length > 0
-      ? analysis.factor_scores
-      : chartData;
-
-  const rawWheelEntries: WheelEntry[] = Array.isArray(analysis.power_wheel?.dimensions)
-    ? (analysis.power_wheel.dimensions as any[]).map((entry: any, index: number) => {
-      const dimensionLabel = (entry?.dimension ?? `بعد ${index + 1}`).toString();
-      const categoryLabel = (entry?.category ?? dimensionLabel ?? `دسته ${index + 1}`).toString();
-      const categoryKey =
-        categoryLabel.trim().length > 0
-          ? categoryLabel.trim().toLowerCase().replace(/\s+/g, "-")
-          : `category-${index + 1}`;
-      return {
-        dimension: dimensionLabel,
-        categoryKey,
-        categoryLabel,
-        score: clamp(toNum(entry?.score), 0, 100),
-      };
-    })
-    : factorEntriesForWheel.map((entry: any, index: number) => {
-      const dimensionLabel = (
-        entry?.dimension ??
-        entry?.factor ??
-        entry?.subject ??
-        entry?.name ??
-        `شاخص ${index + 1}`
-      ).toString();
-      const categoryLabel = (entry?.category ?? dimensionLabel ?? `شاخص ${index + 1}`).toString();
-      const categoryKey =
-        categoryLabel.trim().length > 0
-          ? categoryLabel.trim().toLowerCase().replace(/\s+/g, "-")
-          : `category-${index + 1}`;
-      const max = Math.max(toNum(entry?.maxScore ?? entry?.fullMark) || 5, 1);
-      const rawScore = toNum(entry?.score ?? entry?.value ?? entry?.size ?? entry?.actual);
-      const normalizedScore = max > 0 ? (rawScore / max) * 100 : 0;
-      return {
-        dimension: dimensionLabel,
-        categoryKey,
-        categoryLabel,
-        score: clamp(normalizedScore, 0, 100),
-      };
-    });
-
-  const wheelColorPalette = ["#f97316", "#22c55e", "#0ea5e9", "#facc15", "#ec4899", "#6366f1", "#14b8a6", "#8b5cf6"];
-  const wheelCategoryMap = new Map<string, { key: string; label: string; color: string }>();
-  rawWheelEntries.forEach((entry, index) => {
-    if (!wheelCategoryMap.has(entry.categoryKey)) {
-      wheelCategoryMap.set(entry.categoryKey, {
-        key: entry.categoryKey,
-        label: entry.categoryLabel,
-        color: wheelColorPalette[index % wheelColorPalette.length],
-      });
-    }
-  });
-
-  const powerWheelCategories = Array.from(wheelCategoryMap.values());
-  const powerWheelData = rawWheelEntries.map((entry) => {
-    const base = { dimension: entry.dimension } as Record<string, string | number>;
-    powerWheelCategories.forEach((category) => {
-      base[category.key] = category.key === entry.categoryKey ? entry.score : 0;
-    });
-    return base;
-  });
-  const hasPowerWheelData = powerWheelData.length > 0 && powerWheelCategories.length > 0;
-
-  const gaugeStartAngle = 220;
-  const gaugeEndAngle = -40;
-  const gaugeAngleSpan = Math.abs(gaugeStartAngle - gaugeEndAngle);
-  const rawGaugeValue =
-    analysis.readiness_index ??
-    analysis.score ??
-    (confidenceScore !== null ? confidenceScore * 10 : null);
-  const gaugeValue =
-    rawGaugeValue === null || rawGaugeValue === undefined ? null : clamp(toNum(rawGaugeValue), 0, 100);
-  const gaugeValueAngle =
-    gaugeValue !== null ? gaugeStartAngle - (gaugeValue / 100) * gaugeAngleSpan : gaugeStartAngle;
-  const gaugeSegments = gaugeValue !== null ? buildGaugeSegments(gaugeValue) : [];
-  const gaugePreviewRanges = [
-    { label: "آمادگی پایدار", range: "۰ تا ۲۵", color: "#22c55e" },
-    { label: "رشد مطلوب", range: "۲۵ تا ۵۰", color: "#84cc16" },
-    { label: "نیاز به تمرکز", range: "۵۰ تا ۷۵", color: "#f97316" },
-    { label: "هشدار فوری", range: "۷۵ تا ۱۰۰", color: "#ef4444" },
-  ];
 
   const progressTimelineRaw = Array.isArray((analysis as any).progress_timeline)
     ? ((analysis as any).progress_timeline as any[]).map((entry: any, index: number) => ({
@@ -1437,63 +1412,16 @@ const AdminReportDetail = () => {
       : null;
 
   const dominantSentiment =
-    sentimentData.length > 0
-      ? sentimentData.reduce(
+    sentimentRawData.length > 0
+      ? sentimentRawData.reduce(
         (best, current) => (current.value > best.value ? current : best),
-        sentimentData[0],
+        sentimentRawData[0],
       )
       : null;
   const sentimentInsightFromAnalysis = normalizeSentimentInsight(
     (analysis as Record<string, unknown>)?.sentiment_insight,
   );
-  const sentimentNarrative = sentimentInsightFromAnalysis ?? buildSentimentNarrative(sentimentData);
-
-  const hiddenAnalysisKeys = new Set([
-    "summary",
-    "strengths",
-    "recommendations",
-    "development_plan",
-    "risk_flags",
-    "factor_scores",
-    "sentiment_analysis",
-    "sentiment_insight",
-    "power_wheel",
-    "progress_timeline",
-    "report",
-    "score",
-    "total_score",
-    "overall_score",
-    "confidence_level",
-    "phase_breakdown",
-  ]);
-  const hiddenAnalysisKeysNormalized = new Set(
-    Array.from(hiddenAnalysisKeys).map((key) => normalizeKey(key)),
-  );
-
-  const analysisKeyLabels: Record<string, string> = {
-    dominant_behaviors: "رفتارهای غالب",
-    linguistic_summary: "جمع‌بندی زبانی",
-    communication_tone: "لحن ارتباطی",
-    collaboration_notes: "یادداشت‌های همکاری",
-    highlights: "نکات برجسته",
-    cautions: "هشدارها",
-  };
-
-  const prettifyKey = (key: string) => {
-    if (analysisKeyLabels[key]) return analysisKeyLabels[key];
-    return key
-      .replace(/_/g, " ")
-      .trim()
-      .replace(/\s+/g, " ")
-      .replace(/\b\w/g, (char) => char.toUpperCase());
-  };
-
-  const analysisEntries = Object.entries(analysis).filter(([key, value]) => {
-    if (value === undefined) return false;
-    if (hiddenAnalysisKeys.has(key)) return false;
-    if (hiddenAnalysisKeysNormalized.has(normalizeKey(key))) return false;
-    return true;
-  });
+  const sentimentNarrative = sentimentInsightFromAnalysis ?? buildSentimentNarrative(sentimentRawData);
 
   const formatSupplementaryLabel = (key: string, index: number) => {
     const numericMatch = key.match(/\d+/);
@@ -1575,6 +1503,9 @@ const AdminReportDetail = () => {
                   : [];
               const phaseReport =
                 typeof phase.analysis?.report === "string" ? phase.analysis.report : null;
+              const phaseWordCloud = prepareWordCloudData(
+                phase.analysis?.word_cloud_full ?? phase.analysis?.keyword_analysis,
+              );
 
               return (
                 <Card key={`phase-breakdown-${phase.phase ?? index}`} dir="rtl">
@@ -1640,6 +1571,14 @@ const AdminReportDetail = () => {
                             <li key={`recommendation-${phase.phase}-${idx2}`}>{item}</li>
                           ))}
                         </ul>
+                      </div>
+                    )}
+                    {phaseWordCloud.length > 0 && (
+                      <div className="space-y-2 rounded-2xl border border-slate-200 bg-white/80 p-4">
+                        <p className="text-xs font-semibold text-slate-600">ابر واژگان کامل گفتگو</p>
+                        <div className="min-h-[160px] rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-3">
+                          <KeywordWordCloud data={phaseWordCloud} />
+                        </div>
                       </div>
                     )}
                     {renderSupplementaryAnswers(phase.supplementary_answers)}
@@ -1712,7 +1651,7 @@ const AdminReportDetail = () => {
           </CardHeader>
           <CardContent className="text-right" style={{ fontFamily: rtlFontStack }}>
             <div className="text-3xl font-bold">
-              {Number.isFinite(overallScore) && overallScore !== 0 ? overallScore : "—"}
+              {overallScoreDisplay !== null ? overallScoreDisplay : "—"}
               <span className="text-base font-semibold opacity-80"> / {report.max_score || 100}</span>
             </div>
             <p className="mt-2 text-xs opacity-80">
@@ -1770,6 +1709,214 @@ const AdminReportDetail = () => {
           </CardContent>
         </Card>
       </div>
+
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <Card dir="rtl" className="min-h-[320px]">
+          <CardHeader className="text-right">
+            <CardTitle className="text-right">تحلیل احساسات</CardTitle>
+            <CardDescription className="text-right text-muted-foreground">
+              توزیع درصدی احساسات مثبت، خنثی و منفی در پاسخ‌ها
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="min-h-[240px]">
+            {sentimentChartData.length === 0 ? (
+              noData("داده‌ای برای تحلیل احساسات وجود ندارد.")
+            ) : (
+              <ResponsiveContainer className="chart-ltr" width="100%" height={240}>
+                <PieChart>
+                  <Pie
+                    data={sentimentChartData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={55}
+                    outerRadius={90}
+                    paddingAngle={3}
+                    stroke="rgba(15,23,42,0.1)"
+                    strokeWidth={2}
+                    label={({ name, value }) => `${name}: ${Number(value).toFixed(1)}٪`}
+                    labelLine={false}
+                  >
+                    {sentimentChartData.map((entry, index) => (
+                      <Cell key={`sentiment-${entry.name}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(value: number, name: string, item: any) => [
+                      `${Number(value).toFixed(1)}٪`,
+                      name,
+                    ]}
+                  />
+                  <Legend
+                    wrapperStyle={{ paddingTop: 12, direction: "rtl" as const }}
+                    iconType="circle"
+                    formatter={(value) => (
+                      <span className="text-xs text-slate-600" style={{ fontFamily: rtlFontStack }}>
+                        {value}
+                      </span>
+                    )}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+        <Card dir="rtl" className="min-h-[320px]">
+          <CardHeader className="text-right">
+            <CardTitle className="text-right">ابر واژگان کلیدی</CardTitle>
+            <CardDescription className="text-right text-muted-foreground">
+              پرتکرارترین واژه‌ها و عبارت‌های تحلیل‌شده
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="min-h-[240px]">
+            <div className="flex h-full items-center justify-center">
+              {keywordData.length === 0 ? (
+                noData("ابر واژگانی ثبت نشده است.")
+              ) : (
+                <div className="w-full">
+                  <KeywordWordCloud data={keywordData} />
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        <Card dir="rtl" className="min-h-[320px]">
+          <CardHeader className="text-right">
+            <CardTitle className="text-right">ابر واژگان کامل گفتگو</CardTitle>
+            <CardDescription className="text-right text-muted-foreground">
+              پاکسازی‌شده از کلمات بی‌اثر برای تمرکز بر واژه‌های مهم
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="min-h-[240px]">
+            <div className="flex h-full items-center justify-center">
+              {conversationWordCloudData.length === 0 ? (
+                noData("واژه‌ای برای نمایش یافت نشد.")
+              ) : (
+                <div className="w-full">
+                  <KeywordWordCloud data={conversationWordCloudData} />
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <Card dir="rtl" className="min-h-[360px]">
+          <CardHeader className="text-right">
+            <CardTitle className="text-right">نقشه حرارتی سهم فاکتورها</CardTitle>
+            <CardDescription className="text-right text-muted-foreground">
+              سهم نسبی هر فاکتور از کل امتیاز گزارش
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="min-h-[260px]">
+            {factorHeatmapData.length === 0 ? (
+              noData("سهمی برای فاکتورها قابل محاسبه نیست.")
+            ) : (
+              <ResponsiveContainer className="chart-ltr" width="100%" height={260}>
+                <BarChart data={factorHeatmapData} layout="vertical" margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                  <CartesianGrid stroke={chartGridColor} horizontal={false} />
+                  <XAxis type="number" hide domain={[0, 100]} />
+                  <YAxis dataKey="name" type="category" width={140} orientation="right" {...verticalAxisProps} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(_value: number, _name: string, item: any) => [
+                      `${item.payload.percent}%`,
+                      item.payload.name,
+                    ]}
+                  />
+                  <Bar dataKey="percent" radius={[12, 12, 12, 12]}>
+                    {factorHeatmapData.map((entry, index) => (
+                      <Cell key={`heat-${entry.name}-${index}`} fill={getHeatmapColor(entry.percent)} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+        <Card dir="rtl" className="min-h-[360px]">
+          <CardHeader className="text-right">
+            <CardTitle className="text-right">پراکندگی پیشرفت با خط روند</CardTitle>
+            <CardDescription className="text-right text-muted-foreground">
+              مقایسه امتیاز مراحل متوالی همراه با میانگین متحرک
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="min-h-[260px]">
+            {scatterLineData.length === 0 ? (
+              noData("داده‌ای برای روند پیشرفت در دسترس نیست.")
+            ) : (
+              <ResponsiveContainer className="chart-ltr" width="100%" height={260}>
+                <ComposedChart data={scatterLineData} margin={{ top: 10, right: 16, left: 0, bottom: 10 }}>
+                  <defs>
+                    <linearGradient id="trendAreaSimple" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#6366f1" stopOpacity={0.05} />
+                    </linearGradient>
+                    <radialGradient id="scatterGlowSimple" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stopColor="#6366f1" stopOpacity={0.7} />
+                      <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                    </radialGradient>
+                  </defs>
+                  <CartesianGrid stroke={chartGridColor} strokeDasharray="6 6" />
+                  <XAxis dataKey="iteration" {...axisProps} tickFormatter={(value: number) => `مرحله ${value}`} />
+                  <YAxis {...axisProps} orientation="right" />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(value: number, name: string) => [
+                      `${value} امتیاز`,
+                      name === "performance" ? "نتیجه مشاهده‌شده" : "خط روند",
+                    ]}
+                    labelFormatter={(value: number) => `مرحله ${value}`}
+                  />
+                  <Legend
+                    wrapperStyle={{ direction: "rtl" as const }}
+                    iconType="circle"
+                    formatter={(value) => (
+                      <span className="text-xs text-slate-600" style={{ fontFamily: rtlFontStack }}>
+                        {value}
+                      </span>
+                    )}
+                  />
+                  <ReferenceLine
+                    y={scatterAverage}
+                    stroke="#c084fc"
+                    strokeDasharray="4 4"
+                    ifOverflow="extendDomain"
+                    label={{
+                      value: "میانگین عملکرد",
+                      position: "right",
+                      fill: "#7c3aed",
+                      fontSize: 11,
+                      fontFamily: rtlFontStack,
+                    }}
+                  />
+                  <Area type="monotone" dataKey="trend" fill="url(#trendAreaSimple)" stroke="none" name="میانگین متحرک" />
+                  <Scatter
+                    name="نتیجه مشاهده‌شده"
+                    dataKey="performance"
+                    shape={renderScatterPoint}
+                    fillOpacity={0}
+                  >
+                    {scatterLineData.map((entry, index) => (
+                      <Cell key={`scatter-${index}`} fill="url(#scatterGlowSimple)" />
+                    ))}
+                  </Scatter>
+                  <Line
+                    name="خط روند"
+                    type="monotone"
+                    dataKey="trend"
+                    stroke="#2563eb"
+                    strokeWidth={3}
+                    dot={false}
+                    activeDot={{ r: 6, fill: "#2563eb", stroke: "#ffffff", strokeWidth: 2 }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </section>
 
       {radialSummaryData.length > 0 && (
         <Card dir="rtl" className="border-slate-200 bg-slate-50/70">
@@ -1930,13 +2077,13 @@ const AdminReportDetail = () => {
         </Card>
       )}
 
-      {sentimentData.length > 0 && (
+      {sentimentRawData.length > 0 && (
         <Card dir="rtl">
           <CardHeader className="text-right">
             <CardTitle className="text-right">خلاصه تحلیل احساسی</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
-            {sentimentData.map((item) => (
+            {sentimentRawData.map((item) => (
               <div
                 key={`sentiment-chip-${item.name}`}
                 className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1"
@@ -1972,912 +2119,39 @@ const AdminReportDetail = () => {
         </Card>
       )}
 
-      <div className="flex flex-col gap-6 lg:flex-row">
-        <ChartFlipCard
-          className="min-h-[420px] lg:flex-[1.6]"
-          title="نمودار شایستگی‌ها"
-          front={
-            <div className="h-[380px]" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
-              {chartData.length > 0 ? (
-                phaseComparison.series.length >= 2 ? (
-                  <ComparisonSpiderChart data={phaseComparison.data} series={phaseComparison.series} />
-                ) : (
-                  <SpiderChart data={chartData} />
-                )
-              ) : (
-                <p className="flex h-full items-center justify-center text-center text-sm text-muted-foreground">
-                  داده‌ای وجود ندارد.
-                </p>
-              )}
-            </div>
-          }
-          back={
-            <>
-              <p>
-                این نمودار راداری وضعیت شایستگی‌های کاربر را نسبت به سقف امتیاز هر بعد نمایش می‌دهد و به شما کمک
-                می‌کند قوت و ضعف هر حوزه را در یک نگاه ببینید.
-              </p>
-              <ul className="list-disc space-y-1 pr-5">
-                <li>هر رأس نمودار نماینده یک فاکتور ارزیابی است.</li>
-                <li>گسترش سطح در یک بعد یعنی امتیاز آن حوزه به سقف خود نزدیک‌تر است.</li>
-                <li>با نگه‌داشتن نشانگر روی هر نقطه می‌توانید مقدار دقیق همان بعد را ببینید.</li>
-              </ul>
-            </>
-          }
-        />
-        <Card dir="rtl" className="lg:flex-1">
-          <CardHeader className="text-right">
-            <CardTitle className="text-right">تحلیل کلی</CardTitle>
-          </CardHeader>
-          <CardContent className="text-right" style={{ fontFamily: rtlFontStack }}>
-            <div className="prose prose-sm max-w-none text-right text-muted-foreground" style={{ direction: "rtl" }}>
-              <ReactMarkdown>{analysis.report || "تحلیل متنی وجود ندارد."}</ReactMarkdown>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       <ChartFlipCard
-        className="min-h-[520px]"
-        title="چرخ توانمندی پاور ویل (نسخه آزمایشی)"
+        className="min-h-[420px]"
+        title="نمودار شایستگی‌ها"
         front={
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
-            {hasPowerWheelData ? (
-              <>
-                <div className="h-[420px]" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
-                  <ResponsiveContainer className="chart-ltr" width="100%" height="100%">
-                    <RadarChart data={powerWheelData} outerRadius="75%">
-                      <PolarGrid strokeDasharray="3 6" />
-                      <PolarAngleAxis
-                        dataKey="dimension"
-                        tick={{ fill: "#475569", fontSize: 11, fontFamily: rtlFontStack }}
-                      />
-                      <PolarRadiusAxis
-                        angle={90}
-                        domain={[0, 100]}
-                        stroke="#cbd5f5"
-                        tick={{ fill: "#94a3b8", fontSize: 10, fontFamily: rtlFontStack }}
-                      />
-                      {powerWheelCategories.map((category) => (
-                        <Radar
-                          key={category.key}
-                          name={category.label}
-                          dataKey={category.key}
-                          stroke={category.color}
-                          fill={category.color}
-                          fillOpacity={0.2}
-                          strokeWidth={2}
-                        />
-                      ))}
-                      <Tooltip
-                        contentStyle={tooltipStyle}
-                        formatter={(value: number, _name: string, item: any) => {
-                          if (typeof value !== "number" || value === 0 || !item) return null;
-                          const categoryLabel = powerWheelCategories.find((cat) => cat.key === item.dataKey)?.label;
-                          return [`${value} از ۱۰۰`, categoryLabel];
-                        }}
-                        labelFormatter={(label: string) => `حوزه: ${label}`}
-                      />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="space-y-4">
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    این چرخ توزیع امتیاز شاخص‌ها را در خوشه‌های موضوعی نشان می‌دهد و کمک می‌کند فوراً متوجه شوید کدام
-                    حوزه‌ها پررنگ‌تر هستند.
-                  </p>
-                  <div className="grid grid-cols-1 gap-3">
-                    {powerWheelCategories.map((category) => (
-                      <div key={category.key} className="flex items-center gap-3 rounded-md border px-3 py-2">
-                        <span
-                          className="h-3 w-3 rounded-full"
-                          style={{ backgroundColor: category.color }}
-                          aria-hidden
-                        />
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">{category.label}</p>
-                          <p className="text-xs text-muted-foreground">
-                            امتیاز میانگین این دسته از ۰ تا ۱۰۰ محاسبه شده و نشان می‌دهد سطح تسلط فعلی در چه وضعیتی است.
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
+          <div className="h-[380px]" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
+            {chartData.length > 0 ? (
+              phaseComparison.series.length >= 2 ? (
+                <ComparisonSpiderChart data={phaseComparison.data} series={phaseComparison.series} />
+              ) : (
+                <SpiderChart data={chartData} />
+              )
             ) : (
-              <div className="col-span-full flex items-center justify-center">
-                {noData("داده‌ای برای چرخ توانمندی ثبت نشده است.")}
-              </div>
+              <p className="flex h-full items-center justify-center text-center text-sm text-muted-foreground">
+                داده‌ای وجود ندارد.
+              </p>
             )}
           </div>
         }
         back={
           <>
             <p>
-              پاور ویل برای نمایش هم‌زمان چندین مهارت طراحی شده است تا تعادل نقاط قوت و ضعف را در یک نگاه نشان دهد و امکان
-              مقایسه بین حوزه‌ها را فراهم کند.
+              این نمودار راداری وضعیت شایستگی‌های کاربر را نسبت به سقف امتیاز هر بعد نمایش می‌دهد و به شما کمک می‌کند قوت
+              و ضعف هر حوزه را در یک نگاه ببینید.
             </p>
             <ul className="list-disc space-y-1 pr-5">
-              <li>هر رنگ یک خوشه مهارتی مستقل (مثلاً ارتباطات یا رهبری) را نمایش می‌دهد.</li>
-              <li>امتیازها بر مبنای درصد ۰ تا ۱۰۰ محاسبه شده‌اند تا بتوان آن‌ها را راحت مقایسه کرد.</li>
-              <li>می‌توانید از این نما برای اولویت‌بندی برنامه‌های توسعه فردی یا تیمی استفاده کنید.</li>
+              <li>هر رأس نمودار نماینده یک فاکتور ارزیابی است.</li>
+              <li>گسترش سطح در یک بعد یعنی امتیاز آن حوزه به سقف خود نزدیک‌تر است.</li>
+              <li>با نگه‌داشتن نشانگر روی هر نقطه می‌توانید مقدار دقیق همان بعد را ببینید.</li>
             </ul>
-            <p className="text-xs text-muted-foreground">
-              اگر برای برخی دسته‌ها داده‌ای ارسال نشود، نمودار صرفاً حوزه‌های موجود را نمایش می‌دهد.
-            </p>
           </>
         }
       />
 
-      <h2 className="pt-4 text-2xl font-bold text-right" style={{ fontFamily: rtlFontStack }}>
-        تحلیل‌های تکمیلی
-      </h2>
-      <div className="grid grid-cols-1 gap-8 2xl:grid-cols-2">
-        <ChartFlipCard
-          title="۱. تحلیل احساسات"
-          front={
-            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
-              {sentimentData.length === 0 ? (
-                noData()
-              ) : (
-                <ResponsiveContainer className="chart-ltr">
-                  <PieChart>
-                    <defs>
-                      <radialGradient id="sentimentGradient" cx="0.5" cy="0.5" r="0.75">
-                        <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.95} />
-                        <stop offset="100%" stopColor="#6366f1" stopOpacity={0.8} />
-                      </radialGradient>
-                    </defs>
-                    <Pie
-                      data={sentimentData}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={55}
-                      outerRadius={90}
-                      paddingAngle={3}
-                      stroke="rgba(15,23,42,0.1)"
-                      strokeWidth={2}
-                      label={({ name, value }) => `${name} (%${value})`}
-                      labelLine={false}
-                      fill="url(#sentimentGradient)"
-                    >
-                      {sentimentData.map((entry, index) => (
-                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={tooltipStyle} />
-                    <Legend
-                      wrapperStyle={{ paddingTop: 12, direction: "rtl" as const }}
-                      iconType="circle"
-                      formatter={(value) => <span className="text-xs text-slate-600" style={{ fontFamily: rtlFontStack }}>{value}</span>}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          }
-          back={
-            <>
-              <p>
-                این چارت سهم احساسات مثبت، منفی و خنثی را در پاسخ‌ها نشان می‌دهد و تصویری سریع از حال‌وهوای کلی
-                مکالمه ارائه می‌کند.
-              </p>
-              <ul className="list-disc space-y-1 pr-5">
-                <li>هر بخش دایره درصد حضور یک نوع احساس را نمایش می‌دهد.</li>
-                <li>راهنمای رنگی کنار نمودار به فهم سریع‌تر برچسب‌ها کمک می‌کند.</li>
-                <li>با قرار دادن نشانگر روی هر تکه مقدار دقیق همان احساس را می‌بینید.</li>
-              </ul>
-            </>
-          }
-        />
-        <ChartFlipCard
-          title="۲.  ابر واژگان"
-          front={
-            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
-              <KeywordWordCloud data={keywordData} />
-            </div>
-          }
-          back={
-            <>
-              <p>ابر واژگان نشان می‌دهد کدام عبارت‌ها پرکاربردتر بوده‌اند و در یک نگاه موضوعات غالب گفتگو را مشخص می‌کند.</p>
-              <ul className="list-disc space-y-1 pr-5">
-                <li>هرچه اندازه و شدت رنگ یک واژه بیشتر باشد، بسامد استفاده از آن بالاتر است.</li>
-                <li>چیدمان نامنظم به تشخیص سریع‌تر واژه‌های غالب کمک می‌کند.</li>
-                <li>از واژه‌های برجسته برای طراحی پیام‌های شخصی‌سازی‌شده استفاده کنید.</li>
-              </ul>
-            </>
-          }
-        />
-        <ChartFlipCard
-          title="۳. ابر واژگان کامل گفتگو"
-          front={
-            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
-              <KeywordWordCloud
-                data={conversationWordCloudData}
-                emptyMessage="داده‌ای برای واژه‌های گفتگو ثبت نشده است."
-              />
-            </div>
-          }
-          back={
-            <>
-              <p>این ابر واژگان تمام واژه‌های کاربر در طول گفتگو را بر اساس فراوانی نمایش می‌دهد.</p>
-              <ul className="list-disc space-y-1 pr-5">
-                <li>کل مکالمه پردازش شده تا بسامد واقعی واژه‌ها مشخص شود.</li>
-                <li>کلمات پرتکرار با اندازه و شدت رنگ بالاتر دیده می‌شوند.</li>
-                <li>از این نمودار برای ردیابی کلیدواژه‌های طبیعی کاربر و تحلیل لحن استفاده کنید.</li>
-              </ul>
-            </>
-          }
-        />
-        <ChartFlipCard
-          title="۴. روند حجم پاسخ‌ها"
-          front={
-            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
-              {verbosityData.length === 0 ? (
-                noData("داده‌ای برای روند گفتگو وجود ندارد.")
-              ) : (
-                <ResponsiveContainer className="chart-ltr">
-                  <LineChart data={verbosityData}>
-                    <defs>
-                      <linearGradient id="verbosityGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#f97316" stopOpacity={0.95} />
-                        <stop offset="100%" stopColor="#facc15" stopOpacity={0.4} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid stroke={chartGridColor} />
-                    <XAxis dataKey="turn" {...axisProps} />
-                    <YAxis {...axisProps} orientation="right" />
-                    <Tooltip
-                      contentStyle={tooltipStyle}
-                      formatter={(value: number) => [`${value} کلمه`, "حجم پاسخ"]}
-                      labelFormatter={(label: string | number) => `نوبت ${label}`}
-                    />
-                    {averageWordCount !== null && (
-                      <ReferenceLine y={averageWordCount} strokeDasharray="4 6" stroke="#6366f1" />
-                    )}
-                    <Line
-                      type="monotone"
-                      dataKey="word_count"
-                      stroke="url(#verbosityGradient)"
-                      strokeWidth={3}
-                      dot={{ r: 4, fill: "#f97316", strokeWidth: 2, stroke: "#fff" }}
-                      activeDot={{ r: 6, strokeWidth: 0 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          }
-          back={
-            <>
-              <p>خط روند نشان می‌دهد طول پاسخ‌ها در هر نوبت گفتگو چقدر تغییر کرده است و آیا کاربر پرحرف‌تر یا خلاصه‌تر شده.</p>
-              <ul className="list-disc space-y-1 pr-5">
-                <li>هر نقطه تعداد کلمات گفته‌شده در همان نوبت مکالمه را نمایش می‌دهد.</li>
-                <li>خط چین بنفش، میانگین طول پاسخ‌ها را مشخص می‌کند.</li>
-                <li>نوسان زیاد می‌تواند نشان‌دهنده عدم ثبات در شیوه ارائه پاسخ باشد.</li>
-              </ul>
-            </>
-          }
-        />
-        <ChartFlipCard
-          title="۵. کنش‌محوری"
-          front={
-            <div
-              className="min-h-[320px] w-full overflow-visible"
-              dir="rtl"
-              style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}
-            >
-              {actionData.length === 0 ? (
-                noData("داده‌ای برای مقایسه واژگان کنشی موجود نیست.")
-              ) : (
-                <ResponsiveContainer className="chart-ltr">
-                  <BarChart data={actionData} barSize={32}>
-                    <CartesianGrid stroke={chartGridColor} />
-                    <XAxis dataKey="name" {...axisProps} />
-                    <YAxis {...axisProps} orientation="right" />
-                    <Tooltip
-                      contentStyle={tooltipStyle}
-                      formatter={(value: number, key: string) => [
-                        `${value} واژه`,
-                        key === "action_words" ? "واژگان کنشی" : "واژگان غیرکنشی",
-                      ]}
-                    />
-                    <Legend
-                      wrapperStyle={{ paddingTop: 10, direction: "rtl" as const }}
-                      iconType="circle"
-                      formatter={(value) => (
-                        <span className="text-xs text-slate-600" style={{ fontFamily: rtlFontStack }}>
-                          {actionLegendLabels[value as keyof typeof actionLegendLabels] ?? value}
-                        </span>
-                      )}
-                    />
-                    <Bar dataKey="action_words" radius={[8, 8, 0, 0]} fill="#6366f1" />
-                    <Bar dataKey="passive_words" radius={[8, 8, 0, 0]} fill="#22c55e" />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          }
-          back={
-            <>
-              <p>این نمودار مقایسه می‌کند که کاربر چقدر از واژگان کنشی در مقابل واژگان خنثی استفاده کرده است.</p>
-              <ul className="list-disc space-y-1 pr-5">
-                <li>ستون آبی بیانگر تعداد فعل‌ها و عبارات عمل‌گرا است.</li>
-                <li>ستون سبز نشان‌دهنده جملات توصیفی یا منفعل است.</li>
-                <li>غلبه واژگان کنشی می‌تواند روحیه اقدام و مسئولیت‌پذیری را تایید کند.</li>
-              </ul>
-            </>
-          }
-        />
-        <ChartFlipCard
-          title="۶. رویکرد حل مسئله"
-          front={
-            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
-              {problemSolvingData.length === 0 ? (
-                noData("داده‌ای از رویکرد حل مسئله ثبت نشده است.")
-              ) : (
-                <ResponsiveContainer className="chart-ltr">
-                  <PieChart>
-                    <Pie
-                      data={problemSolvingData}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={60}
-                      outerRadius={90}
-                      paddingAngle={4}
-                      stroke="rgba(15,23,42,0.12)"
-                      strokeWidth={2}
-                      label={({ name, value }) => `${name}: ${value}`}
-                      labelLine={false}
-                    >
-                      {problemSolvingData.map((entry, index) => (
-                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={tooltipStyle} />
-                    <Legend
-                      wrapperStyle={{ paddingTop: 12, direction: "rtl" as const }}
-                      iconType="circle"
-                      formatter={(value) => <span className="text-xs text-slate-600" style={{ fontFamily: rtlFontStack }}>{value}</span>}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          }
-          back={
-            <>
-              <p>این دایره ترکیب سبک‌های حل مسئله را نشان می‌دهد تا مشخص شود کاربر بیشتر بر تحلیل، خلاقیت یا تصمیم‌گیری تکیه دارد.</p>
-              <ul className="list-disc space-y-1 pr-5">
-                <li>هر برش درصد تمرکز روی یکی از گام‌های حل مسئله است.</li>
-                <li>برچسب‌های روی نمودار مقدار هر دسته را به‌صورت خوانا ارائه می‌کنند.</li>
-                <li>می‌توانید برای طراحی برنامه‌های آموزشی روی بخش‌های ضعیف‌تر تمرکز کنید.</li>
-              </ul>
-            </>
-          }
-        />
-        <ChartFlipCard
-          title="۷. سطح اطمینان"
-          front={
-            <div
-              className="flex h-72 flex-col items-center justify-center gap-3"
-              dir="rtl"
-              style={{ direction: "rtl", unicodeBidi: "plaintext" as const, fontFamily: rtlFontStack }}
-            >
-              {confidenceScore !== null ? (
-                <>
-                  <div
-                    className="relative flex h-36 w-36 items-center justify-center rounded-full bg-slate-100 shadow-inner"
-                    style={{
-                      background: `conic-gradient(#38bdf8 0deg ${confidenceAngle}deg, #e2e8f0 ${confidenceAngle}deg 360deg)`,
-                    }}
-                  >
-                    <div className="flex h-28 w-28 flex-col items-center justify-center rounded-full bg-white">
-                      <span className="text-4xl font-bold text-slate-800">
-                        {Number.isInteger(confidenceScore) ? confidenceScore : confidenceScore.toFixed(1)}
-                      </span>
-                      <span className="text-xs text-muted-foreground">از ۱۰</span>
-                    </div>
-                  </div>
-                  <p className="max-w-[220px] text-center text-xs text-muted-foreground">
-                    {analysis.confidence_level?.comment ||
-                      "شاخص اطمینان بر اساس امتیاز کلی کاربر تخمین زده شده است."}
-                  </p>
-                </>
-              ) : (
-                noData("سطح اطمینان موجود نیست.")
-              )}
-            </div>
-          }
-          back={
-            <>
-              <p>گیج دایره‌ای سطح اطمینان را روی بازه صفر تا ده نشان می‌دهد تا دید سریعی از اعتماد به نفس پاسخ‌دهنده بدهد.</p>
-              <ul className="list-disc space-y-1 pr-5">
-                <li>زاویه رنگی با افزایش امتیاز پررنگ‌تر و گسترده‌تر می‌شود.</li>
-
-                <li>متن وسط مقدار عددی را برای مقایسه دقیق‌تر نمایش می‌دهد.</li>
-                <li>یادداشت زیر گیج توضیح کیفی مدل زبانی را به صورت خلاصه بیان می‌کند.</li>
-              </ul>
-            </>
-          }
-        />
-        <ChartFlipCard
-          title="۸. سبک ارتباطی"
-          front={
-            <div
-              className="min-h-[360px] w-full overflow-visible"
-              dir="rtl"
-              style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}
-            >
-              {commStyle.length === 0 ? (
-                noData("تحلیلی برای سبک ارتباطی موجود نیست.")
-              ) : (
-                <ResponsiveContainer className="chart-ltr">
-                  <BarChart data={commStyle} barCategoryGap={20}>
-                    <CartesianGrid stroke={chartGridColor} vertical={false} />
-                    <XAxis dataKey="name" {...axisProps} />
-                    <YAxis {...axisProps} orientation="right" />
-                    <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [`${value}`, "امتیاز"]} />
-                    <defs>
-                      <linearGradient id="commGradient" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="0%" stopColor="#ec4899" />
-                        <stop offset="100%" stopColor="#6366f1" />
-                      </linearGradient>
-                    </defs>
-                    <Bar dataKey="value" radius={[10, 10, 4, 4]} fill="url(#commGradient)" />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          }
-          back={
-            <>
-              <p>این نمودار مشخص می‌کند کدام مولفه‌های سبک گفتاری مثل همدلی یا قاطعیت برجسته‌تر هستند.</p>
-              <ul className="list-disc space-y-1 pr-5">
-                <li>ارتفاع هر ستون امتیاز همان ویژگی ارتباطی را نشان می‌دهد.</li>
-                <li>گرادیان رنگی روی ستون‌ها برای تشخیص بصری سریع‌تر به‌کار رفته است.</li>
-                <li>از مقایسه ستون‌ها می‌توان برای تقویت مهارت‌های ارتباطی موردنیاز بهره برد.</li>
-              </ul>
-            </>
-          }
-        />
-        <ChartFlipCard
-          title="۹. توزیع نمرات"
-          front={
-            <div
-              className="min-h-[360px] w-full overflow-visible"
-              dir="rtl"
-              style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}
-            >
-              {chartData.length === 0 ? (
-                noData("داده‌ای برای نمرات فاکتور‌ها موجود نیست.")
-              ) : (
-                <ResponsiveContainer className="chart-ltr">
-                  <AreaChart data={chartData}>
-                    <defs>
-                      <linearGradient id="scoreArea" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.8} />
-                        <stop offset="100%" stopColor="#38bdf8" stopOpacity={0.2} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid stroke={chartGridColor} />
-                    <XAxis dataKey="subject" {...axisProps} interval={0} angle={20} textAnchor="start" height={60} />
-                    <YAxis {...axisProps} orientation="right" />
-                    <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [`${value}`, "امتیاز"]} />
-                    <Area
-                      dataKey="score"
-                      type="monotone"
-                      stroke="#0ea5e9"
-                      strokeWidth={3}
-                      fill="url(#scoreArea)"
-                      activeDot={{ r: 6, stroke: "#fff", strokeWidth: 2 }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          }
-          back={
-            <>
-              <p>نمودار مساحتی نشان می‌دهد نمره هر فاکتور در مقایسه با سایر فاکتورها چگونه توزیع شده است.</p>
-              <ul className="list-disc space-y-1 pr-5">
-                <li>محور افقی فاکتورها و محور عمودی مقدار امتیاز آن‌هاست.</li>
-                <li>گرادیان آبی به تشخیص نواحی پرقدرت یا افت امتیاز کمک می‌کند.</li>
-                <li>نقاط فعال اجازه می‌دهند مقدار دقیق هر فاکتور را بررسی کنید.</li>
-              </ul>
-            </>
-          }
-        />
-        <ChartFlipCard
-          title="۱۰. همبستگی فاکتورها"
-          front={
-            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
-              {scatterSeries.length === 0 ? (
-                noData("داده‌ای برای همبستگی فاکتورها ارسال نشده است.")
-              ) : (
-                <ResponsiveContainer className="chart-ltr">
-                  <ScatterChart>
-                    <CartesianGrid stroke={chartGridColor} />
-                    <XAxis dataKey="score" name="امتیاز" {...axisProps} />
-                    <YAxis dataKey="fullMark" name="حداکثر" {...axisProps} orientation="right" />
-                    <Tooltip
-                      cursor={{ strokeDasharray: "4 4" }}
-                      contentStyle={tooltipStyle}
-                      formatter={(value: number, name: string) => [`${value}`, name === "score" ? "امتیاز" : "حداکثر"]}
-                    />
-                    <Scatter
-                      data={scatterSeries}
-                      fill="#f97316"
-                      shape="circle"
-                      legendType="circle"
-                    />
-                  </ScatterChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          }
-          back={
-            <>
-              <p>نقاط این نمودار رابطه بین امتیاز واقعی و سقف امتیاز هر فاکتور را ترسیم می‌کنند.</p>
-              <ul className="list-disc space-y-1 pr-5">
-                <li>هر نقطه به یک فاکتور اختصاص دارد و موقعیت آن نسبت به محور‌ها میزان پیشرفت را نشان می‌دهد.</li>
-                <li>فاصله نقطه از خط فرضی قطر بیانگر فاصله تا سقف امتیاز است.</li>
-                <li>از هم‌پوشانی نقاط می‌توان هم‌گرایی عملکرد فاکتورها را استنتاج کرد.</li>
-              </ul>
-            </>
-          }
-        />
-        <ChartFlipCard
-          title="۱۱. سهم فاکتورها"
-          front={
-            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
-              {treemapSeries.length === 0 ? (
-                noData("سهمی برای فاکتورها ارسال نشده است.")
-              ) : (
-                <ResponsiveContainer className="chart-ltr">
-                  <Treemap
-                    data={treemapSeries}
-                    dataKey="size"
-                    nameKey="name"
-                    stroke="#fff"
-                    fill="#6366f1"
-                  />
-
-                </ResponsiveContainer>
-              )}
-            </div>
-          }
-          back={
-            <>
-              <p>تری‌مپ نسبت هر فاکتور به کل امتیاز را به‌صورت بلوک‌های رنگی نمایش می‌دهد.</p>
-              <ul className="list-disc space-y-1 pr-5">
-                <li>مساحت هر بلوک با امتیاز همان فاکتور متناسب است.</li>
-                <li>می‌توانید سریع تشخیص دهید کدام مهارت‌ها سهم بیشتری در امتیاز کل دارند.</li>
-                <li>رنگ‌بندی یکنواخت کمک می‌کند تمرکز روی اندازه بلوک‌ها باشد.</li>
-              </ul>
-            </>
-          }
-        />
-        <ChartFlipCard
-          title="۱۲. شاخص‌های زبانی"
-          front={
-            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
-              {semanticRadar.every((entry) => !entry.value) ? (
-                noData("شاخص‌های زبانی محاسبه نشده‌اند.")
-              ) : (
-                <ResponsiveContainer className="chart-ltr">
-                  <RadarChart data={semanticRadar} outerRadius="75%">
-                    <PolarGrid stroke={chartGridColor} />
-                    <PolarAngleAxis dataKey="name" tick={{ fill: "#475569", fontSize: 11 }} />
-                    <PolarRadiusAxis stroke="#cbd5f5" tick={{ fill: "#475569", fontSize: 10 }} />
-                    <Radar
-                      name="شاخص زبانی"
-                      dataKey="value"
-                      stroke="#6366f1"
-                      fill="#6366f1"
-                      fillOpacity={0.4}
-                    />
-                    <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [`${value}`, "امتیاز"]} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          }
-          back={
-            <>
-              <p>این رادار نشان می‌دهد شاخص‌هایی مثل تنوع واژگان یا انسجام معنایی چه وضعیتی دارند.</p>
-              <ul className="list-disc space-y-1 pr-5">
-                <li>هر محور یک معیار زبان‌شناختی مستقل است.</li>
-                <li>گسترش سطح روی یک محور یعنی آن شاخص عملکرد بهتری دارد.</li>
-                <li>این بینش می‌تواند برای بهبود کیفیت نوشتار یا گفتار استفاده شود.</li>
-              </ul>
-            </>
-          }
-        />
-        <ChartFlipCard
-          title="۱۳. استفاده از ضمایر"
-          front={
-            <div
-              className="min-h-[320px] w-full overflow-visible"
-              dir="rtl"
-              style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}
-            >
-              {pronouns.every((entry) => !entry.value) ? (
-                noData("تحلیلی از ضمایر یافت نشد.")
-              ) : (
-                <ResponsiveContainer className="chart-ltr">
-                  <PieChart>
-                    <Pie
-                      data={pronouns}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={50}
-                      outerRadius={90}
-                      paddingAngle={2}
-                      label={({ name, value }) => `${name}: ${value}`}
-                      labelLine={false}
-                    >
-                      {pronouns.map((entry, index) => (
-                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={tooltipStyle} />
-                    <Legend
-                      wrapperStyle={{ paddingTop: 12, direction: "rtl" as const }}
-                      iconType="circle"
-                      formatter={(value) => <span className="text-xs text-slate-600" style={{ fontFamily: rtlFontStack }}>{value}</span>}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          }
-          back={
-            <>
-              <p>این نمودار نشان می‌دهد کاربر بیشتر از چه نوع ضمیری استفاده کرده و تمرکزش روی «من»، «تو» یا «او» بوده است.</p>
-              <ul className="list-disc space-y-1 pr-5">
-                <li>برچسب هر بخش نوع ضمیر و مقدار آن را مشخص می‌کند.</li>
-                <li>می‌توان از این نسبت‌ها برای تحلیل زاویه دید و تمرکز گفتگو بهره برد.</li>
-                <li>تعادل بین ضمایر نشان‌دهنده توجه همزمان به خود، مخاطب و دیگران است.</li>
-              </ul>
-            </>
-          }
-        />
-        <ChartFlipCard
-          title="۱۴. حوزه‌های معنایی پرتکرار"
-          front={
-            <div
-              className="min-h-[340px] w-full overflow-visible"
-              dir="rtl"
-              style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}
-            >
-              {semanticFields.length === 0 ? (
-                noData("حوزه معنایی شناسایی نشد.")
-              ) : (
-                <ResponsiveContainer className="chart-ltr">
-                  <BarChart data={semanticFields} layout="vertical" barCategoryGap={20}>
-                    <CartesianGrid stroke={chartGridColor} horizontal={false} />
-                    <XAxis type="number" {...axisProps} />
-                    <YAxis dataKey="field" type="category" width={140} orientation="right" {...verticalAxisProps} />
-                    <Tooltip contentStyle={tooltipStyle} formatter={(value: number) => [`${value} بار`, "تکرار"]} />
-                    <defs>
-                      <linearGradient id="semanticGradient" x1="0" x2="1" y1="0" y2="0">
-                        <stop offset="0%" stopColor="#22c55e" />
-                        <stop offset="100%" stopColor="#facc15" />
-                      </linearGradient>
-                    </defs>
-                    <Bar dataKey="mentions" radius={[12, 12, 12, 12]} fill="url(#semanticGradient)" />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          }
-          back={
-            <>
-              <p>این نمودار نشان می‌دهد کدام حوزه‌های معنایی در گفتگو بیشترین بسامد را داشته‌اند.</p>
-              <ul className="list-disc space-y-1 pr-5">
-                <li>محور عمودی حوزه‌ها و محور افقی تعداد دفعات اشاره به آن‌هاست.</li>
-                <li>گرادیان سبز تا زرد شدت حضور هر موضوع را برجسته می‌کند.</li>
-                <li>می‌توانید از اطلاعات آن برای برنامه‌ریزی محتوا یا تمرکز بر حوزه‌های مغفول استفاده کنید.</li>
-              </ul>
-            </>
-          }
-        />
-        <ChartFlipCard
-          title="۱۵. شاخص آمادگی"
-          front={
-            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
-              {gaugeValue === null ? (
-                noData("شاخص آمادگی محاسبه نشده است.")
-              ) : (
-                <>
-                  <div className="relative h-full">
-                    <ResponsiveContainer className="chart-ltr">
-                      <PieChart>
-                        <defs>
-                          <filter id="gaugeShadow" x="-20%" y="-20%" width="140%" height="140%">
-                            <feDropShadow dx="0" dy="6" stdDeviation="6" floodColor="rgba(15,23,42,0.25)" />
-                          </filter>
-                        </defs>
-                        <Pie
-                          data={[{ name: "track", value: 100 }]}
-                          dataKey="value"
-                          startAngle={gaugeStartAngle}
-                          endAngle={gaugeEndAngle}
-                          innerRadius={70}
-                          outerRadius={100}
-                          fill="#e2e8f0"
-                          stroke="none"
-                        />
-                        <Pie
-                          data={gaugeSegments}
-                          dataKey="value"
-                          startAngle={gaugeStartAngle}
-                          endAngle={gaugeValueAngle}
-                          innerRadius={70}
-                          outerRadius={100}
-                          stroke="none"
-                          paddingAngle={1.2}
-                          cornerRadius={12}
-                          filter="url(#gaugeShadow)"
-                        >
-                          {gaugeSegments.map((segment, index) => (
-                            <Cell key={`${segment.name}-${index}`} fill={segment.fill} />
-                          ))}
-                        </Pie>
-                        <Customized
-                          component={({ cx, cy, innerRadius, outerRadius }) => {
-                            if (typeof cx !== "number" || typeof cy !== "number") return null;
-                            const inner = typeof innerRadius === "number" ? innerRadius : 0;
-                            const outer = typeof outerRadius === "number" ? outerRadius : 0;
-                            const needleRadius = (inner + outer) / 2;
-                            const radians = (gaugeValueAngle * Math.PI) / 180;
-                            const x = cx + needleRadius * Math.cos(radians);
-                            const y = cy + needleRadius * Math.sin(radians);
-                            return (
-                              <g>
-                                <line x1={cx} y1={cy} x2={x} y2={y} stroke="#0f172a" strokeWidth={4} strokeLinecap="round" />
-                                <circle cx={cx} cy={cy} r={8} fill="#0f172a" stroke="#ffffff" strokeWidth={2} />
-                              </g>
-                            );
-                          }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1">
-                      <span className="text-3xl font-bold text-slate-700">{Math.round(gaugeValue)}</span>
-                      <span className="text-xs text-muted-foreground">امتیاز نهایی</span>
-                    </div>
-                  </div>
-                  <div className="mt-4 grid grid-cols-2 gap-2 text-center text-xs text-muted-foreground sm:grid-cols-4">
-                    {gaugePreviewRanges.map((item) => (
-                      <div key={item.label} className="rounded-md border border-slate-200 px-2 py-1">
-                        <p className="font-semibold" style={{ color: item.color }}>
-                          {item.label}
-                        </p>
-                        <p>{item.range}</p>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          }
-          back={
-            <>
-              <p>
-                این گیج نشان می‌دهد شاخص آمادگی محاسبه‌شده (بر پایه امتیاز کل یا شاخص اطمینان) در چه نقطه‌ای از بازه ۰ تا ۱۰۰
-                قرار گرفته است و چقدر تا وضعیت مطلوب فاصله دارد.
-              </p>
-              <ul className="list-disc space-y-1 pr-5">
-                <li>رنگ‌های تدریجی تصویرگر گذر آرام از وضعیت پایدار به ناحیه‌های حساس‌تر هستند.</li>
-                <li>سوزن مرکزی به صورت پویا مقدار عددی را روی بازه صفر تا صد مشخص می‌کند.</li>
-                <li>می‌توانید با اتصال این کارت به داده‌های زنده، پالس سریعی از آمادگی کلی هر ارزیابی دریافت کنید.</li>
-              </ul>
-            </>
-          }
-        />
-        <ChartFlipCard
-          title="۱۶. پراکندگی پیشرفت با خط روند"
-          front={
-            <div className="h-72" dir="rtl" style={{ direction: "rtl", unicodeBidi: "plaintext" as const }}>
-              {scatterLineData.length === 0 ? (
-                noData("داده‌ای برای روند پیشرفت در دسترس نیست.")
-              ) : (
-                <ResponsiveContainer className="chart-ltr">
-                  <ComposedChart data={scatterLineData} margin={{ top: 10, right: 16, left: 0, bottom: 10 }}>
-                    <defs>
-                      <linearGradient id="trendArea" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.4} />
-                        <stop offset="100%" stopColor="#6366f1" stopOpacity={0.05} />
-                      </linearGradient>
-                      <radialGradient id="scatterGlow" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stopColor="#6366f1" stopOpacity={0.75} />
-                        <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
-                      </radialGradient>
-                    </defs>
-                    <CartesianGrid stroke={chartGridColor} strokeDasharray="6 6" />
-                    <XAxis
-                      dataKey="iteration"
-                      {...axisProps}
-                      tickFormatter={(value: number) => `مرحله ${value}`}
-                    />
-                    <YAxis {...axisProps} orientation="right" />
-                    <Tooltip
-                      contentStyle={tooltipStyle}
-                      formatter={(value: number, name: string) => [
-                        `${value} امتیاز`,
-                        name === "performance" ? "نتیجه مشاهده‌شده" : "خط روند",
-                      ]}
-                      labelFormatter={(value: number) => `مرحله ${value}`}
-                    />
-                    <Legend
-                      wrapperStyle={{ direction: "rtl" as const }}
-                      iconType="circle"
-                      formatter={(value) => <span className="text-xs text-slate-600" style={{ fontFamily: rtlFontStack }}>{value}</span>}
-                    />
-                    <ReferenceLine
-                      y={scatterAverage}
-                      stroke="#c084fc"
-                      strokeDasharray="4 4"
-                      ifOverflow="extendDomain"
-                      label={{ value: "میانگین عملکرد", position: "right", fill: "#7c3aed", fontSize: 11, fontFamily: rtlFontStack }}
-                    />
-                    <Area type="monotone" dataKey="trend" fill="url(#trendArea)" stroke="none" name="میانگین متحرک" legendType="none" />
-                    <Scatter
-                      name="نتیجه مشاهده‌شده"
-                      dataKey="performance"
-                      shape={renderScatterPoint}
-                    />
-                    <Line
-                      name="خط روند"
-                      type="monotone"
-                      dataKey="trend"
-                      stroke="#2563eb"
-                      strokeWidth={3}
-                      dot={false}
-                      activeDot={{ r: 6, fill: "#2563eb", stroke: "#ffffff", strokeWidth: 2 }}
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          }
-          back={
-            <>
-              <p>
-                این نمودار ترکیبی توزیع امتیازهای مراحل متوالی را در کنار خط روند نرم و سطح اطمینان رنگی نمایش می‌دهد تا جهت
-                حرکت کلی را سریع متوجه شوید.
-              </p>
-              <ul className="list-disc space-y-1 pr-5">
-                <li>نقاط درخشان بنفش تغییرات هر مرحله را مشخص می‌کنند و با نگه‌داشتن نشانگر جزئیات دقیق را می‌بینید.</li>
-                <li>نوار گرادیانی زیر خط روند میزان ثبات و سرعت رشد را برجسته می‌کند.</li>
-                <li>خط راهنمای بنفش روشن میانگین عملکرد را برای مقایسه سریع نمایش می‌دهد.</li>
-              </ul>
-            </>
-          }
-        />
-      </div>
-
-      {analysisEntries.length > 0 && (
-        <Card dir="rtl">
-          <CardHeader className="text-right">
-            <CardTitle className="text-right">سایر جزئیات تحلیلی</CardTitle>
-            <CardDescription className="text-right">مقادیر زیر به صورت ساختاری از خروجی مدل دریافتی شده‌اند.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm text-slate-700" style={{ fontFamily: rtlFontStack }}>
-            {analysisEntries.map(([key, value]) => (
-              <div key={`analysis-entry-${key}`} className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-                <p className="text-xs font-semibold text-slate-500">{prettifyKey(key)}</p>
-                <pre className="mt-2 whitespace-pre-wrap text-[13px] leading-6 text-slate-700">
-                  {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
-                </pre>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };
