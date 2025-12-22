@@ -273,14 +273,14 @@ const AdminFinalReports = () => {
             {filteredSummaries.length} مسیر تعریف شده - {summaries.filter((s) => s.isReady).length} کاربر آماده تحویل
           </p>
         </div>
-        <div className="overflow-hidden rounded-3xl border border-white/5">
+        <div className="rounded-3xl border border-white/5">
           {isLoading ? (
             <div className="py-16 text-center text-white/70">
               <LoaderCircle className="mx-auto mb-3 h-10 w-10 animate-spin" />
               در حال آماده‌سازی گزارش‌ها...
             </div>
           ) : (
-            <ScrollArea className="max-h-[420px]">
+            <div className="max-h-[460px] overflow-y-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-white/5 text-white/70">
@@ -336,7 +336,7 @@ const AdminFinalReports = () => {
                   )}
                 </TableBody>
               </Table>
-            </ScrollArea>
+            </div>
           )}
         </div>
       </section>
