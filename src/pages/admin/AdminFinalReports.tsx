@@ -18,12 +18,21 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { ComparisonSpiderChart } from "@/components/ui/ComparisonSpiderChart";
 import { PowerWheelChart } from "@/components/ui/PowerWheelChart";
 import { getFinalReportSummaries, getFinalReportDetail } from "@/services/apiService";
 import { cn } from "@/lib/utils";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  Cell,
+} from "recharts";
 
 interface CategoryScore {
   label: string;
@@ -131,6 +140,45 @@ interface FinalReportDetail {
   risks: string[];
 }
 
+const CATEGORY_COLORS: Record<string, string> = {
+  "شایستگی های رفتاری (بین فردی)": "#7C3AED",
+  "شایستگی های شناختی": "#0EA5E9",
+  "شایستگی های فردی": "#EC4899",
+  "شایستگی های رهبری و مدیریت": "#F97316",
+  "شایستگی‌های روانشناختی": "#10B981",
+  "سایر دسته‌بندی‌ها": "#6366F1",
+};
+
+const DEFAULT_CATEGORY_COLOR = "#6366F1";
+
+const CATEGORY_SEQUENCE = [
+  "شایستگی های رفتاری (بین فردی)",
+  "شایستگی های شناختی",
+  "شایستگی های فردی",
+  "شایستگی های رهبری و مدیریت",
+  "شایستگی‌های روانشناختی",
+  "سایر دسته‌بندی‌ها",
+] as const;
+
+const LEGACY_CATEGORY_MAP: Record<string, string> = {
+  "نیمرخ روانشناختی": "شایستگی‌های روانشناختی",
+};
+
+const normalizeCategoryName = (category?: string | null) => {
+  if (!category) return "سایر دسته‌بندی‌ها";
+  const trimmed = category.trim();
+  return LEGACY_CATEGORY_MAP[trimmed] ?? trimmed;
+};
+
+const getCategoryColor = (category?: string | null) =>
+  CATEGORY_COLORS[normalizeCategoryName(category)] ?? DEFAULT_CATEGORY_COLOR;
+
+const getCategoryOrder = (category?: string | null) => {
+  const normalized = normalizeCategoryName(category);
+  const index = CATEGORY_SEQUENCE.indexOf(normalized as (typeof CATEGORY_SEQUENCE)[number]);
+  return index === -1 ? CATEGORY_SEQUENCE.length : index;
+};
+
 const formatDate = (value: string | null) => {
   if (!value) return "نامشخص";
   try {
@@ -227,6 +275,54 @@ const AdminFinalReports = () => {
     { key: "user", label: "امتیاز کاربر", color: "#6366f1" },
     { key: "target", label: "هدف (۱۰۰)", color: "#94a3b8" },
   ];
+
+  const categoryOverview = useMemo(() => {
+    if (!detail?.categories) return [];
+    return detail.categories
+      .map((category) => {
+        const normalizedLabel = normalizeCategoryName(category.label);
+        const displayLabel = category.label?.trim() ? category.label : normalizedLabel;
+        const totalAssignments = category.totalAssignments ?? 0;
+        const pendingCount = Math.max(totalAssignments - category.completedCount, 0);
+        return {
+          key: category.key,
+          label: displayLabel,
+          normalizedKey: normalizedLabel,
+          normalizedScore: Number(category.normalizedScore.toFixed(2)),
+          completedCount: category.completedCount,
+          totalAssignments,
+          pendingCount,
+          color: getCategoryColor(normalizedLabel),
+        };
+      })
+      .sort((a, b) => getCategoryOrder(a.normalizedKey) - getCategoryOrder(b.normalizedKey));
+  }, [detail]);
+
+  const categoryChartData = useMemo(
+    () =>
+      categoryOverview.map((entry) => ({
+        name: entry.label,
+        score: entry.normalizedScore,
+        completed: entry.completedCount,
+        total: entry.totalAssignments,
+        pending: entry.pendingCount,
+        color: entry.color,
+      })),
+    [categoryOverview],
+  );
+
+  const pendingCategorySummary = useMemo(() => {
+    if (categoryOverview.length === 0) return [];
+    return categoryOverview
+      .filter((entry) => entry.pendingCount > 0)
+      .map((entry) => ({
+        label: entry.label,
+        remaining: entry.pendingCount,
+        total: entry.totalAssignments,
+        normalizedKey: entry.normalizedKey,
+      }))
+      .sort((a, b) => getCategoryOrder(a.normalizedKey) - getCategoryOrder(b.normalizedKey));
+  }, [categoryOverview]);
 
   return (
     <div className="admin-page space-y-6">
@@ -491,63 +587,123 @@ const AdminFinalReports = () => {
               </Card>
             </div>
 
-            <Card className="bg-white/5 text-white">
-              <CardHeader>
-                <CardTitle>گفت‌وگوهای تکمیل شده</CardTitle>
-                <CardDescription>میانگین امتیاز و خلاصه هر مرحله</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {detail.assessments.length === 0 ? (
-                  <p className="text-sm text-white/60">هیچ مرحله‌ای تکمیل نشده است.</p>
-                ) : (
-                  <ScrollArea className="max-h-[360px]">
-                    <div className="space-y-4">
-                      {detail.assessments.map((assessment) => (
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card className="bg-white/5 text-white">
+                <CardHeader>
+                  <CardTitle>نمودار پیشرفت دسته‌بندی‌ها</CardTitle>
+                  <CardDescription>میانگین امتیاز هر شایستگی در گزارش نهایی</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {categoryChartData.length === 0 ? (
+                    <p className="text-sm text-white/60">هنوز دسته‌بندی معتبری برای نمایش وجود ندارد.</p>
+                  ) : (
+                    <div className="h-[320px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={categoryChartData}
+                          layout="vertical"
+                          margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+                        >
+                          <CartesianGrid stroke="rgba(255,255,255,0.1)" />
+                          <XAxis
+                            type="number"
+                            domain={[0, 100]}
+                            tick={{ fill: "#cbd5f5", fontSize: 12 }}
+                            tickFormatter={(value: number) => value.toFixed(0)}
+                          />
+                          <YAxis
+                            type="category"
+                            dataKey="name"
+                            width={150}
+                            tick={{ fill: "#f8fafc", fontSize: 12 }}
+                          />
+                          <RechartsTooltip
+                            contentStyle={{
+                              backgroundColor: "rgba(15,23,42,0.95)",
+                              border: "none",
+                              borderRadius: "12px",
+                              color: "#f8fafc",
+                              direction: "rtl",
+                            }}
+                            formatter={(value: number) => [`${value.toFixed(1)} از ۱۰۰`, "امتیاز"]}
+                          />
+                          <Bar dataKey="score" radius={[10, 10, 10, 10]}>
+                            {categoryChartData.map((entry) => (
+                              <Cell key={`category-bar-${entry.name}`} fill={entry.color} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              <Card className="bg-white/5 text-white">
+                <CardHeader>
+                  <CardTitle>گزارش دسته‌بندی‌های شایستگی</CardTitle>
+                  <CardDescription>تمام اطلاعات به‌جای پرسشنامه، بر اساس شایستگی خلاصه شده‌اند</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {categoryOverview.length === 0 ? (
+                    <p className="text-sm text-white/60">دسته‌بندی ثبت‌شده‌ای برای گزارش وجود ندارد.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {categoryOverview.map((category) => (
                         <div
-                          key={assessment.assessmentId}
+                          key={category.key}
                           className="rounded-2xl border border-white/10 bg-white/5 p-4"
                         >
                           <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
                             <div>
-                              <p className="text-sm text-white/60">{assessment.category}</p>
-                              <h4 className="text-lg font-semibold text-white">{assessment.questionnaireTitle}</h4>
+                              <p className="text-xs text-white/60">شایستگی</p>
+                              <h4 className="text-base font-semibold text-white">{category.label}</h4>
                             </div>
-                            <div className="text-right text-white">
-                              <div className="text-3xl font-black">{assessment.normalizedScore.toFixed(1)}</div>
-                              <p className="text-xs text-white/60">{assessment.completedAt ? formatDate(assessment.completedAt) : "—"}</p>
+                            <div className="text-right">
+                              <p className="text-xs text-white/60">
+                                {category.completedCount}/{category.totalAssignments || 0} مرحله
+                              </p>
+                              <p className="text-2xl font-black text-white">
+                                {category.normalizedScore.toFixed(1)}
+                              </p>
                             </div>
                           </div>
-                          {assessment.summary && (
-                            <p className="mt-3 text-sm text-white/80">{assessment.summary}</p>
-                          )}
-                          {assessment.strengths.length > 0 && (
-                            <div className="mt-3 text-xs text-white/60">
-                              <span className="font-semibold text-white">نکات برجسته:</span>{" "}
-                              {assessment.strengths.slice(0, 3).join("، ")}
-                            </div>
-                          )}
+                          <Progress className="mt-3 bg-white/10" value={category.normalizedScore} />
+                          <p className="mt-2 text-xs text-white/70">
+                            {category.pendingCount > 0
+                              ? `${category.pendingCount.toLocaleString("fa-IR")} مرحله تا تکمیل این شایستگی باقی مانده است.`
+                              : "این شایستگی به صورت کامل ارزیابی شده است."}
+                          </p>
                         </div>
                       ))}
                     </div>
-                  </ScrollArea>
-                )}
-              </CardContent>
-            </Card>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
 
             <Card className="bg-white/5 text-white">
               <CardHeader>
-                <CardTitle>مراحل باقیمانده</CardTitle>
-                <CardDescription>برای کامل شدن مسیر باید این مراحل تکمیل شوند</CardDescription>
+                <CardTitle>مراحل باقیمانده بر اساس شایستگی</CardTitle>
+                <CardDescription>برای کامل شدن مسیر باید وضعیت هر شایستگی به اتمام برسد</CardDescription>
               </CardHeader>
               <CardContent>
-                {detail.pendingAssignments.length === 0 ? (
-                  <p className="text-sm text-emerald-200">تمام مراحل تکمیل شده است.</p>
+                {pendingCategorySummary.length === 0 ? (
+                  <p className="text-sm text-emerald-200">تمام دسته‌بندی‌ها تکمیل شده است.</p>
                 ) : (
                   <ul className="space-y-2 text-sm text-white/90">
-                    {detail.pendingAssignments.map((assignment, index) => (
-                      <li key={`pending-${assignment.questionnaire_id}-${index}`} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                        <p className="font-semibold">{assignment.questionnaire_title}</p>
-                        <p className="text-xs text-white/60">{assignment.category || "بدون دسته‌بندی"}</p>
+                    {pendingCategorySummary.map((item) => (
+                      <li key={item.label} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold">{item.label}</span>
+                          <Badge variant="secondary" className="bg-white/10 text-white">
+                            {item.remaining.toLocaleString("fa-IR")} مرحله
+                          </Badge>
+                        </div>
+                        <p className="mt-2 text-xs text-white/60">
+                          {item.total > 0
+                            ? `از ${item.total.toLocaleString("fa-IR")} مرحله تعریف‌شده، هنوز ${item.remaining.toLocaleString("fa-IR")} مرحله تکمیل نشده است.`
+                            : "برای این شایستگی هنوز مسیری تعریف نشده است."}
+                        </p>
                       </li>
                     ))}
                   </ul>
