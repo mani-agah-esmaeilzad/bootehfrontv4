@@ -972,15 +972,25 @@ const AdminFinalReports = () => {
         const displayLabel = category.label?.trim() ? category.label : normalizedLabel;
         const totalAssignments = category.totalAssignments ?? 0;
         const pendingCount = Math.max(totalAssignments - category.completedCount, 0);
+        const contributions = Array.isArray(category.contributions) ? category.contributions : [];
+        const contributionScores = contributions
+          .map((contribution) => toNum(contribution.normalizedScore))
+          .filter((score) => Number.isFinite(score));
+        const computedAverage =
+          contributionScores.length > 0
+            ? contributionScores.reduce((sum, value) => sum + value, 0) / contributionScores.length
+            : category.normalizedScore ?? 0;
+        const normalizedScore = Number.isFinite(computedAverage) ? Number(computedAverage.toFixed(2)) : 0;
         return {
           key: category.key,
           label: displayLabel,
           normalizedKey: normalizedLabel,
-          normalizedScore: Number(category.normalizedScore.toFixed(2)),
+          normalizedScore,
           completedCount: category.completedCount,
           totalAssignments,
           pendingCount,
           color: getCategoryColor(normalizedLabel),
+          contributions,
         };
       })
       .sort((a, b) => getCategoryOrder(a.normalizedKey) - getCategoryOrder(b.normalizedKey));
@@ -1579,7 +1589,41 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
     });
     return { series, data };
   }, [assessmentFactorDetails]);
-  const questionnaireSpiderData = useMemo(() => analytics.questionnaireRadar, [analytics.questionnaireRadar]);
+  const questionnaireSpiderData = useMemo(() => {
+    if (analytics.questionnaireRadar.length > 0) return analytics.questionnaireRadar;
+    if (assessmentFactorDetails.length > 0) {
+      return assessmentFactorDetails.map((detail) => {
+        if (!detail.factorEntries || detail.factorEntries.length === 0) {
+          return { subject: detail.label, score: 0, fullMark: 100 };
+        }
+        const rawAverage =
+          detail.factorEntries.reduce((sum, entry) => {
+            const max = entry.fullMark || 1;
+            return sum + (max > 0 ? (entry.score / max) * 100 : 0);
+          }, 0) / detail.factorEntries.length;
+        return {
+          subject: detail.label,
+          score: Math.round(rawAverage * 10) / 10,
+          fullMark: 100,
+        };
+      });
+    }
+    return [];
+  }, [analytics.questionnaireRadar, assessmentFactorDetails]);
+  const questionnaireComparison = useMemo(() => {
+    if (!questionnaireSpiderData.length) return null;
+    const data = questionnaireSpiderData.map((entry) => ({
+      subject: entry.subject,
+      score: entry.score,
+      target: entry.fullMark ?? 100,
+      fullMark: entry.fullMark ?? 100,
+    }));
+    const series = [
+      { key: "score", label: "امتیاز پرسشنامه", color: COLORS[0] },
+      { key: "target", label: "حداکثر امتیاز", color: "#94a3b8" },
+    ];
+    return { data, series };
+  }, [questionnaireSpiderData]);
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -1858,16 +1902,51 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
         </Card>
         <Card className="bg-white/5 text-white">
           <CardHeader>
-            <CardTitle>نمودار پرسشنامه‌های این شایستگی</CardTitle>
+            <CardTitle>نمودار راداری پرسشنامه‌ها</CardTitle>
             <CardDescription className="text-xs text-white/60">
-              هر وجه نماینده یک پرسشنامه (مثل کار تیمی یا انعطاف‌پذیری) است و امتیاز هر کدام بر اساس نمره نهایی رسم شده است.
+              تمام پرسشنامه‌های این شایستگی (مثل کار تیمی یا انعطاف‌پذیری) در یک نمودار واحد نمایش داده شده‌اند تا مقایسه امتیازها آسان شود.
             </CardDescription>
           </CardHeader>
           <CardContent className="h-[420px]">
             {questionnaireSpiderData.length === 0 ? (
               noData("پرسشنامه‌ای برای این شایستگی ثبت نشده است.")
             ) : (
-              <SpiderChart data={questionnaireSpiderData} />
+              <Tabs
+                defaultValue={questionnaireComparison ? "comparison" : "simple"}
+                className="h-full space-y-3"
+                dir="rtl"
+              >
+                {questionnaireComparison ? (
+                  <>
+                    <TabsList className="flex w-full gap-2 rounded-2xl bg-white/10 p-2">
+                      <TabsTrigger
+                        value="comparison"
+                        className="flex-1 rounded-xl border border-transparent px-3 py-1 text-xs text-white data-[state=active]:border-white/20 data-[state=active]:bg-white/20"
+                        style={{ fontFamily: rtlFontStack }}
+                      >
+                        مقایسه با هدف
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="simple"
+                        className="flex-1 rounded-xl border border-transparent px-3 py-1 text-xs text-white data-[state=active]:border-white/20 data-[state=active]:bg-white/20"
+                        style={{ fontFamily: rtlFontStack }}
+                      >
+                        نمای ساده
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="comparison" className="h-[360px]">
+                      <ComparisonSpiderChart
+                        data={questionnaireComparison.data}
+                        series={questionnaireComparison.series}
+                        maxDomain={100}
+                      />
+                    </TabsContent>
+                  </>
+                ) : null}
+                <TabsContent value="simple" className="h-[360px]">
+                  <SpiderChart data={questionnaireSpiderData} />
+                </TabsContent>
+              </Tabs>
             )}
           </CardContent>
         </Card>
