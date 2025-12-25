@@ -698,46 +698,87 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
       ]),
       resolveAnalysisField(analysisSource, ["factor_breakdown", "factorBreakdown", "competency_breakdown", "competencyBreakdown"]),
     ];
-    let bestFactorSet: { subject: string; score: number; fullMark: number }[] = [];
-    const seenFactorSubjects = new Set<string>();
-    factorCandidates.forEach((candidate) => {
-      const normalizedFactors = normalizeFactorEntries(candidate);
-      if (normalizedFactors.length === 0) return;
-      if (bestFactorSet.length === 0 || normalizedFactors.length > bestFactorSet.length) {
-        bestFactorSet = normalizedFactors;
-      }
-      normalizedFactors.forEach((factor) => {
-        const normalizedSubject = normalizeKey(factor.subject || "");
-        if (normalizedSubject) {
-          seenFactorSubjects.add(normalizedSubject);
-        }
-        const factorBucket =
-          bucket.factorMap.get(factor.subject) ?? { total: 0, count: 0, fullMark: factor.fullMark ?? 5 };
-        factorBucket.total += factor.score;
-        factorBucket.count += 1;
-        factorBucket.fullMark = Math.max(factorBucket.fullMark, factor.fullMark ?? factorBucket.fullMark);
-        bucket.factorMap.set(factor.subject, factorBucket);
-      });
-    });
-
-    let perAssessmentFactors = bestFactorSet.length > 0 ? [...bestFactorSet] : [];
-    const perAssessmentSubjectSet = new Set(perAssessmentFactors.map((factor) => normalizeKey(factor.subject || "")));
-    entry.fallbackFactors.forEach((factor) => {
-      const normalizedSubject = normalizeKey(factor.subject || "");
+    const perAssessmentAccumulator = new Map<
+      string,
+      { subject: string; total: number; count: number; fullMark: number }
+    >();
+    const pushAssessmentFactor = (factor: { subject: string; score: number; fullMark: number }) => {
+      const subject = factor.subject || "";
+      const normalizedSubject = normalizeKey(subject);
       if (!normalizedSubject) return;
-      if (!perAssessmentSubjectSet.has(normalizedSubject)) {
-        perAssessmentSubjectSet.add(normalizedSubject);
-        perAssessmentFactors.push(factor);
-      }
-      if (seenFactorSubjects.has(normalizedSubject)) return;
-      seenFactorSubjects.add(normalizedSubject);
+      const existing =
+        perAssessmentAccumulator.get(normalizedSubject) ?? {
+          subject,
+          total: 0,
+          count: 0,
+          fullMark: factor.fullMark ?? 5,
+        };
+      existing.subject = subject;
+      existing.total += factor.score;
+      existing.count += 1;
+      existing.fullMark = Math.max(existing.fullMark, factor.fullMark ?? existing.fullMark ?? 5);
+      perAssessmentAccumulator.set(normalizedSubject, existing);
       const factorBucket =
-        bucket.factorMap.get(factor.subject) ?? { total: 0, count: 0, fullMark: factor.fullMark ?? 5 };
+        bucket.factorMap.get(subject) ?? { total: 0, count: 0, fullMark: factor.fullMark ?? 5 };
       factorBucket.total += factor.score;
       factorBucket.count += 1;
       factorBucket.fullMark = Math.max(factorBucket.fullMark, factor.fullMark ?? factorBucket.fullMark);
-      bucket.factorMap.set(factor.subject, factorBucket);
+      bucket.factorMap.set(subject, factorBucket);
+    };
+
+    const collectFactorEntries = (candidate: unknown) => {
+      const normalizedFactors = normalizeFactorEntries(candidate);
+      normalizedFactors.forEach((factor) => pushAssessmentFactor(factor));
+      return normalizedFactors.length > 0;
+    };
+
+    factorCandidates.forEach((candidate) => {
+      collectFactorEntries(candidate);
     });
+
+    entry.fallbackFactors.forEach((factor) => {
+      pushAssessmentFactor(factor);
+    });
+
+    const phaseBreakdown = Array.isArray(analysis?.phase_breakdown) ? analysis.phase_breakdown : [];
+    phaseBreakdown.forEach((phase: any) => {
+      const phaseAnalysis = normalizeAnalysisObject(phase?.analysis ?? phase);
+      const phaseCandidates = [
+        resolveAnalysisField(phaseAnalysis, ["factor_scores", "factor score", "factor-score", "factorScore"]),
+        resolveAnalysisField(phaseAnalysis, [
+          "factor_scatter",
+          "scatter_data",
+          "factor scatter",
+          "factorScatter",
+          "scatterData",
+          "factor_correlation",
+        ]),
+        resolveAnalysisField(phaseAnalysis, [
+          "factor_contribution",
+          "factor contribution",
+          "factor_share",
+          "factorShare",
+          "factorContribution",
+          "factor_treemap",
+        ]),
+      ];
+      phaseCandidates.forEach((candidate) => collectFactorEntries(candidate));
+      if (Array.isArray(phase?.factorScores)) {
+        phase.factorScores.forEach((factor: any) => {
+          pushAssessmentFactor({
+            subject: factor.name || factor.factor || factor.subject || "فاکتور",
+            score: toNum(factor.score),
+            fullMark: toNum(factor.maxScore) || 5,
+          });
+        });
+      }
+    });
+
+    const perAssessmentFactors = Array.from(perAssessmentAccumulator.values()).map((item) => ({
+      subject: item.subject,
+      score: Math.round((item.total / (item.count || 1)) * 10) / 10,
+      fullMark: item.fullMark || 5,
+    }));
     if (perAssessmentFactors.length > 0) {
       bucket.assessmentSpiders.push({
         id: entry.assessmentId,
