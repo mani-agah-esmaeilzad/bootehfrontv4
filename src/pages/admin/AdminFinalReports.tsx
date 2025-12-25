@@ -22,6 +22,8 @@ import { Progress } from "@/components/ui/progress";
 import { ComparisonSpiderChart } from "@/components/ui/ComparisonSpiderChart";
 import { SpiderChart } from "@/components/ui/SpiderChart";
 import { PowerWheelChart } from "@/components/ui/PowerWheelChart";
+import { PowerWheel } from "@/components/charts/PowerWheel";
+import { PowerWheelAxis, PowerWheelGroup } from "@/components/charts/powerWheelTypes";
 import apiFetch, { getFinalReportSummaries, getFinalReportDetail } from "@/services/apiService";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -168,6 +170,14 @@ const CATEGORY_SEQUENCE = [
   "سایر دسته‌بندی‌ها",
 ] as const;
 const PRIMARY_CATEGORY_SEQUENCE = CATEGORY_SEQUENCE.slice(0, 5);
+const POWER_WHEEL_GROUP_MAP: Partial<Record<string, PowerWheelGroup>> = {
+  "شایستگی های رفتاری (بین فردی)": "Teamwork",
+  "شایستگی های شناختی": "Cognitive Abilities",
+  "شایستگی های فردی": "Work Ethic",
+  "شایستگی های رهبری و مدیریت": "Leadership",
+  "شایستگی‌های روانشناختی": "Problem Solving",
+  "سایر دسته‌بندی‌ها": "Communication",
+};
 
 const LEGACY_CATEGORY_MAP: Record<string, string> = {
   "نیمرخ روانشناختی": "شایستگی‌های روانشناختی",
@@ -186,6 +196,11 @@ const getCategoryOrder = (category?: string | null) => {
   const normalized = normalizeCategoryName(category);
   const index = CATEGORY_SEQUENCE.indexOf(normalized as (typeof CATEGORY_SEQUENCE)[number]);
   return index === -1 ? CATEGORY_SEQUENCE.length : index;
+};
+
+const mapCategoryToPowerWheelGroup = (category?: string | null): PowerWheelGroup => {
+  const normalized = normalizeCategoryName(category);
+  return POWER_WHEEL_GROUP_MAP[normalized] ?? "Communication";
 };
 
 const rtlFontStack = "'Vazirmatn', 'IRANSans', 'Tahoma', sans-serif";
@@ -1151,23 +1166,16 @@ const AdminFinalReports = () => {
     return ordered;
   }, [categoryOverview, categoryAnalytics]);
 
-  const questionnairePowerWheelData = useMemo(() => {
+  const questionnairePowerWheelAxes = useMemo<PowerWheelAxis[]>(() => {
     if (!detail?.assessments || detail.assessments.length === 0) return [];
-    return detail.assessments.map((assessment, index) => {
-      const label =
+    return detail.assessments.map((assessment, index) => ({
+      key: `assessment-axis-${assessment.assessmentId}-${index}`,
+      label:
         assessment.questionnaireTitle?.trim() ||
-        `${normalizeCategoryName(assessment.category)} - گفت‌وگو ${index + 1}`;
-      const score = Math.min(Math.max(toNum(assessment.normalizedScore), 0), 100);
-      const status: "pending" | "partial" | "completed" =
-        score >= 75 ? "completed" : score >= 40 ? "partial" : "pending";
-      return {
-        label,
-        value: score,
-        status,
-        completedCount: assessment.completedAt ? 1 : 0,
-        totalAssignments: 1,
-      };
-    });
+        `${normalizeCategoryName(assessment.category)} - گفت‌وگو ${index + 1}`,
+      group: mapCategoryToPowerWheelGroup(assessment.category),
+      value: Math.min(Math.max(toNum(assessment.normalizedScore), 0), 100),
+    }));
   }, [detail?.assessments]);
 
   const heatmapColorForScore = useCallback((score: number) => {
@@ -1404,8 +1412,8 @@ const AdminFinalReports = () => {
                   پاورویل پرسشنامه‌ها
                 </div>
                 <div className="mt-4">
-                  {questionnairePowerWheelData.length > 0 ? (
-                    <PowerWheelChart data={questionnairePowerWheelData} />
+                  {questionnairePowerWheelAxes.length > 2 ? (
+                    <PowerWheel data={questionnairePowerWheelAxes} className="text-xs text-slate-200" />
                   ) : (
                     <div className="flex h-[320px] items-center justify-center text-sm text-white/60">
                       هنوز گفت‌وگوی تکمیل‌شده‌ای وجود ندارد.
