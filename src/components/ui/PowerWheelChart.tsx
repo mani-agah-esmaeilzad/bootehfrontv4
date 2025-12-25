@@ -3,6 +3,7 @@
 import * as React from "react";
 import { PieChart, Pie, Cell, Tooltip } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
+import { normalizeBidi } from "@/lib/bidi";
 
 type SegmentStatus = "pending" | "partial" | "completed";
 
@@ -31,9 +32,11 @@ const PowerWheelTooltip = ({ active, payload }: any) => {
   if (!entry) return null;
 
   return (
-    <div className="rounded-md border border-slate-700 bg-slate-900/95 px-3 py-2 text-xs text-white shadow-lg">
-      <p className="font-semibold text-sm">{entry.label}</p>
-      <p className="mt-1 text-[11px] text-slate-300">امتیاز: {entry.value.toFixed(1)} از 100</p>
+    <div className="rounded-md border border-slate-700 bg-slate-900/95 px-3 py-2 text-xs text-white shadow-lg rtl" dir="rtl">
+      <p className="text-sm font-semibold">{normalizeBidi(entry.label)}</p>
+      <p className="mt-1 text-[11px] text-slate-300">
+        {normalizeBidi(`امتیاز: ${entry.value.toFixed(1)} از ۱۰۰`)}
+      </p>
       <p className="text-[11px] text-slate-300">
         وضعیت:{" "}
         {entry.status === "completed"
@@ -43,7 +46,7 @@ const PowerWheelTooltip = ({ active, payload }: any) => {
             : "در انتظار شروع"}
       </p>
       <p className="text-[11px] text-slate-400">
-        مدیریت شده: {entry.completedCount}/{entry.totalAssignments || 0}
+        {normalizeBidi(`مدیریت شده: ${entry.completedCount}/${entry.totalAssignments || 0}`)}
       </p>
     </div>
   );
@@ -81,8 +84,8 @@ export const PowerWheelChart = ({ data }: PowerWheelChartProps) => {
       </PieChart>
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
         <p className="text-xs uppercase tracking-widest text-slate-300">Power Wheel</p>
-        <p className="text-4xl font-black text-white">{average.toFixed(0)}</p>
-        <p className="text-[11px] text-slate-400">میانگین امتیاز دسته‌بندی‌ها</p>
+        <p className="text-4xl font-black text-white">{normalizeBidi(average.toFixed(0))}</p>
+        <p className="text-[11px] text-slate-400">{normalizeBidi("میانگین امتیاز دسته‌بندی‌ها")}</p>
       </div>
     </ChartContainer>
   );

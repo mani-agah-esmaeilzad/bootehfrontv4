@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { ArrowLeft, BarChart as BarChartIcon, LoaderCircle, RefreshCw, Search, Trash2 } from "lucide-react";
 import apiFetch, { adminGetReportsOverview } from "@/services/apiService";
 import { ComparisonSpiderChart } from "@/components/ui/ComparisonSpiderChart";
+import { normalizeBidi } from "@/lib/bidi";
 
 const persianDigitMap: Record<string, string> = {
     "۰": "0",
@@ -900,9 +901,22 @@ const AdminReports = () => {
                             <ResponsiveContainer className="chart-ltr">
                                 <BarChart data={questionnaireChartData}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                    <XAxis dataKey="name" tick={{ fontSize: 12 }} interval={0} angle={-20} textAnchor="end" height={80} />
+                                    <XAxis
+                                        dataKey="name"
+                                        tick={{ fontSize: 12 }}
+                                        interval={0}
+                                        angle={-20}
+                                        textAnchor="end"
+                                        height={80}
+                                        tickFormatter={(value: string) => normalizeBidi(value)}
+                                    />
                                     <YAxis allowDecimals={false} />
-                                    <RechartsTooltip formatter={(value: number) => [`${value} گزارش`, "تعداد"]} />
+                                    <RechartsTooltip
+                                        formatter={(value: number) => [
+                                            normalizeBidi(`${value} گزارش`),
+                                            normalizeBidi("تعداد"),
+                                        ]}
+                                    />
                                     <Bar dataKey="total" radius={8} fill="#6366f1" />
                                 </BarChart>
                             </ResponsiveContainer>
@@ -927,7 +941,12 @@ const AdminReports = () => {
                                             <Cell key={`cell-${entry.rawStatus}`} fill={statusColors[entry.rawStatus] || ["#6366f1", "#22c55e", "#f97316"][index % 3]} />
                                         ))}
                                     </Pie>
-                                    <RechartsTooltip formatter={(value: number, name: string) => [`${value} گزارش`, name]} />
+                                    <RechartsTooltip
+                                        formatter={(value: number, name: string) => [
+                                            normalizeBidi(`${value} گزارش`),
+                                            normalizeBidi(name),
+                                        ]}
+                                    />
                                 </PieChart>
                             </ResponsiveContainer>
                         )}

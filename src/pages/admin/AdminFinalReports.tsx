@@ -27,6 +27,7 @@ import { PowerWheelAxis, PowerWheelGroup } from "@/components/charts/powerWheelT
 import apiFetch, { getFinalReportSummaries, getFinalReportDetail } from "@/services/apiService";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { normalizeBidi } from "@/lib/bidi";
 import {
   ResponsiveContainer,
   BarChart,
@@ -1509,7 +1510,8 @@ const AdminFinalReports = () => {
                             type="category"
                             dataKey="name"
                             width={150}
-                            tick={{ fill: "#f8fafc", fontSize: 12 }}
+                            tick={{ fill: "#f8fafc", fontSize: 12, fontFamily: rtlFontStack }}
+                            tickFormatter={(value: string) => normalizeBidi(value)}
                           />
                           <RechartsTooltip
                             contentStyle={{
@@ -1519,7 +1521,10 @@ const AdminFinalReports = () => {
                               color: "#f8fafc",
                               direction: "rtl",
                             }}
-                            formatter={(value: number) => [`${value.toFixed(1)} از ۱۰۰`, "امتیاز"]}
+                            formatter={(value: number) => [
+                              normalizeBidi(`${value.toFixed(1)} از ۱۰۰`),
+                              normalizeBidi("امتیاز"),
+                            ]}
                           />
                           <Bar dataKey="score" radius={[10, 10, 10, 10]}>
                             {categoryChartData.map((entry) => (
@@ -1598,7 +1603,7 @@ const AdminFinalReports = () => {
                           }}
                         >
                           <div>
-                            <p className="text-xs text-white/80">{item.label}</p>
+                            <p className="text-xs text-white/80">{normalizeBidi(item.label)}</p>
                             <p className="text-2xl font-black">{item.score.toFixed(1)}</p>
                           </div>
                           <div className="space-y-1">
@@ -1608,7 +1613,7 @@ const AdminFinalReports = () => {
                                 style={{ width: `${Math.min(Math.max(item.score, 0), 100)}%` }}
                               />
                             </div>
-                            <p className="text-[11px] text-white/80">{completionLabel}</p>
+                            <p className="text-[11px] text-white/80">{normalizeBidi(completionLabel)}</p>
                           </div>
                         </div>
                       );
@@ -1910,19 +1915,24 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
                             outerRadius={90}
                             paddingAngle={3}
                             labelLine={false}
-                            label={({ name, value }) => `${name}: ${value.toFixed(1)}٪`}
+                            label={({ name, value }) => `${normalizeBidi(name)}: ${value.toFixed(1)}٪`}
                           >
                             {tab.data.map((entry) => (
                               <Cell key={entry.name} fill={entry.color} />
                             ))}
                           </Pie>
                           <RechartsTooltip
-                            formatter={(value: number, name: string) => [`${value}٪`, name]}
+                            formatter={(value: number, name: string) => [
+                              normalizeBidi(`${value}٪`),
+                              normalizeBidi(name),
+                            ]}
                             contentStyle={tooltipStyle}
                           />
                           <Legend
                             wrapperStyle={{ direction: "rtl" as const }}
-                            formatter={(value) => <span style={{ fontFamily: rtlFontStack }}>{value}</span>}
+                            formatter={(value) => (
+                              <span style={{ fontFamily: rtlFontStack }}>{normalizeBidi(value as string)}</span>
+                            )}
                           />
                         </PieChart>
                       </ResponsiveContainer>
@@ -2023,9 +2033,13 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
                           type="category"
                           width={160}
                           tick={{ fill: "#f8fafc", fontSize: 12, fontFamily: rtlFontStack }}
+                          tickFormatter={(value: string) => normalizeBidi(value)}
                         />
                         <RechartsTooltip
-                          formatter={(value: number, name: string, item: any) => [`${item.payload.percent}%`, name]}
+                          formatter={(_value: number, name: string, item: any) => [
+                            normalizeBidi(`${item.payload.percent}٪`),
+                            normalizeBidi(name),
+                          ]}
                           contentStyle={tooltipStyle}
                         />
                         <Bar dataKey="percent" radius={[10, 10, 10, 10]}>
@@ -2071,15 +2085,21 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
                         <XAxis
                           dataKey="iteration"
                           tick={{ fill: "#e2e8f0", fontSize: 12, fontFamily: rtlFontStack }}
-                          tickFormatter={(value: number) => `مرحله ${value}`}
+                          tickFormatter={(value: number) => normalizeBidi(`مرحله ${value}`)}
                         />
                         <YAxis tick={{ fill: "#e2e8f0", fontSize: 12, fontFamily: rtlFontStack }} />
                         <RechartsTooltip
-                          formatter={(value: number) => [`${value.toFixed(1)} امتیاز`, "عملکرد"]}
-                          labelFormatter={(value: number) => `مرحله ${value}`}
+                          formatter={(value: number, name: string) => [
+                            normalizeBidi(`${value.toFixed(1)} امتیاز`),
+                            normalizeBidi(name || "عملکرد"),
+                          ]}
+                          labelFormatter={(value: number) => normalizeBidi(`مرحله ${value}`)}
                           contentStyle={tooltipStyle}
                         />
-                        <Legend wrapperStyle={{ direction: "rtl" as const }} />
+                        <Legend
+                          wrapperStyle={{ direction: "rtl" as const }}
+                          formatter={(value) => normalizeBidi(value as string)}
+                        />
                         {tab.average ? (
                           <ReferenceLine
                             y={tab.average}

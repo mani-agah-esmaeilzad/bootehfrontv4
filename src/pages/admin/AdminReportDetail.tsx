@@ -41,6 +41,7 @@ import { ComparisonSpiderChart } from "@/components/ui/ComparisonSpiderChart";
 import { ReportPDFLayout } from "@/components/pdf/ReportPDFLayout";
 import { withRtlFields } from "@/lib/reports";
 import { cn } from "@/lib/utils";
+import { normalizeBidi } from "@/lib/bidi";
 
 interface PhaseBreakdownEntry {
   phase?: number;
@@ -706,6 +707,8 @@ const axisProps = {
 const verticalAxisProps = {
   ...axisProps,
   tick: { fill: "#475569", fontSize: 11, fontFamily: rtlFontStack, textAnchor: "end" as const },
+  tickFormatter: (value: string | number) =>
+    typeof value === "string" ? normalizeBidi(value) : normalizeBidi(value),
 };
 
 const chartGridColor = "rgba(148, 163, 184, 0.25)";
@@ -1733,7 +1736,9 @@ const AdminReportDetail = () => {
                     paddingAngle={3}
                     stroke="rgba(15,23,42,0.1)"
                     strokeWidth={2}
-                    label={({ name, value }) => `${name}: ${Number(value).toFixed(1)}٪`}
+                    label={({ name, value }) =>
+                      `${normalizeBidi(name)}: ${normalizeBidi(Number(value).toFixed(1))}٪`
+                    }
                     labelLine={false}
                   >
                     {sentimentChartData.map((entry, index) => (
@@ -1743,8 +1748,8 @@ const AdminReportDetail = () => {
                   <Tooltip
                     contentStyle={tooltipStyle}
                     formatter={(value: number, name: string, item: any) => [
-                      `${Number(value).toFixed(1)}٪`,
-                      name,
+                      normalizeBidi(`${Number(value).toFixed(1)}٪`),
+                      normalizeBidi(name),
                     ]}
                   />
                   <Legend
@@ -1752,7 +1757,7 @@ const AdminReportDetail = () => {
                     iconType="circle"
                     formatter={(value) => (
                       <span className="text-xs text-slate-600" style={{ fontFamily: rtlFontStack }}>
-                        {value}
+                        {normalizeBidi(value as string)}
                       </span>
                     )}
                   />
@@ -1821,8 +1826,8 @@ const AdminReportDetail = () => {
                   <Tooltip
                     contentStyle={tooltipStyle}
                     formatter={(_value: number, _name: string, item: any) => [
-                      `${item.payload.percent}%`,
-                      item.payload.name,
+                      normalizeBidi(`${item.payload.percent}٪`),
+                      normalizeBidi(item.payload.name),
                     ]}
                   />
                   <Bar dataKey="percent" radius={[12, 12, 12, 12]}>
@@ -1859,22 +1864,26 @@ const AdminReportDetail = () => {
                     </radialGradient>
                   </defs>
                   <CartesianGrid stroke={chartGridColor} strokeDasharray="6 6" />
-                  <XAxis dataKey="iteration" {...axisProps} tickFormatter={(value: number) => `مرحله ${value}`} />
+                  <XAxis
+                    dataKey="iteration"
+                    {...axisProps}
+                    tickFormatter={(value: number) => normalizeBidi(`مرحله ${value}`)}
+                  />
                   <YAxis {...axisProps} orientation="right" />
                   <Tooltip
                     contentStyle={tooltipStyle}
                     formatter={(value: number, name: string) => [
-                      `${value} امتیاز`,
-                      name === "performance" ? "نتیجه مشاهده‌شده" : "خط روند",
+                      normalizeBidi(`${value} امتیاز`),
+                      normalizeBidi(name === "performance" ? "نتیجه مشاهده‌شده" : "خط روند"),
                     ]}
-                    labelFormatter={(value: number) => `مرحله ${value}`}
+                    labelFormatter={(value: number) => normalizeBidi(`مرحله ${value}`)}
                   />
                   <Legend
                     wrapperStyle={{ direction: "rtl" as const }}
                     iconType="circle"
                     formatter={(value) => (
                       <span className="text-xs text-slate-600" style={{ fontFamily: rtlFontStack }}>
-                        {value}
+                        {normalizeBidi(value as string)}
                       </span>
                     )}
                   />
@@ -1947,7 +1956,13 @@ const AdminReportDetail = () => {
                       <Cell key={`radial-${entry.name}`} fill={entry.fill} />
                     ))}
                   </RadialBar>
-                  <Tooltip contentStyle={tooltipStyle} formatter={(value: number, name: string) => [`${value}٪`, name]} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(value: number, name: string) => [
+                      normalizeBidi(`${value}٪`),
+                      normalizeBidi(name),
+                    ]}
+                  />
                 </RadialBarChart>
               </ResponsiveContainer>
             </div>
@@ -1958,9 +1973,11 @@ const AdminReportDetail = () => {
                   <div key={`legend-${entry.name}`} className="flex items-center justify-between gap-2">
                     <span className="inline-flex items-center gap-2">
                       <span className="inline-flex h-2.5 w-2.5 rounded-full" style={{ backgroundColor: entry.fill }} />
-                      <span>{entry.name}</span>
+                      <span>{normalizeBidi(entry.name)}</span>
                     </span>
-                    <span className="font-semibold text-slate-900">{entry.value.toFixed(1)}%</span>
+                    <span className="font-semibold text-slate-900">
+                      {normalizeBidi(`${entry.value.toFixed(1)}٪`)}
+                    </span>
                   </div>
                 ))}
               </div>

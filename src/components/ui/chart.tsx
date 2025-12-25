@@ -2,6 +2,7 @@ import * as React from "react";
 import * as RechartsPrimitive from "recharts";
 
 import { cn } from "@/lib/utils";
+import { normalizeBidi } from "@/lib/bidi";
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const;
@@ -18,6 +19,13 @@ type ChartContextProps = {
 };
 
 const ChartContext = React.createContext<ChartContextProps | null>(null);
+
+const formatBidiNode = (value: React.ReactNode) => {
+  if (typeof value === "string" || typeof value === "number") {
+    return normalizeBidi(value);
+  }
+  return value ?? null;
+};
 
 function useChart() {
   const context = React.useContext(ChartContext);
@@ -137,11 +145,12 @@ const ChartTooltipContent = React.forwardRef<
         return <div className={cn("font-medium", labelClassName)}>{labelFormatter(value, payload)}</div>;
       }
 
-      if (!value) {
+      const normalizedValue = formatBidiNode(value ?? null);
+      if (!normalizedValue) {
         return null;
       }
 
-      return <div className={cn("font-medium", labelClassName)}>{value}</div>;
+      return <div className={cn("font-medium", labelClassName)}>{normalizedValue}</div>;
     }, [label, labelFormatter, payload, hideLabel, labelClassName, config, labelKey]);
 
     if (!active || !payload?.length) {
@@ -153,10 +162,12 @@ const ChartTooltipContent = React.forwardRef<
     return (
       <div
         ref={ref}
-        className={cn(
-          "grid min-w-[8rem] items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl",
-          className,
+      className={cn(
+        "grid min-w-[8rem] items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl",
+        "rtl",
+        className,
         )}
+        dir="rtl"
       >
         {!nestLabel ? tooltipLabel : null}
         <div className="grid gap-1.5">
@@ -205,13 +216,19 @@ const ChartTooltipContent = React.forwardRef<
                     >
                       <div className="grid gap-1.5">
                         {nestLabel ? tooltipLabel : null}
-                        <span className="text-muted-foreground">{itemConfig?.label || item.name}</span>
-                      </div>
-                      {item.value && (
-                        <span className="font-mono font-medium tabular-nums text-foreground">
-                          {item.value.toLocaleString()}
+                        <span className="text-muted-foreground">
+                          {formatBidiNode(itemConfig?.label ?? item.name ?? "")}
                         </span>
-                      )}
+                      </div>
+                      {item.value !== undefined && item.value !== null ? (
+                        <span className="font-mono font-medium tabular-nums text-foreground">
+                          {formatBidiNode(
+                            typeof item.value === "number"
+                              ? item.value.toLocaleString("fa-IR")
+                              : item.value,
+                          )}
+                        </span>
+                      ) : null}
                     </div>
                   </>
                 )}
@@ -244,11 +261,18 @@ const ChartLegendContent = React.forwardRef<
   return (
     <div
       ref={ref}
-      className={cn("flex items-center justify-center gap-4", verticalAlign === "top" ? "pb-3" : "pt-3", className)}
+      className={cn(
+        "flex items-center justify-center gap-4 rtl",
+        verticalAlign === "top" ? "pb-3" : "pt-3",
+        className,
+      )}
+      dir="rtl"
     >
       {payload.map((item) => {
         const key = `${nameKey || item.dataKey || "value"}`;
         const itemConfig = getPayloadConfigFromPayload(config, item, key);
+        const legendLabel = itemConfig?.label ?? item.value ?? key;
+        const renderedLabel = formatBidiNode(legendLabel);
 
         return (
           <div
@@ -265,7 +289,7 @@ const ChartLegendContent = React.forwardRef<
                 }}
               />
             )}
-            {itemConfig?.label}
+            {renderedLabel}
           </div>
         );
       })}

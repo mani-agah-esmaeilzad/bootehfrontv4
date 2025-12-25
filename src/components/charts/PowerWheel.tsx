@@ -9,6 +9,7 @@ import {
   PowerWheelAxis,
   PowerWheelGroup,
 } from "@/components/charts/powerWheelTypes";
+import { normalizeBidi, isRTL } from "@/lib/bidi";
 
 interface TooltipState {
   axis: PowerWheelAxis | null;
@@ -188,20 +189,28 @@ export const PowerWheel = ({
           <g>
             {axes.map((entry) => {
               const labels = wrapLabel(entry.axis.label);
+              const rtl = isRTL(entry.axis.label);
+              const textAnchor = rtl ? (Math.cos(entry.angle) >= 0 ? "end" : "start") : entry.textAnchor;
               return (
                 <g key={`label-${entry.axis.key}`}>
                   <text
                     x={entry.labelX}
                     y={entry.labelY}
-                    textAnchor={entry.textAnchor as "start" | "end"}
+                    textAnchor={textAnchor as "start" | "end"}
                     dominantBaseline="middle"
                     fill="#e2e8f0"
                     fontSize={12}
-                    style={{ fontWeight: 500 }}
+                    direction="rtl"
+                    unicodeBidi="plaintext"
+                    style={{
+                      fontWeight: 500,
+                      fontFamily: "Vazirmatn, 'IRANSans', Tahoma, sans-serif",
+                      fontFeatureSettings: '"kern" 1',
+                    }}
                   >
                     {labels.map((line, idx) => (
                       <tspan key={idx} x={entry.labelX} dy={idx === 0 ? 0 : 14}>
-                        {line}
+                        {normalizeBidi(line)}
                       </tspan>
                     ))}
                   </text>
@@ -238,15 +247,18 @@ export const PowerWheel = ({
 
         {tooltip.visible && tooltip.axis ? (
           <div
-            className="pointer-events-none absolute rounded-md bg-slate-900 px-3 py-2 text-xs text-white shadow-lg"
+            className="pointer-events-none absolute rounded-md bg-slate-900 px-3 py-2 text-xs text-white shadow-lg rtl"
             style={{
-              left: `calc(${(tooltip.x / size) * 100}% - 40px)`,
-              top: `calc(${(tooltip.y / size) * 100}% - 48px)`,
+              left: `calc(${(tooltip.x / size) * 100}% - 60px)`,
+              top: `calc(${(tooltip.y / size) * 100}% - 56px)`,
             }}
+            dir="rtl"
           >
-            <p className="font-semibold">{tooltip.axis.label}</p>
-            <p className="text-slate-300">{tooltip.axis.group}</p>
-            <p className="text-slate-400">{tooltip.axis.value.toFixed(1)} / {maxValue}</p>
+            <p className="font-semibold">{normalizeBidi(tooltip.axis.label)}</p>
+            <p className="text-slate-300">{normalizeBidi(tooltip.axis.group)}</p>
+            <p className="text-slate-400">
+              {normalizeBidi(tooltip.axis.value.toFixed(1))} / {normalizeBidi(maxValue)}
+            </p>
           </div>
         ) : null}
       </div>

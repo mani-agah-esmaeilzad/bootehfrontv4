@@ -3,6 +3,7 @@ import React from "react";
 import ReactMarkdown from "react-markdown";
 import { Logo } from "@/components/ui/logo";
 import { withRtlFields } from "@/lib/reports";
+import { normalizeBidi } from "@/lib/bidi";
 import {
   PieChart,
   Pie,
@@ -412,12 +413,12 @@ const normalizeFactorEntries = (input: unknown): Array<{ subject: string; score:
         const fullMark =
           toNum(record.maxScore ?? (record as Record<string, unknown>).max_score ?? record.fullMark ?? record.target ?? record.max ?? 5) ||
           5;
-        return { subject, score, fullMark };
+        return { subject: normalizeBidi(subject), score, fullMark };
       }
 
       const scoreValue = toNum(entry);
       return {
-        subject: `شاخص ${index + 1}`,
+        subject: normalizeBidi(`شاخص ${index + 1}`),
         score: scoreValue,
         fullMark: 5,
       };
@@ -441,7 +442,7 @@ const buildSentimentChartData = (entries: { name: string; value: number }[]) => 
     const percent = isLast ? remainder : Math.round(normalized * 10) / 10;
     remainder = Math.max(0, remainder - percent);
     return {
-      name: entry.name,
+      name: normalizeBidi(entry.name),
       raw: entry.value,
       value: percent,
     };

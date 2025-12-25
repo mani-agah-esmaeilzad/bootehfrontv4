@@ -12,6 +12,7 @@ import {
   Tooltip,
 } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
+import { normalizeBidi } from "@/lib/bidi";
 
 const spiderChartFontFamily = "Vazirmatn, Tahoma, sans-serif";
 
@@ -30,9 +31,9 @@ const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     return (
       <div className="rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm font-sans text-white shadow-lg">
-        <p className="font-bold">{payload[0].payload.subject}</p>
+        <p className="font-bold rtl">{normalizeBidi(payload[0].payload.subject)}</p>
         <p style={{ color: payload[0].color }}>
-          امتیاز: {payload[0].value} از {payload[0].payload.fullMark}
+          امتیاز: {payload[0].value} از {normalizeBidi(payload[0].payload.fullMark)}
         </p>
       </div>
     );
@@ -58,6 +59,7 @@ export function SpiderChart({ data }: SpiderChartProps) {
           <PolarAngleAxis
             dataKey="subject"
             tick={{ fill: "#0f172a", fontSize: 13, fontWeight: 600, fontFamily: spiderChartFontFamily }}
+            tickFormatter={(value: string) => normalizeBidi(value)}
           />
           <PolarRadiusAxis
             angle={90}
@@ -94,7 +96,9 @@ export function SpiderChart({ data }: SpiderChartProps) {
               fontWeight: 600,
               paddingTop: "20px",
               fontFamily: spiderChartFontFamily,
+              direction: "rtl",
             }}
+            formatter={(value) => normalizeBidi(value)}
           />
         </RadarChart>
       </ResponsiveContainer>
