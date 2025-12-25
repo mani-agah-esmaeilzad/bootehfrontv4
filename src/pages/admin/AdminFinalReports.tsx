@@ -523,6 +523,7 @@ interface PreparedCategoryAnalytics {
   keywords: { keyword: string; mentions: number }[];
   conversationKeywords: { keyword: string; mentions: number }[];
   factorEntries: { subject: string; score: number; fullMark: number }[];
+  assessmentSpiders: Array<{ id: number; label: string; data: { subject: string; score: number; fullMark: number }[] }>;
   progress: Array<{ iteration: number; performance: number }>;
   summaryText: string | null;
   strengths: string[];
@@ -543,6 +544,7 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
       keywordMap: Map<string, number>;
       conversationMap: Map<string, number>;
       factorMap: Map<string, { total: number; count: number; fullMark: number }>;
+      assessmentSpiders: Array<{ id: number; label: string; data: { subject: string; score: number; fullMark: number }[] }>;
       progress: Array<{ iteration: number; performance: number }>;
       wordCounts: number[];
       summaries: string[];
@@ -573,6 +575,7 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
           keywordMap: new Map<string, number>(),
           conversationMap: new Map<string, number>(),
           factorMap: new Map<string, { total: number; count: number; fullMark: number }>(),
+          assessmentSpiders: [],
           progress: [] as Array<{ iteration: number; performance: number }>,
           wordCounts: [] as number[],
           summaries: [] as string[],
@@ -625,6 +628,18 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
         bucket.factorMap.set(factor.subject, factorBucket);
       });
     });
+
+    const perAssessmentFactors =
+      factorCandidates
+        .map((candidate) => normalizeFactorEntries(candidate))
+        .find((normalized) => normalized.length > 0) ?? [];
+    if (perAssessmentFactors.length > 0) {
+      bucket.assessmentSpiders.push({
+        id: entry.assessmentId,
+        label: entry.questionnaireTitle || `پرسشنامه ${bucket.assessmentSpiders.length + 1}`,
+        data: perAssessmentFactors,
+      });
+    }
 
     const timelineSource = Array.isArray(analysis?.progress_timeline)
       ? analysis?.progress_timeline
@@ -679,6 +694,7 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
         .map(([keyword, mentions]) => ({ keyword, mentions }))
         .sort((a, b) => b.mentions - a.mentions),
       factorEntries,
+      assessmentSpiders: bucket.assessmentSpiders,
       progress: bucket.progress,
       summaryText: bucket.summaries.join("\n\n").trim() || null,
       strengths: dedupeList(bucket.strengths),
@@ -1373,6 +1389,34 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
     () => buildTimelineSeries(analytics.progress),
     [analytics.progress],
   );
+  const comparisonSpider = useMemo(() => {
+    if (!analytics.assessmentSpiders || analytics.assessmentSpiders.length < 2) return null;
+    const series = analytics.assessmentSpiders.map((assessment, index) => ({
+      key: `assessment_${assessment.id}_${index}`,
+      label: assessment.label,
+      color: COLORS[index % COLORS.length],
+    }));
+    const dataMap = new Map<string, Record<string, number | string | undefined>>();
+    analytics.assessmentSpiders.forEach((assessment, index) => {
+      const key = series[index].key;
+      assessment.data.forEach((entry) => {
+        const existing = dataMap.get(entry.subject) ?? { subject: entry.subject, fullMark: entry.fullMark };
+        const currentFullMark = typeof existing.fullMark === "number" ? existing.fullMark : entry.fullMark;
+        existing.fullMark = Math.max(currentFullMark || 0, entry.fullMark || 0);
+        existing[key] = entry.score;
+        dataMap.set(entry.subject, existing);
+      });
+    });
+    const data = Array.from(dataMap.values()).map((entry) => {
+      series.forEach((serie) => {
+        if (typeof entry[serie.key] !== "number") {
+          entry[serie.key] = 0;
+        }
+      });
+      return entry;
+    });
+    return { series, data };
+  }, [analytics.assessmentSpiders]);
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -1554,14 +1598,41 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
         </Card>
       </div>
 
+      {analytics.assessmentSpiders.length > 0 && (
+        <Card className="bg-white/5 text-white">
+          <CardHeader>
+            <CardTitle>نمودار هر پرسشنامه</CardTitle>
+            <CardDescription className="text-xs text-white/60">
+              برای جزئیات بیشتر، مولفه‌های هر گفت‌وگو به صورت جداگانه نمایش داده شده است.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {analytics.assessmentSpiders.map((assessment, index) => (
+                <div key={`${assessment.id}-${index}`} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <p className="mb-3 text-sm font-semibold text-white/80">{assessment.label}</p>
+                  <div className="h-[320px]">
+                    <SpiderChart data={assessment.data} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card className="bg-white/5 text-white">
           <CardHeader>
             <CardTitle>نمودار راداری فاکتورها</CardTitle>
-            <CardDescription className="text-xs text-white/60">میانگین امتیاز مولفه‌های این شایستگی</CardDescription>
+            <CardDescription className="text-xs text-white/60">
+              {comparisonSpider ? "مقایسه تمام پرسشنامه‌های این شایستگی" : "میانگین امتیاز مولفه‌های این شایستگی"}
+            </CardDescription>
           </CardHeader>
           <CardContent className="h-[420px]">
-            {spiderData.length === 0 ? (
+            {comparisonSpider ? (
+              <ComparisonSpiderChart data={comparisonSpider.data} series={comparisonSpider.series} />
+            ) : spiderData.length === 0 ? (
               noData("داده‌ای برای نمایش در نمودار راداری وجود ندارد.")
             ) : (
               <SpiderChart data={spiderData} />
