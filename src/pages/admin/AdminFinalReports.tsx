@@ -513,6 +513,7 @@ interface AssessmentAnalysisResult {
   category: string;
   analysis: Record<string, any>;
   questionnaireTitle: string;
+  normalizedScore: number;
   fallbackFactors: { subject: string; score: number; fullMark: number }[];
 }
 
@@ -525,6 +526,7 @@ interface PreparedCategoryAnalytics {
   conversationKeywords: { keyword: string; mentions: number }[];
   factorEntries: { subject: string; score: number; fullMark: number }[];
   assessmentSpiders: Array<{ id: number; label: string; data: { subject: string; score: number; fullMark: number }[] }>;
+  questionnaireRadar: { subject: string; score: number; fullMark: number }[];
   progress: Array<{ iteration: number; performance: number }>;
   summaryText: string | null;
   strengths: string[];
@@ -546,6 +548,7 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
       conversationMap: Map<string, number>;
       factorMap: Map<string, { total: number; count: number; fullMark: number }>;
       assessmentSpiders: Array<{ id: number; label: string; data: { subject: string; score: number; fullMark: number }[] }>;
+      questionnaireRadar: Array<{ subject: string; score: number; fullMark: number }>;
       progress: Array<{ iteration: number; performance: number }>;
       wordCounts: number[];
       summaries: string[];
@@ -577,6 +580,7 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
           conversationMap: new Map<string, number>(),
           factorMap: new Map<string, { total: number; count: number; fullMark: number }>(),
           assessmentSpiders: [],
+          questionnaireRadar: [] as Array<{ subject: string; score: number; fullMark: number }>,
           progress: [] as Array<{ iteration: number; performance: number }>,
           wordCounts: [] as number[],
           summaries: [] as string[],
@@ -591,6 +595,13 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
       })();
 
     bucket.totalAssessments += 1;
+    if (Number.isFinite(entry.normalizedScore)) {
+      bucket.questionnaireRadar.push({
+        subject: entry.questionnaireTitle || `پرسشنامه ${bucket.totalAssessments}`,
+        score: Math.round(entry.normalizedScore * 10) / 10,
+        fullMark: 100,
+      });
+    }
     const analysis = entry.analysis;
 
     const sentimentSource = analysis?.sentiment_analysis ?? analysis?.sentimentAnalysis ?? null;
@@ -715,6 +726,7 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
         .sort((a, b) => b.mentions - a.mentions),
       factorEntries,
       assessmentSpiders: bucket.assessmentSpiders,
+      questionnaireRadar: bucket.questionnaireRadar,
       progress: bucket.progress,
       summaryText: bucket.summaries.join("\n\n").trim() || null,
       strengths: dedupeList(bucket.strengths),
@@ -819,10 +831,10 @@ const AdminFinalReports = () => {
           detail.assessments.map(async (assessment) => {
             const fallbackFactors = Array.isArray(assessment.factorScores)
               ? assessment.factorScores.map((item) => ({
-                subject: item.name || item.factor || `فاکتور ${item}`,
-                score: toNum(item.score),
-                fullMark: toNum(item.maxScore) || 5,
-              }))
+                  subject: item.name || item.factor || `فاکتور ${item}`,
+                  score: toNum(item.score),
+                  fullMark: toNum(item.maxScore) || 5,
+                }))
               : [];
             try {
               const response = await apiFetch(`admin/reports/${assessment.assessmentId}`);
@@ -832,6 +844,7 @@ const AdminFinalReports = () => {
                   category: assessment.category,
                   analysis: normalizeAnalysisObject(response.data.analysis),
                   questionnaireTitle: assessment.questionnaireTitle,
+                  normalizedScore: assessment.normalizedScore,
                   fallbackFactors,
                 };
               }
@@ -843,6 +856,7 @@ const AdminFinalReports = () => {
               category: assessment.category,
               analysis: {},
               questionnaireTitle: assessment.questionnaireTitle,
+              normalizedScore: assessment.normalizedScore,
               fallbackFactors,
             };
           }),
@@ -1451,6 +1465,7 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
     });
     return { series, data };
   }, [analytics.assessmentSpiders]);
+  const questionnaireSpiderData = useMemo(() => analytics.questionnaireRadar, [analytics.questionnaireRadar]);
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -1630,39 +1645,21 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
             )}
           </CardContent>
         </Card>
-        {analytics.assessmentSpiders.length > 0 && (
-          <Card className="bg-white/5 text-white">
-            <CardHeader>
-              <CardTitle>نمودار هر پرسشنامه (تعویضی)</CardTitle>
-              <CardDescription className="text-xs text-white/60">
-                با انتخاب نام پرسشنامه، نمودار فاکتورهای همان گفتگو نمایش داده می‌شود.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue={`assessment-${analytics.assessmentSpiders[0].id}`} className="space-y-3" dir="rtl">
-                <TabsList className="flex flex-wrap gap-2 rounded-2xl bg-white/10 p-2">
-                  {analytics.assessmentSpiders.map((assessment) => (
-                    <TabsTrigger
-                      key={assessment.id}
-                      value={`assessment-${assessment.id}`}
-                      className="flex-1 rounded-xl border border-transparent px-3 py-2 text-xs text-white data-[state=active]:border-white/20 data-[state=active]:bg-white/20"
-                      style={{ fontFamily: rtlFontStack }}
-                    >
-                      {assessment.label}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-                {analytics.assessmentSpiders.map((assessment) => (
-                  <TabsContent key={assessment.id} value={`assessment-${assessment.id}`}>
-                    <div className="h-[360px]">
-                      <SpiderChart data={assessment.data} />
-                    </div>
-                  </TabsContent>
-                ))}
-              </Tabs>
-            </CardContent>
-          </Card>
-        )}
+        <Card className="bg-white/5 text-white">
+          <CardHeader>
+            <CardTitle>نمودار پرسشنامه‌های این شایستگی</CardTitle>
+            <CardDescription className="text-xs text-white/60">
+              هر وجه نماینده یک پرسشنامه (مثل کار تیمی یا انعطاف‌پذیری) است و امتیاز هر کدام بر اساس نمره نهایی رسم شده است.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="h-[420px]">
+            {questionnaireSpiderData.length === 0 ? (
+              noData("پرسشنامه‌ای برای این شایستگی ثبت نشده است.")
+            ) : (
+              <SpiderChart data={questionnaireSpiderData} />
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {analytics.assessmentSpiders.length > 0 && (
