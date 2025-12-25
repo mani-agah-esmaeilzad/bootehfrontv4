@@ -698,13 +698,13 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
       ]),
       resolveAnalysisField(analysisSource, ["factor_breakdown", "factorBreakdown", "competency_breakdown", "competencyBreakdown"]),
     ];
-    let firstFactorSet: { subject: string; score: number; fullMark: number }[] | null = null;
+    let bestFactorSet: { subject: string; score: number; fullMark: number }[] = [];
     const seenFactorSubjects = new Set<string>();
     factorCandidates.forEach((candidate) => {
       const normalizedFactors = normalizeFactorEntries(candidate);
       if (normalizedFactors.length === 0) return;
-      if (!firstFactorSet) {
-        firstFactorSet = normalizedFactors;
+      if (bestFactorSet.length === 0 || normalizedFactors.length > bestFactorSet.length) {
+        bestFactorSet = normalizedFactors;
       }
       normalizedFactors.forEach((factor) => {
         const normalizedSubject = normalizeKey(factor.subject || "");
@@ -720,7 +720,7 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
       });
     });
 
-    let perAssessmentFactors = firstFactorSet ? [...firstFactorSet] : [];
+    let perAssessmentFactors = bestFactorSet.length > 0 ? [...bestFactorSet] : [];
     const perAssessmentSubjectSet = new Set(perAssessmentFactors.map((factor) => normalizeKey(factor.subject || "")));
     entry.fallbackFactors.forEach((factor) => {
       const normalizedSubject = normalizeKey(factor.subject || "");
