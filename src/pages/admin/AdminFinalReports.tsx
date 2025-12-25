@@ -527,6 +527,15 @@ interface PreparedCategoryAnalytics {
   factorEntries: { subject: string; score: number; fullMark: number }[];
   assessmentSpiders: Array<{ id: number; label: string; data: { subject: string; score: number; fullMark: number }[] }>;
   questionnaireRadar: { subject: string; score: number; fullMark: number }[];
+  assessmentDetails: Array<{
+    id: number;
+    label: string;
+    sentimentTotals: Record<SentimentKey, number>;
+    keywords: { keyword: string; mentions: number }[];
+    conversationKeywords: { keyword: string; mentions: number }[];
+    factorEntries: { subject: string; score: number; fullMark: number }[];
+    progress: Array<{ iteration: number; performance: number }>;
+  }>;
   progress: Array<{ iteration: number; performance: number }>;
   summaryText: string | null;
   strengths: string[];
@@ -549,6 +558,15 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
       factorMap: Map<string, { total: number; count: number; fullMark: number }>;
       assessmentSpiders: Array<{ id: number; label: string; data: { subject: string; score: number; fullMark: number }[] }>;
       questionnaireRadar: Array<{ subject: string; score: number; fullMark: number }>;
+      assessmentDetails: Array<{
+        id: number;
+        label: string;
+        sentimentTotals: Record<SentimentKey, number>;
+        keywords: { keyword: string; mentions: number }[];
+        conversationKeywords: { keyword: string; mentions: number }[];
+        factorEntries: { subject: string; score: number; fullMark: number }[];
+        progress: Array<{ iteration: number; performance: number }>;
+      }>;
       progress: Array<{ iteration: number; performance: number }>;
       wordCounts: number[];
       summaries: string[];
@@ -566,7 +584,7 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
     const bucket =
       map.get(normalized) ??
       (() => {
-        const initialTotals: Record<SentimentKey, number> = {
+        const totals: Record<SentimentKey, number> = {
           positive: 0,
           neutral: 0,
           negative: 0,
@@ -575,12 +593,21 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
         const next = {
           label: normalized,
           color: getCategoryColor(normalized),
-          sentimentTotals: initialTotals,
+          sentimentTotals: totals,
           keywordMap: new Map<string, number>(),
           conversationMap: new Map<string, number>(),
           factorMap: new Map<string, { total: number; count: number; fullMark: number }>(),
           assessmentSpiders: [],
           questionnaireRadar: [] as Array<{ subject: string; score: number; fullMark: number }>,
+          assessmentDetails: [] as Array<{
+            id: number;
+            label: string;
+            sentimentTotals: Record<SentimentKey, number>;
+            keywords: { keyword: string; mentions: number }[];
+            conversationKeywords: { keyword: string; mentions: number }[];
+            factorEntries: { subject: string; score: number; fullMark: number }[];
+            progress: Array<{ iteration: number; performance: number }>;
+          }>,
           progress: [] as Array<{ iteration: number; performance: number }>,
           wordCounts: [] as number[],
           summaries: [] as string[],
@@ -595,32 +622,44 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
       })();
 
     bucket.totalAssessments += 1;
+    const questionnaireLabel = entry.questionnaireTitle || `پرسشنامه ${bucket.totalAssessments}`;
     if (Number.isFinite(entry.normalizedScore)) {
       bucket.questionnaireRadar.push({
-        subject: entry.questionnaireTitle || `پرسشنامه ${bucket.totalAssessments}`,
+        subject: questionnaireLabel,
         score: Math.round(entry.normalizedScore * 10) / 10,
         fullMark: 100,
       });
     }
+
     const analysis = entry.analysis;
+    const detailSentiment: Record<SentimentKey, number> = {
+      positive: 0,
+      neutral: 0,
+      negative: 0,
+      other: 0,
+    };
 
     const sentimentSource = analysis?.sentiment_analysis ?? analysis?.sentimentAnalysis ?? null;
     if (sentimentSource && typeof sentimentSource === "object") {
       Object.entries(sentimentSource as Record<string, unknown>).forEach(([name, value]) => {
         const key = classifySentimentLabel(name);
-        bucket.sentimentTotals[key] = (bucket.sentimentTotals[key] ?? 0) + toNum(value);
+        const numeric = toNum(value);
+        bucket.sentimentTotals[key] = (bucket.sentimentTotals[key] ?? 0) + numeric;
+        detailSentiment[key] = (detailSentiment[key] ?? 0) + numeric;
       });
     }
 
-    collectKeywordEntries(analysis?.keyword_analysis).forEach(({ keyword, mentions }) => {
+    const keywordEntries = collectKeywordEntries(analysis?.keyword_analysis);
+    keywordEntries.forEach(({ keyword, mentions }) => {
       bucket.keywordMap.set(keyword, (bucket.keywordMap.get(keyword) ?? 0) + mentions);
     });
 
-    collectKeywordEntries(analysis?.word_cloud_full ?? analysis?.conversation_word_cloud ?? analysis?.keyword_analysis_full).forEach(
-      ({ keyword, mentions }) => {
-        bucket.conversationMap.set(keyword, (bucket.conversationMap.get(keyword) ?? 0) + mentions);
-      },
+    const conversationEntries = collectKeywordEntries(
+      analysis?.word_cloud_full ?? analysis?.conversation_word_cloud ?? analysis?.keyword_analysis_full,
     );
+    conversationEntries.forEach(({ keyword, mentions }) => {
+      bucket.conversationMap.set(keyword, (bucket.conversationMap.get(keyword) ?? 0) + mentions);
+    });
 
     const factorCandidates = [
       analysis?.factor_scores,
@@ -633,13 +672,13 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
     let firstFactorSet: { subject: string; score: number; fullMark: number }[] | null = null;
     let hasFactorData = false;
     factorCandidates.forEach((candidate) => {
-      const normalized = normalizeFactorEntries(candidate);
-      if (normalized.length === 0) return;
+      const normalizedFactors = normalizeFactorEntries(candidate);
+      if (normalizedFactors.length === 0) return;
       hasFactorData = true;
       if (!firstFactorSet) {
-        firstFactorSet = normalized;
+        firstFactorSet = normalizedFactors;
       }
-      normalized.forEach((factor) => {
+      normalizedFactors.forEach((factor) => {
         const factorBucket =
           bucket.factorMap.get(factor.subject) ?? { total: 0, count: 0, fullMark: factor.fullMark ?? 5 };
         factorBucket.total += factor.score;
@@ -667,7 +706,7 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
     if (perAssessmentFactors.length > 0) {
       bucket.assessmentSpiders.push({
         id: entry.assessmentId,
-        label: entry.questionnaireTitle || `پرسشنامه ${bucket.assessmentSpiders.length + 1}`,
+        label: questionnaireLabel,
         data: perAssessmentFactors,
       });
     }
@@ -677,16 +716,17 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
       : Array.isArray(analysis?.verbosity_trend)
         ? analysis?.verbosity_trend
         : [];
-    timelineSource.forEach((item: any, index: number) => {
-      const iteration = toNum(item?.iteration ?? item?.turn ?? index + 1);
-      const performance = toNum(item?.performance ?? item?.score ?? item?.word_count ?? 0);
-      if (Number.isFinite(performance)) {
-        bucket.progress.push({
-          iteration: iteration || bucket.progress.length + 1,
+    const perAssessmentProgress = timelineSource
+      .map((item: any, index: number) => {
+        const iteration = toNum(item?.iteration ?? item?.turn ?? index + 1);
+        const performance = toNum(item?.performance ?? item?.score ?? item?.word_count ?? 0);
+        return {
+          iteration: iteration || index + 1,
           performance,
-        });
-      }
-    });
+        };
+      })
+      .filter((item) => Number.isFinite(item.performance));
+    perAssessmentProgress.forEach((item) => bucket.progress.push(item));
 
     if (Array.isArray(analysis?.verbosity_trend)) {
       analysis.verbosity_trend.forEach((item: any) => {
@@ -700,10 +740,25 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
     const summaryText = extractSummaryText(analysis);
     if (summaryText) bucket.summaries.push(summaryText);
 
-    bucket.strengths.push(...collectTextItems(analysis?.strengths));
-    bucket.recommendations.push(...collectTextItems(analysis?.recommendations));
-    bucket.developmentPlan.push(...collectTextItems(analysis?.development_plan));
-    bucket.risks.push(...collectTextItems(analysis?.risk_flags ?? analysis?.risk_indicators));
+    const detailStrengths = collectTextItems(analysis?.strengths);
+    const detailRecommendations = collectTextItems(analysis?.recommendations);
+    const detailDevelopment = collectTextItems(analysis?.development_plan);
+    const detailRisks = collectTextItems(analysis?.risk_flags ?? analysis?.risk_indicators);
+
+    bucket.strengths.push(...detailStrengths);
+    bucket.recommendations.push(...detailRecommendations);
+    bucket.developmentPlan.push(...detailDevelopment);
+    bucket.risks.push(...detailRisks);
+
+    bucket.assessmentDetails.push({
+      id: entry.assessmentId,
+      label: questionnaireLabel,
+      sentimentTotals: detailSentiment,
+      keywords: keywordEntries,
+      conversationKeywords: conversationEntries,
+      factorEntries: perAssessmentFactors,
+      progress: perAssessmentProgress,
+    });
   });
 
   const result: Record<string, PreparedCategoryAnalytics> = {};
@@ -727,6 +782,7 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
       factorEntries,
       assessmentSpiders: bucket.assessmentSpiders,
       questionnaireRadar: bucket.questionnaireRadar,
+      assessmentDetails: bucket.assessmentDetails,
       progress: bucket.progress,
       summaryText: bucket.summaries.join("\n\n").trim() || null,
       strengths: dedupeList(bucket.strengths),
@@ -1437,6 +1493,60 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
     () => buildTimelineSeries(analytics.progress),
     [analytics.progress],
   );
+  const sentimentTabs = useMemo(
+    () => [
+      { key: "sent-overall", label: "همه پرسشنامه‌ها", data: sentimentChartData },
+      ...analytics.assessmentDetails.map((detail) => ({
+        key: `sent-${detail.id}`,
+        label: detail.label,
+        data: buildSentimentChartData(detail.sentimentTotals),
+      })),
+    ],
+    [sentimentChartData, analytics.assessmentDetails],
+  );
+  const keywordTabs = useMemo(
+    () => [
+      { key: "kw-overall", label: "همه پرسشنامه‌ها", data: analytics.keywords },
+      ...analytics.assessmentDetails.map((detail) => ({
+        key: `kw-${detail.id}`,
+        label: detail.label,
+        data: detail.keywords,
+      })),
+    ],
+    [analytics.keywords, analytics.assessmentDetails],
+  );
+  const conversationTabs = useMemo(
+    () => [
+      { key: "conv-overall", label: "همه پرسشنامه‌ها", data: analytics.conversationKeywords },
+      ...analytics.assessmentDetails.map((detail) => ({
+        key: `conv-${detail.id}`,
+        label: detail.label,
+        data: detail.conversationKeywords,
+      })),
+    ],
+    [analytics.conversationKeywords, analytics.assessmentDetails],
+  );
+  const heatmapTabs = useMemo(
+    () => [
+      { key: "heat-overall", label: "همه پرسشنامه‌ها", data: factorHeatmapData },
+      ...analytics.assessmentDetails.map((detail) => ({
+        key: `heat-${detail.id}`,
+        label: detail.label,
+        data: buildFactorHeatmapData(detail.factorEntries),
+      })),
+    ],
+    [factorHeatmapData, analytics.assessmentDetails],
+  );
+  const timelineTabs = useMemo(
+    () => [
+      { key: "timeline-overall", label: "همه پرسشنامه‌ها", data: timelineData, average: timelineAverage },
+      ...analytics.assessmentDetails.map((detail) => {
+        const { data, average } = buildTimelineSeries(detail.progress);
+        return { key: `timeline-${detail.id}`, label: detail.label, data, average };
+      }),
+    ],
+    [timelineData, timelineAverage, analytics.assessmentDetails],
+  );
   const comparisonSpider = useMemo(() => {
     if (!analytics.assessmentSpiders || analytics.assessmentSpiders.length < 2) return null;
     const series = analytics.assessmentSpiders.map((assessment, index) => ({
@@ -1509,33 +1619,58 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
             <CardTitle>تحلیل احساسات</CardTitle>
             <CardDescription className="text-xs text-white/60">سهم هر احساس از مجموع گفتگوها</CardDescription>
           </CardHeader>
-          <CardContent className="h-[260px]">
-            {sentimentChartData.length === 0 ? (
+          <CardContent className="space-y-3">
+            {sentimentTabs.length === 0 ? (
               noData("هنوز تحلیلی برای احساسات ثبت نشده است.")
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={sentimentChartData}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={3}
-                    labelLine={false}
-                    label={({ name, value }) => `${name}: ${value.toFixed(1)}٪`}
-                  >
-                    {sentimentChartData.map((entry) => (
-                      <Cell key={entry.name} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip formatter={(value: number, name: string) => [`${value}٪`, name]} contentStyle={tooltipStyle} />
-                  <Legend
-                    wrapperStyle={{ direction: "rtl" as const }}
-                    formatter={(value) => <span style={{ fontFamily: rtlFontStack }}>{value}</span>}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              <Tabs defaultValue={sentimentTabs[0].key} className="space-y-3" dir="rtl">
+                <TabsList className="flex flex-wrap gap-2 rounded-2xl bg-white/10 p-2">
+                  {sentimentTabs.map((tab) => (
+                    <TabsTrigger
+                      key={tab.key}
+                      value={tab.key}
+                      className="flex-1 rounded-xl border border-transparent px-2 py-1 text-xs text-white data-[state=active]:border-white/20 data-[state=active]:bg-white/20"
+                      style={{ fontFamily: rtlFontStack }}
+                    >
+                      {tab.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                {sentimentTabs.map((tab) => (
+                  <TabsContent key={tab.key} value={tab.key} className="h-[240px]">
+                    {tab.data.length === 0 ? (
+                      noData("داده‌ای برای این پرسشنامه موجود نیست.")
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={tab.data}
+                            dataKey="value"
+                            nameKey="name"
+                            innerRadius={60}
+                            outerRadius={90}
+                            paddingAngle={3}
+                            labelLine={false}
+                            label={({ name, value }) => `${name}: ${value.toFixed(1)}٪`}
+                          >
+                            {tab.data.map((entry) => (
+                              <Cell key={entry.name} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <RechartsTooltip
+                            formatter={(value: number, name: string) => [`${value}٪`, name]}
+                            contentStyle={tooltipStyle}
+                          />
+                          <Legend
+                            wrapperStyle={{ direction: "rtl" as const }}
+                            formatter={(value) => <span style={{ fontFamily: rtlFontStack }}>{value}</span>}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    )}
+                  </TabsContent>
+                ))}
+              </Tabs>
             )}
           </CardContent>
         </Card>
@@ -1544,8 +1679,26 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
             <CardTitle>ابر واژگان کلیدی</CardTitle>
             <CardDescription className="text-xs text-white/60">ترکیب مهم‌ترین کلیدواژه‌های این شایستگی</CardDescription>
           </CardHeader>
-          <CardContent>
-            <KeywordWordCloud data={analytics.keywords} />
+          <CardContent className="space-y-3">
+            <Tabs defaultValue={keywordTabs[0]?.key} className="space-y-3" dir="rtl">
+              <TabsList className="flex flex-wrap gap-2 rounded-2xl bg-white/10 p-2">
+                {keywordTabs.map((tab) => (
+                  <TabsTrigger
+                    key={tab.key}
+                    value={tab.key}
+                    className="flex-1 rounded-xl border border-transparent px-2 py-1 text-xs text-white data-[state=active]:border-white/20 data-[state=active]:bg-white/20"
+                    style={{ fontFamily: rtlFontStack }}
+                  >
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {keywordTabs.map((tab) => (
+                <TabsContent key={tab.key} value={tab.key}>
+                  <KeywordWordCloud data={tab.data} emptyMessage="کلیدواژه‌ای برای این پرسشنامه ثبت نشده است." />
+                </TabsContent>
+              ))}
+            </Tabs>
           </CardContent>
         </Card>
         <Card className="bg-white/5 text-white">
@@ -1553,8 +1706,26 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
             <CardTitle>ابر واژگان گفتگو</CardTitle>
             <CardDescription className="text-xs text-white/60">کلمات پرتکرار در کل گفت‌وگوها</CardDescription>
           </CardHeader>
-          <CardContent>
-            <KeywordWordCloud data={analytics.conversationKeywords} emptyMessage="داده‌ای برای نمایش وجود ندارد." />
+          <CardContent className="space-y-3">
+            <Tabs defaultValue={conversationTabs[0]?.key} className="space-y-3" dir="rtl">
+              <TabsList className="flex flex-wrap gap-2 rounded-2xl bg-white/10 p-2">
+                {conversationTabs.map((tab) => (
+                  <TabsTrigger
+                    key={tab.key}
+                    value={tab.key}
+                    className="flex-1 rounded-xl border border-transparent px-2 py-1 text-xs text-white data-[state=active]:border-white/20 data-[state=active]:bg-white/20"
+                    style={{ fontFamily: rtlFontStack }}
+                  >
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {conversationTabs.map((tab) => (
+                <TabsContent key={tab.key} value={tab.key}>
+                  <KeywordWordCloud data={tab.data} emptyMessage="واژه‌ای برای این پرسشنامه یافت نشد." />
+                </TabsContent>
+              ))}
+            </Tabs>
           </CardContent>
         </Card>
       </div>
@@ -1565,32 +1736,50 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
             <CardTitle>نقشه حرارتی سهم فاکتورها</CardTitle>
             <CardDescription className="text-xs text-white/60">ارزش نسبی هر مولفه در این شایستگی</CardDescription>
           </CardHeader>
-          <CardContent className="h-[320px]">
-            {factorHeatmapData.length === 0 ? (
-              noData("فاکتوری برای این دسته ثبت نشده است.")
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={factorHeatmapData} layout="vertical" margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
-                  <CartesianGrid stroke={chartGridColor} horizontal={false} />
-                  <XAxis type="number" domain={[0, 100]} hide />
-                  <YAxis
-                    dataKey="name"
-                    type="category"
-                    width={160}
-                    tick={{ fill: "#f8fafc", fontSize: 12, fontFamily: rtlFontStack }}
-                  />
-                  <RechartsTooltip
-                    formatter={(value: number, name: string, item: any) => [`${item.payload.percent}%`, name]}
-                    contentStyle={tooltipStyle}
-                  />
-                  <Bar dataKey="percent" radius={[10, 10, 10, 10]}>
-                    {factorHeatmapData.map((entry, index) => (
-                      <Cell key={`${entry.name}-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
+          <CardContent className="space-y-3">
+            <Tabs defaultValue={heatmapTabs[0]?.key} className="space-y-3" dir="rtl">
+              <TabsList className="flex flex-wrap gap-2 rounded-2xl bg-white/10 p-2">
+                {heatmapTabs.map((tab) => (
+                  <TabsTrigger
+                    key={tab.key}
+                    value={tab.key}
+                    className="flex-1 rounded-xl border border-transparent px-2 py-1 text-xs text-white data-[state=active]:border-white/20 data-[state=active]:bg-white/20"
+                    style={{ fontFamily: rtlFontStack }}
+                  >
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {heatmapTabs.map((tab) => (
+                <TabsContent key={tab.key} value={tab.key} className="h-[300px]">
+                  {tab.data.length === 0 ? (
+                    noData("فاکتوری برای این پرسشنامه ثبت نشده است.")
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={tab.data} layout="vertical" margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                        <CartesianGrid stroke={chartGridColor} horizontal={false} />
+                        <XAxis type="number" domain={[0, 100]} hide />
+                        <YAxis
+                          dataKey="name"
+                          type="category"
+                          width={160}
+                          tick={{ fill: "#f8fafc", fontSize: 12, fontFamily: rtlFontStack }}
+                        />
+                        <RechartsTooltip
+                          formatter={(value: number, name: string, item: any) => [`${item.payload.percent}%`, name]}
+                          contentStyle={tooltipStyle}
+                        />
+                        <Bar dataKey="percent" radius={[10, 10, 10, 10]}>
+                          {tab.data.map((entry, index) => (
+                            <Cell key={`${entry.name}-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </TabsContent>
+              ))}
+            </Tabs>
           </CardContent>
         </Card>
         <Card className="bg-white/5 text-white">
@@ -1598,51 +1787,69 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
             <CardTitle>روند عملکرد گفت‌وگوها</CardTitle>
             <CardDescription className="text-xs text-white/60">مقایسه امتیاز هر بخش و میانگین متحرک</CardDescription>
           </CardHeader>
-          <CardContent className="h-[320px]">
-            {timelineData.length === 0 ? (
-              noData("داده‌ای برای روند زمانی وجود ندارد.")
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={timelineData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
-                  <CartesianGrid stroke={chartGridColor} strokeDasharray="6 6" />
-                  <XAxis
-                    dataKey="iteration"
-                    tick={{ fill: "#e2e8f0", fontSize: 12, fontFamily: rtlFontStack }}
-                    tickFormatter={(value: number) => `مرحله ${value}`}
-                  />
-                  <YAxis tick={{ fill: "#e2e8f0", fontSize: 12, fontFamily: rtlFontStack }} />
-                  <RechartsTooltip
-                    formatter={(value: number) => [`${value.toFixed(1)} امتیاز`, "عملکرد"]}
-                    labelFormatter={(value: number) => `مرحله ${value}`}
-                    contentStyle={tooltipStyle}
-                  />
-                  <Legend wrapperStyle={{ direction: "rtl" as const }} />
-                  {timelineAverage ? (
-                    <ReferenceLine
-                      y={timelineAverage}
-                      stroke="#f97316"
-                      strokeDasharray="4 4"
-                      label={{
-                        value: "میانگین",
-                        position: "right",
-                        fill: "#f97316",
-                        fontSize: 11,
-                        fontFamily: rtlFontStack,
-                      }}
-                    />
-                  ) : null}
-                  <Line
-                    type="monotone"
-                    dataKey="performance"
-                    stroke="#38bdf8"
-                    strokeWidth={3}
-                    dot={{ r: 4, stroke: "#fff", strokeWidth: 1.5 }}
-                    name="عملکرد"
-                  />
-                  <Line type="monotone" dataKey="trend" stroke="#c084fc" strokeWidth={2} dot={false} name="میانگین متحرک" />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
+          <CardContent className="space-y-3">
+            <Tabs defaultValue={timelineTabs[0]?.key} className="space-y-3" dir="rtl">
+              <TabsList className="flex flex-wrap gap-2 rounded-2xl bg-white/10 p-2">
+                {timelineTabs.map((tab) => (
+                  <TabsTrigger
+                    key={tab.key}
+                    value={tab.key}
+                    className="flex-1 rounded-xl border border-transparent px-2 py-1 text-xs text-white data-[state=active]:border-white/20 data-[state=active]:bg-white/20"
+                    style={{ fontFamily: rtlFontStack }}
+                  >
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {timelineTabs.map((tab) => (
+                <TabsContent key={tab.key} value={tab.key} className="h-[300px]">
+                  {tab.data.length === 0 ? (
+                    noData("داده‌ای برای روند زمانی این پرسشنامه وجود ندارد.")
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={tab.data} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                        <CartesianGrid stroke={chartGridColor} strokeDasharray="6 6" />
+                        <XAxis
+                          dataKey="iteration"
+                          tick={{ fill: "#e2e8f0", fontSize: 12, fontFamily: rtlFontStack }}
+                          tickFormatter={(value: number) => `مرحله ${value}`}
+                        />
+                        <YAxis tick={{ fill: "#e2e8f0", fontSize: 12, fontFamily: rtlFontStack }} />
+                        <RechartsTooltip
+                          formatter={(value: number) => [`${value.toFixed(1)} امتیاز`, "عملکرد"]}
+                          labelFormatter={(value: number) => `مرحله ${value}`}
+                          contentStyle={tooltipStyle}
+                        />
+                        <Legend wrapperStyle={{ direction: "rtl" as const }} />
+                        {tab.average ? (
+                          <ReferenceLine
+                            y={tab.average}
+                            stroke="#f97316"
+                            strokeDasharray="4 4"
+                            label={{
+                              value: "میانگین",
+                              position: "right",
+                              fill: "#f97316",
+                              fontSize: 11,
+                              fontFamily: rtlFontStack,
+                            }}
+                          />
+                        ) : null}
+                        <Line
+                          type="monotone"
+                          dataKey="performance"
+                          stroke="#38bdf8"
+                          strokeWidth={3}
+                          dot={{ r: 4, stroke: "#fff", strokeWidth: 1.5 }}
+                          name="عملکرد"
+                        />
+                        <Line type="monotone" dataKey="trend" stroke="#c084fc" strokeWidth={2} dot={false} name="میانگین متحرک" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  )}
+                </TabsContent>
+              ))}
+            </Tabs>
           </CardContent>
         </Card>
         <Card className="bg-white/5 text-white">
