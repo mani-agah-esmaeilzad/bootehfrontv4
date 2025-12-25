@@ -670,15 +670,18 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
       analysis?.factorContribution,
     ];
     let firstFactorSet: { subject: string; score: number; fullMark: number }[] | null = null;
-    let hasFactorData = false;
+    const seenFactorSubjects = new Set<string>();
     factorCandidates.forEach((candidate) => {
       const normalizedFactors = normalizeFactorEntries(candidate);
       if (normalizedFactors.length === 0) return;
-      hasFactorData = true;
       if (!firstFactorSet) {
         firstFactorSet = normalizedFactors;
       }
       normalizedFactors.forEach((factor) => {
+        const normalizedSubject = normalizeKey(factor.subject || "");
+        if (normalizedSubject) {
+          seenFactorSubjects.add(normalizedSubject);
+        }
         const factorBucket =
           bucket.factorMap.get(factor.subject) ?? { total: 0, count: 0, fullMark: factor.fullMark ?? 5 };
         factorBucket.total += factor.score;
@@ -687,22 +690,25 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
         bucket.factorMap.set(factor.subject, factorBucket);
       });
     });
-    if (!hasFactorData && entry.fallbackFactors.length > 0) {
-      firstFactorSet = entry.fallbackFactors;
-      entry.fallbackFactors.forEach((factor) => {
-        const factorBucket =
-          bucket.factorMap.get(factor.subject) ?? { total: 0, count: 0, fullMark: factor.fullMark ?? 5 };
-        factorBucket.total += factor.score;
-        factorBucket.count += 1;
-        factorBucket.fullMark = Math.max(factorBucket.fullMark, factor.fullMark ?? factorBucket.fullMark);
-        bucket.factorMap.set(factor.subject, factorBucket);
-      });
-    }
 
-    let perAssessmentFactors = firstFactorSet ?? [];
-    if (perAssessmentFactors.length === 0 && entry.fallbackFactors.length > 0) {
-      perAssessmentFactors = entry.fallbackFactors;
-    }
+    let perAssessmentFactors = firstFactorSet ? [...firstFactorSet] : [];
+    const perAssessmentSubjectSet = new Set(perAssessmentFactors.map((factor) => normalizeKey(factor.subject || "")));
+    entry.fallbackFactors.forEach((factor) => {
+      const normalizedSubject = normalizeKey(factor.subject || "");
+      if (!normalizedSubject) return;
+      if (!perAssessmentSubjectSet.has(normalizedSubject)) {
+        perAssessmentSubjectSet.add(normalizedSubject);
+        perAssessmentFactors.push(factor);
+      }
+      if (seenFactorSubjects.has(normalizedSubject)) return;
+      seenFactorSubjects.add(normalizedSubject);
+      const factorBucket =
+        bucket.factorMap.get(factor.subject) ?? { total: 0, count: 0, fullMark: factor.fullMark ?? 5 };
+      factorBucket.total += factor.score;
+      factorBucket.count += 1;
+      factorBucket.fullMark = Math.max(factorBucket.fullMark, factor.fullMark ?? factorBucket.fullMark);
+      bucket.factorMap.set(factor.subject, factorBucket);
+    });
     if (perAssessmentFactors.length > 0) {
       bucket.assessmentSpiders.push({
         id: entry.assessmentId,
