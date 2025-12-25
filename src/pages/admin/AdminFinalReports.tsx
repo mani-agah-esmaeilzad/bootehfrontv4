@@ -225,6 +225,19 @@ const toNum = (val: unknown): number => {
 
 const normalizeKey = (key: string) => key.toLowerCase().replace(/[\s_-]+/g, "");
 
+const resolveAnalysisField = (source: Record<string, any> | null, candidates: string[]) => {
+  if (!source) return undefined;
+  const normalizedMap = new Map<string, string>();
+  Object.keys(source).forEach((key) => normalizedMap.set(normalizeKey(key), key));
+  for (const candidate of candidates) {
+    const normalized = normalizeKey(candidate);
+    if (normalizedMap.has(normalized)) {
+      return source[normalizedMap.get(normalized)!];
+    }
+  }
+  return undefined;
+};
+
 const parseArrayLike = (input: unknown): unknown[] => {
   if (Array.isArray(input)) return input;
   if (typeof input === "string") {
@@ -661,13 +674,29 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
       bucket.conversationMap.set(keyword, (bucket.conversationMap.get(keyword) ?? 0) + mentions);
     });
 
+    const analysisSource = analysis && typeof analysis === "object" ? (analysis as Record<string, any>) : null;
     const factorCandidates = [
-      analysis?.factor_scores,
-      analysis?.factor_scatter,
-      analysis?.factor_contribution,
-      analysis?.factorScore,
-      analysis?.factorScatter,
-      analysis?.factorContribution,
+      resolveAnalysisField(analysisSource, ["factor_scores", "factor score", "factor-score", "factorScores", "factorScore"]),
+      resolveAnalysisField(analysisSource, [
+        "factor_scatter",
+        "scatter_data",
+        "factor_correlation",
+        "factor correlation",
+        "scatter",
+        "factor scatter",
+        "factorScatter",
+        "scatterData",
+      ]),
+      resolveAnalysisField(analysisSource, [
+        "factor_contribution",
+        "factor contribution",
+        "factor_share",
+        "factorShare",
+        "factorContribution",
+        "factor_treemap",
+        "factorTreemap",
+      ]),
+      resolveAnalysisField(analysisSource, ["factor_breakdown", "factorBreakdown", "competency_breakdown", "competencyBreakdown"]),
     ];
     let firstFactorSet: { subject: string; score: number; fullMark: number }[] | null = null;
     const seenFactorSubjects = new Set<string>();
