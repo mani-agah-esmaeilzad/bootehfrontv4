@@ -167,6 +167,7 @@ const CATEGORY_SEQUENCE = [
   "شایستگی‌های روانشناختی",
   "سایر دسته‌بندی‌ها",
 ] as const;
+const PRIMARY_CATEGORY_SEQUENCE = CATEGORY_SEQUENCE.slice(0, 5);
 
 const LEGACY_CATEGORY_MAP: Record<string, string> = {
   "نیمرخ روانشناختی": "شایستگی‌های روانشناختی",
@@ -1040,6 +1041,19 @@ const AdminFinalReports = () => {
     { key: "target", label: "هدف (۱۰۰)", color: "#94a3b8" },
   ];
 
+  const assessmentsByCategory = useMemo(() => {
+    const map = new Map<string, ParsedCompletion[]>();
+    if (!detail?.assessments) return map;
+    detail.assessments.forEach((assessment) => {
+      const normalizedCategory = normalizeCategoryName(assessment.category);
+      if (!map.has(normalizedCategory)) {
+        map.set(normalizedCategory, []);
+      }
+      map.get(normalizedCategory)!.push(assessment);
+    });
+    return map;
+  }, [detail?.assessments]);
+
   const categoryOverview = useMemo(() => {
     if (!detail?.categories) return [];
     return detail.categories
@@ -1048,7 +1062,18 @@ const AdminFinalReports = () => {
         const displayLabel = category.label?.trim() ? category.label : normalizedLabel;
         const totalAssignments = category.totalAssignments ?? 0;
         const pendingCount = Math.max(totalAssignments - category.completedCount, 0);
-        const contributions = Array.isArray(category.contributions) ? category.contributions : [];
+        const derivedAssessments = assessmentsByCategory.get(normalizedLabel) ?? [];
+        const derivedContributions = derivedAssessments.map((assessment) => ({
+          assessmentId: assessment.assessmentId,
+          questionnaireId: assessment.questionnaireId,
+          questionnaireTitle: assessment.questionnaireTitle,
+          normalizedScore: Number(toNum(assessment.normalizedScore).toFixed(2)),
+          rawScore: assessment.rawScore,
+          maxScore: assessment.maxScore,
+          completedAt: assessment.completedAt,
+        }));
+        const fallbackContributions = Array.isArray(category.contributions) ? category.contributions : [];
+        const contributions = derivedContributions.length > 0 ? derivedContributions : fallbackContributions;
         const contributionScores = contributions
           .map((contribution) => toNum(contribution.normalizedScore))
           .filter((score) => Number.isFinite(score));
@@ -1067,10 +1092,11 @@ const AdminFinalReports = () => {
           pendingCount,
           color: getCategoryColor(normalizedLabel),
           contributions,
+          assessmentCount: contributionScores.length,
         };
       })
       .sort((a, b) => getCategoryOrder(a.normalizedKey) - getCategoryOrder(b.normalizedKey));
-  }, [detail]);
+  }, [detail, assessmentsByCategory]);
 
   const categoryChartData = useMemo(
     () =>
@@ -1124,6 +1150,50 @@ const AdminFinalReports = () => {
     });
     return ordered;
   }, [categoryOverview, categoryAnalytics]);
+
+  const questionnairePowerWheelData = useMemo(() => {
+    if (!detail?.assessments || detail.assessments.length === 0) return [];
+    return detail.assessments.map((assessment, index) => {
+      const label =
+        assessment.questionnaireTitle?.trim() ||
+        `${normalizeCategoryName(assessment.category)} - گفت‌وگو ${index + 1}`;
+      const score = Math.min(Math.max(toNum(assessment.normalizedScore), 0), 100);
+      const status: "pending" | "partial" | "completed" =
+        score >= 75 ? "completed" : score >= 40 ? "partial" : "pending";
+      return {
+        label,
+        value: score,
+        status,
+        completedCount: assessment.completedAt ? 1 : 0,
+        totalAssignments: 1,
+      };
+    });
+  }, [detail?.assessments]);
+
+  const heatmapColorForScore = useCallback((score: number) => {
+    const ratio = Math.min(Math.max(score / 100, 0), 1);
+    const hue = 10 + ratio * 110;
+    const saturation = 70 + ratio * 25;
+    const lightness = 25 + ratio * 20;
+    return `hsl(${hue.toFixed(0)}, ${saturation.toFixed(0)}%, ${lightness.toFixed(0)}%)`;
+  }, []);
+
+  const categoryHeatmapData = useMemo(() => {
+    const map = new Map(categoryOverview.map((entry) => [entry.normalizedKey, entry]));
+    return PRIMARY_CATEGORY_SEQUENCE.map((label) => {
+      const normalizedKey = normalizeCategoryName(label);
+      const entry = map.get(normalizedKey);
+      return {
+        key: normalizedKey,
+        label,
+        score: entry?.normalizedScore ?? 0,
+        completedCount: entry?.completedCount ?? 0,
+        totalAssignments: entry?.totalAssignments ?? 0,
+        pendingCount: entry?.pendingCount ?? 0,
+        color: entry?.color ?? getCategoryColor(normalizedKey),
+      };
+    });
+  }, [categoryOverview]);
 
   return (
     <div className="admin-page space-y-6">
@@ -1303,7 +1373,7 @@ const AdminFinalReports = () => {
               </Card>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
               <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-indigo-900/40 to-slate-950/40 p-4">
                 <div className="flex items-center gap-2 text-sm font-semibold text-white">
                   <CheckCircle2 className="h-4 w-4 text-emerald-300" />
@@ -1324,6 +1394,21 @@ const AdminFinalReports = () => {
                   ) : (
                     <div className="flex h-full items-center justify-center text-sm text-white/60">
                       داده‌ای برای نمودار در دسترس نیست.
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-indigo-900/40 to-slate-950/40 p-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                  <ShieldCheck className="h-4 w-4 text-amber-300" />
+                  پاورویل پرسشنامه‌ها
+                </div>
+                <div className="mt-4">
+                  {questionnairePowerWheelData.length > 0 ? (
+                    <PowerWheelChart data={questionnairePowerWheelData} />
+                  ) : (
+                    <div className="flex h-[320px] items-center justify-center text-sm text-white/60">
+                      هنوز گفت‌وگوی تکمیل‌شده‌ای وجود ندارد.
                     </div>
                   )}
                 </div>
@@ -1482,35 +1567,77 @@ const AdminFinalReports = () => {
               </Card>
             </div>
 
-            <Card className="bg-white/5 text-white">
-              <CardHeader>
-                <CardTitle>مراحل باقیمانده بر اساس شایستگی</CardTitle>
-                <CardDescription>برای کامل شدن مسیر باید وضعیت هر شایستگی به اتمام برسد</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {pendingCategorySummary.length === 0 ? (
-                  <p className="text-sm text-emerald-200">تمام دسته‌بندی‌ها تکمیل شده است.</p>
-                ) : (
-                  <ul className="space-y-2 text-sm text-white/90">
-                    {pendingCategorySummary.map((item) => (
-                      <li key={item.label} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold">{item.label}</span>
-                          <Badge variant="secondary" className="bg-white/10 text-white">
-                            {item.remaining.toLocaleString("fa-IR")} مرحله
-                          </Badge>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Card className="bg-white/5 text-white">
+                <CardHeader>
+                  <CardTitle>نقشه حرارتی شایستگی‌ها</CardTitle>
+                  <CardDescription>شدت رنگ هر خانه نشان‌دهنده امتیاز فعلی پنج دسته‌بندی اصلی است</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                    {categoryHeatmapData.map((item) => {
+                      const background = heatmapColorForScore(item.score);
+                      const completionLabel =
+                        item.totalAssignments > 0
+                          ? `${item.completedCount}/${item.totalAssignments} مرحله`
+                          : "در انتظار برنامه‌ریزی";
+                      return (
+                        <div
+                          key={item.key}
+                          className="flex flex-col justify-between rounded-2xl border border-white/10 p-3 text-white shadow-lg"
+                          style={{
+                            backgroundImage: `linear-gradient(135deg, ${background}, rgba(15,23,42,0.92))`,
+                          }}
+                        >
+                          <div>
+                            <p className="text-xs text-white/80">{item.label}</p>
+                            <p className="text-2xl font-black">{item.score.toFixed(1)}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="h-1.5 w-full rounded-full bg-white/30">
+                              <div
+                                className="h-full rounded-full bg-white"
+                                style={{ width: `${Math.min(Math.max(item.score, 0), 100)}%` }}
+                              />
+                            </div>
+                            <p className="text-[11px] text-white/80">{completionLabel}</p>
+                          </div>
                         </div>
-                        <p className="mt-2 text-xs text-white/60">
-                          {item.total > 0
-                            ? `از ${item.total.toLocaleString("fa-IR")} مرحله تعریف‌شده، هنوز ${item.remaining.toLocaleString("fa-IR")} مرحله تکمیل نشده است.`
-                            : "برای این شایستگی هنوز مسیری تعریف نشده است."}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-white/5 text-white">
+                <CardHeader>
+                  <CardTitle>مراحل باقیمانده بر اساس شایستگی</CardTitle>
+                  <CardDescription>برای کامل شدن مسیر باید وضعیت هر شایستگی به اتمام برسد</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {pendingCategorySummary.length === 0 ? (
+                    <p className="text-sm text-emerald-200">تمام دسته‌بندی‌ها تکمیل شده است.</p>
+                  ) : (
+                    <ul className="space-y-2 text-sm text-white/90">
+                      {pendingCategorySummary.map((item) => (
+                        <li key={item.label} className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold">{item.label}</span>
+                            <Badge variant="secondary" className="bg-white/10 text-white">
+                              {item.remaining.toLocaleString("fa-IR")} مرحله
+                            </Badge>
+                          </div>
+                          <p className="mt-2 text-xs text-white/60">
+                            {item.total > 0
+                              ? `از ${item.total.toLocaleString("fa-IR")} مرحله تعریف‌شده، هنوز ${item.remaining.toLocaleString("fa-IR")} مرحله تکمیل نشده است.`
+                              : "برای این شایستگی هنوز مسیری تعریف نشده است."}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
 
             <section className="space-y-4 rounded-3xl border border-white/10 bg-gradient-to-b from-indigo-900/40 to-slate-950/40 p-5 text-white">
               <div className="space-y-2 text-right">
