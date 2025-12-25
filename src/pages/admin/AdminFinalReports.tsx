@@ -1630,6 +1630,39 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
             )}
           </CardContent>
         </Card>
+        {analytics.assessmentSpiders.length > 0 && (
+          <Card className="bg-white/5 text-white">
+            <CardHeader>
+              <CardTitle>نمودار هر پرسشنامه (تعویضی)</CardTitle>
+              <CardDescription className="text-xs text-white/60">
+                با انتخاب نام پرسشنامه، نمودار فاکتورهای همان گفتگو نمایش داده می‌شود.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue={`assessment-${analytics.assessmentSpiders[0].id}`} className="space-y-3" dir="rtl">
+                <TabsList className="flex flex-wrap gap-2 rounded-2xl bg-white/10 p-2">
+                  {analytics.assessmentSpiders.map((assessment) => (
+                    <TabsTrigger
+                      key={assessment.id}
+                      value={`assessment-${assessment.id}`}
+                      className="flex-1 rounded-xl border border-transparent px-3 py-2 text-xs text-white data-[state=active]:border-white/20 data-[state=active]:bg-white/20"
+                      style={{ fontFamily: rtlFontStack }}
+                    >
+                      {assessment.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                {analytics.assessmentSpiders.map((assessment) => (
+                  <TabsContent key={assessment.id} value={`assessment-${assessment.id}`}>
+                    <div className="h-[360px]">
+                      <SpiderChart data={assessment.data} />
+                    </div>
+                  </TabsContent>
+                ))}
+              </Tabs>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {analytics.assessmentSpiders.length > 0 && (
