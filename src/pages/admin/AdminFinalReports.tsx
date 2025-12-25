@@ -513,6 +513,7 @@ interface AssessmentAnalysisResult {
   category: string;
   analysis: Record<string, any>;
   questionnaireTitle: string;
+  fallbackFactors: { subject: string; score: number; fullMark: number }[];
 }
 
 interface PreparedCategoryAnalytics {
@@ -618,8 +619,16 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
       analysis?.factorScatter,
       analysis?.factorContribution,
     ];
+    let firstFactorSet: { subject: string; score: number; fullMark: number }[] | null = null;
+    let hasFactorData = false;
     factorCandidates.forEach((candidate) => {
-      normalizeFactorEntries(candidate).forEach((factor) => {
+      const normalized = normalizeFactorEntries(candidate);
+      if (normalized.length === 0) return;
+      hasFactorData = true;
+      if (!firstFactorSet) {
+        firstFactorSet = normalized;
+      }
+      normalized.forEach((factor) => {
         const factorBucket =
           bucket.factorMap.get(factor.subject) ?? { total: 0, count: 0, fullMark: factor.fullMark ?? 5 };
         factorBucket.total += factor.score;
@@ -628,11 +637,22 @@ const buildCategoryAnalytics = (entries: AssessmentAnalysisResult[]): Record<str
         bucket.factorMap.set(factor.subject, factorBucket);
       });
     });
+    if (!hasFactorData && entry.fallbackFactors.length > 0) {
+      firstFactorSet = entry.fallbackFactors;
+      entry.fallbackFactors.forEach((factor) => {
+        const factorBucket =
+          bucket.factorMap.get(factor.subject) ?? { total: 0, count: 0, fullMark: factor.fullMark ?? 5 };
+        factorBucket.total += factor.score;
+        factorBucket.count += 1;
+        factorBucket.fullMark = Math.max(factorBucket.fullMark, factor.fullMark ?? factorBucket.fullMark);
+        bucket.factorMap.set(factor.subject, factorBucket);
+      });
+    }
 
-    const perAssessmentFactors =
-      factorCandidates
-        .map((candidate) => normalizeFactorEntries(candidate))
-        .find((normalized) => normalized.length > 0) ?? [];
+    let perAssessmentFactors = firstFactorSet ?? [];
+    if (perAssessmentFactors.length === 0 && entry.fallbackFactors.length > 0) {
+      perAssessmentFactors = entry.fallbackFactors;
+    }
     if (perAssessmentFactors.length > 0) {
       bucket.assessmentSpiders.push({
         id: entry.assessmentId,
@@ -797,6 +817,13 @@ const AdminFinalReports = () => {
       try {
         const responses = await Promise.all(
           detail.assessments.map(async (assessment) => {
+            const fallbackFactors = Array.isArray(assessment.factorScores)
+              ? assessment.factorScores.map((item) => ({
+                subject: item.name || item.factor || `فاکتور ${item}`,
+                score: toNum(item.score),
+                fullMark: toNum(item.maxScore) || 5,
+              }))
+              : [];
             try {
               const response = await apiFetch(`admin/reports/${assessment.assessmentId}`);
               if (response?.success && response.data?.analysis) {
@@ -805,17 +832,24 @@ const AdminFinalReports = () => {
                   category: assessment.category,
                   analysis: normalizeAnalysisObject(response.data.analysis),
                   questionnaireTitle: assessment.questionnaireTitle,
+                  fallbackFactors,
                 };
               }
             } catch (error) {
               console.error(`Failed to load analysis for assessment ${assessment.assessmentId}`, error);
             }
-            return null;
+            return {
+              assessmentId: assessment.assessmentId,
+              category: assessment.category,
+              analysis: {},
+              questionnaireTitle: assessment.questionnaireTitle,
+              fallbackFactors,
+            };
           }),
         );
         if (!isActive) return;
         const aggregated = buildCategoryAnalytics(
-          responses.filter((item): item is AssessmentAnalysisResult => Boolean(item)),
+          responses.filter((item): item is AssessmentAnalysisResult => Boolean(item && item.category)),
         );
         setCategoryAnalytics(aggregated);
       } catch (error: any) {
