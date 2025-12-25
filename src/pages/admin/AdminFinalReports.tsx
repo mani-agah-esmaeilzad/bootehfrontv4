@@ -1489,6 +1489,10 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
     () => analytics.factorEntries.map((entry) => ({ subject: entry.subject, score: entry.score, fullMark: entry.fullMark })),
     [analytics.factorEntries],
   );
+  const assessmentFactorDetails = useMemo(
+    () => analytics.assessmentDetails.filter((detail) => detail.factorEntries.length > 0),
+    [analytics.assessmentDetails],
+  );
   const { data: timelineData, average: timelineAverage } = useMemo(
     () => buildTimelineSeries(analytics.progress),
     [analytics.progress],
@@ -1548,16 +1552,16 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
     [timelineData, timelineAverage, analytics.assessmentDetails],
   );
   const comparisonSpider = useMemo(() => {
-    if (!analytics.assessmentSpiders || analytics.assessmentSpiders.length < 2) return null;
-    const series = analytics.assessmentSpiders.map((assessment, index) => ({
-      key: `assessment_${assessment.id}_${index}`,
-      label: assessment.label,
+    if (assessmentFactorDetails.length < 2) return null;
+    const series = assessmentFactorDetails.map((detail, index) => ({
+      key: `assessment_${detail.id}_${index}`,
+      label: detail.label,
       color: COLORS[index % COLORS.length],
     }));
     const dataMap = new Map<string, Record<string, number | string | undefined>>();
-    analytics.assessmentSpiders.forEach((assessment, index) => {
+    assessmentFactorDetails.forEach((detail, index) => {
       const key = series[index].key;
-      assessment.data.forEach((entry) => {
+      detail.factorEntries.forEach((entry) => {
         const existing = dataMap.get(entry.subject) ?? { subject: entry.subject, fullMark: entry.fullMark };
         const currentFullMark = typeof existing.fullMark === "number" ? existing.fullMark : entry.fullMark;
         existing.fullMark = Math.max(currentFullMark || 0, entry.fullMark || 0);
@@ -1574,7 +1578,7 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
       return entry;
     });
     return { series, data };
-  }, [analytics.assessmentSpiders]);
+  }, [assessmentFactorDetails]);
   const questionnaireSpiderData = useMemo(() => analytics.questionnaireRadar, [analytics.questionnaireRadar]);
 
   return (
@@ -1869,7 +1873,7 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
         </Card>
       </div>
 
-      {analytics.assessmentSpiders.length > 0 && (
+      {assessmentFactorDetails.length > 0 && (
         <Card className="bg-white/5 text-white">
           <CardHeader>
             <CardTitle>نمودار هر پرسشنامه</CardTitle>
@@ -1879,11 +1883,11 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {analytics.assessmentSpiders.map((assessment, index) => (
+              {assessmentFactorDetails.map((assessment, index) => (
                 <div key={`${assessment.id}-${index}`} className="rounded-2xl border border-white/10 bg-white/5 p-4">
                   <p className="mb-3 text-sm font-semibold text-white/80">{assessment.label}</p>
                   <div className="h-[320px]">
-                    <SpiderChart data={assessment.data} />
+                    <SpiderChart data={assessment.factorEntries} />
                   </div>
                 </div>
               ))}
