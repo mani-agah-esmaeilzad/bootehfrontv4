@@ -1,6 +1,6 @@
 // src/pages/admin/AdminFinalReports.tsx
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -11,6 +11,7 @@ import {
   Search,
   AlertTriangle,
   ShieldCheck,
+  Download,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,9 @@ import { PowerWheelChart } from "@/components/ui/PowerWheelChart";
 import { PowerWheel } from "@/components/charts/PowerWheel";
 import { PowerWheelAxis, PowerWheelGroup } from "@/components/charts/powerWheelTypes";
 import apiFetch, { getFinalReportSummaries, getFinalReportDetail } from "@/services/apiService";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { FinalReportPDFLayout } from "@/components/pdf/FinalReportPDFLayout";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { normalizeBidi } from "@/lib/bidi";
@@ -917,6 +921,61 @@ const AdminFinalReports = () => {
   const [categoryAnalytics, setCategoryAnalytics] = useState<Record<string, PreparedCategoryAnalytics>>({});
   const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const pdfPrintRef = useRef<HTMLDivElement | null>(null);
+
+  const ensureFontsLoaded = useCallback(async () => {
+    if ("fonts" in document) {
+      const pending = Array.from(document.fonts).filter((font) => font.status !== "loaded");
+      if (pending.length > 0) {
+        await Promise.allSettled(pending.map((font) => font.load?.()));
+      }
+    }
+  }, []);
+
+  const stabilizeBeforeCapture = useCallback(async () => {
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    window.dispatchEvent(new Event("resize"));
+    await new Promise<void>((resolve) => requestAnimationFrame(resolve));
+  }, []);
+
+  const handleDownloadPDF = useCallback(async () => {
+    if (!pdfPrintRef.current || !detail) return;
+    setIsDownloading(true);
+    try {
+      await ensureFontsLoaded();
+      const nodes = Array.from(pdfPrintRef.current.querySelectorAll(".pdf-page")) as HTMLElement[];
+      const targets = nodes.length > 0 ? nodes : [pdfPrintRef.current];
+      const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: "a4" });
+
+      for (let index = 0; index < targets.length; index += 1) {
+        const page = targets[index];
+        await stabilizeBeforeCapture();
+        const canvas = await html2canvas(page, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#fff",
+          scrollX: 0,
+          scrollY: -window.scrollY,
+        });
+        const imgData = canvas.toDataURL("image/png");
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        if (index > 0) {
+          pdf.addPage();
+        }
+        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      }
+
+      pdf.save(`FinalReport-${detail.user.username}.pdf`);
+      toast.success("فایل PDF ساخته شد.");
+    } catch (error) {
+      console.error("Final report PDF error:", error);
+      toast.error("خطا در ساخت فایل PDF.");
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [detail, ensureFontsLoaded, stabilizeBeforeCapture]);
 
   const loadSummaries = useCallback(async () => {
     setIsLoading(true);
@@ -1206,6 +1265,9 @@ const AdminFinalReports = () => {
 
   return (
     <div className="admin-page space-y-6">
+      <div style={{ position: "absolute", left: -9999, top: 0, opacity: 0, pointerEvents: "none" }} aria-hidden="true">
+        {detail && <FinalReportPDFLayout ref={pdfPrintRef} detail={detail} />}
+      </div>
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
           <h1 className="text-2xl font-bold text-white">گزارش‌های نهایی مسیر</h1>
@@ -1339,9 +1401,20 @@ const AdminFinalReports = () => {
                   آخرین بروزرسانی: {detail.progress.lastCompletedAt ? formatDate(detail.progress.lastCompletedAt) : "نامشخص"}
                 </p>
               </div>
-              <Badge variant={detail.progress.isReady ? "default" : "secondary"} className="rounded-full bg-white/80 text-slate-900">
-                {detail.progress.isReady ? "کاربر آماده تحویل نهایی" : "هنوز برخی مراحل باقی مانده است"}
-              </Badge>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={detail.progress.isReady ? "default" : "secondary"} className="rounded-full bg-white/80 text-slate-900">
+                  {detail.progress.isReady ? "کاربر آماده تحویل نهایی" : "هنوز برخی مراحل باقی مانده است"}
+                </Badge>
+                <Button
+                  variant="outline"
+                  className="rounded-full border-white/40 bg-white/10 text-white hover:bg-white/20"
+                  onClick={handleDownloadPDF}
+                  disabled={isDownloading}
+                >
+                  {isDownloading ? <LoaderCircle className="ml-2 h-4 w-4 animate-spin" /> : <Download className="ml-2 h-4 w-4" />}
+                  دانلود PDF
+                </Button>
+              </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
