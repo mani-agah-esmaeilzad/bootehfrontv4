@@ -1103,28 +1103,6 @@ const AdminFinalReports = () => {
     });
   }, [summaries, searchTerm]);
 
-  const spiderData = useMemo(() => {
-    const radarEntries =
-      detail?.radar
-        ?.filter((entry) => normalizeCategoryName(entry.subject) !== ADDITIONAL_CATEGORY_LABEL)
-        .map((entry) => ({
-          subject: entry.subject,
-          user: entry.userScore,
-          target: entry.targetScore,
-        })) ?? [];
-    if (radarEntries.length > 0) return radarEntries;
-    return filteredCategoryOverview.map((category) => ({
-      subject: category.label,
-      user: category.normalizedScore,
-      target: 100,
-    }));
-  }, [detail, filteredCategoryOverview]);
-
-  const spiderSeries = [
-    { key: "user", label: "امتیاز کاربر", color: "#6366f1" },
-    { key: "target", label: "هدف (۱۰۰)", color: "#94a3b8" },
-  ];
-
   const assessmentsByCategory = useMemo(() => {
     const map = new Map<string, ParsedCompletion[]>();
     if (!detail?.assessments) return map;
@@ -1186,6 +1164,28 @@ const AdminFinalReports = () => {
     () => categoryOverview.filter((entry) => entry.normalizedKey !== ADDITIONAL_CATEGORY_LABEL),
     [categoryOverview],
   );
+
+  const spiderData = useMemo(() => {
+    const radarEntries =
+      detail?.radar
+        ?.filter((entry) => normalizeCategoryName(entry.subject) !== ADDITIONAL_CATEGORY_LABEL)
+        .map((entry) => ({
+          subject: entry.subject,
+          user: entry.userScore,
+          target: entry.targetScore,
+        })) ?? [];
+    if (radarEntries.length > 0) return radarEntries;
+    return filteredCategoryOverview.map((category) => ({
+      subject: category.label,
+      user: category.normalizedScore,
+      target: 100,
+    }));
+  }, [detail, filteredCategoryOverview]);
+
+  const spiderSeries = [
+    { key: "user", label: "امتیاز کاربر", color: "#6366f1" },
+    { key: "target", label: "هدف (۱۰۰)", color: "#94a3b8" },
+  ];
 
   const categoryChartData = useMemo(
     () =>
