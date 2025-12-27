@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useId } from "react";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_POWER_WHEEL_COLORS,
@@ -71,6 +71,9 @@ export const PowerWheel = ({
   const radius = size * 0.34;
   const labelRadius = radius + 34;
   const dotRadius = radius + 10;
+  const backgroundGradientId = useId();
+  const polygonGradientId = useId();
+  const dotGlowId = useId();
 
   const axes = useMemo(() => {
     const total = data.length;
@@ -158,6 +161,28 @@ export const PowerWheel = ({
           viewBox={`0 0 ${size} ${size}`}
           className="h-auto w-full"
         >
+          <defs>
+            <radialGradient id={backgroundGradientId} cx="50%" cy="50%" r="70%">
+              <stop offset="0%" stopColor="rgba(15,23,42,0.65)" />
+              <stop offset="60%" stopColor="rgba(15,23,42,0.35)" />
+              <stop offset="100%" stopColor="rgba(15,23,42,0)" />
+            </radialGradient>
+            <linearGradient id={polygonGradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="rgba(99,102,241,0.55)" />
+              <stop offset="100%" stopColor="rgba(14,165,233,0.35)" />
+            </linearGradient>
+            <filter id={dotGlowId} x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+              <feMerge>
+                <feMergeNode in="coloredBlur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          <circle cx={cx} cy={cy} r={radius + 48} fill={`url(#${backgroundGradientId})`} />
+          <circle cx={cx} cy={cy} r={14} fill="rgba(15,23,42,0.9)" stroke="rgba(255,255,255,0.35)" strokeWidth={1.5} />
+
           <g opacity={0.5}>
             {ringsArray.map((ringRadius, idx) => (
               <circle
@@ -232,10 +257,11 @@ export const PowerWheel = ({
           {axisPolygonPath ? (
             <path
               d={axisPolygonPath}
-              fill="rgba(99,102,241,0.12)"
+              fill={`url(#${polygonGradientId})`}
               stroke="rgba(255,255,255,0.65)"
-              strokeWidth={1.2}
+              strokeWidth={1.25}
               strokeDasharray="6 6"
+              fillOpacity={0.32}
             />
           ) : null}
 
@@ -254,10 +280,20 @@ export const PowerWheel = ({
                   <circle
                     cx={entry.dotX}
                     cy={entry.dotY}
+                    r={9}
+                    fill="transparent"
+                    stroke={mergedColors[entry.axis.group]}
+                    strokeOpacity={0.25}
+                    strokeWidth={1}
+                  />
+                  <circle
+                    cx={entry.dotX}
+                    cy={entry.dotY}
                     r={5}
                     fill={mergedColors[entry.axis.group]}
                     stroke="#0f172a"
                     strokeWidth={1.2}
+                    filter={`url(#${dotGlowId})`}
                   />
                 </g>
               ))}
