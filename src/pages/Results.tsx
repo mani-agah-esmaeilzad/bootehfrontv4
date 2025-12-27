@@ -1,14 +1,15 @@
 // فایل کامل: mani-agah-esmaeilzad/hrbooteh-pathfinder/src/pages/Results.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Download, Share2, Award, LoaderCircle, AlertTriangle } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import apiFetch from "@/services/apiService";
+import apiFetch, { getUserFinalReport } from "@/services/apiService";
 import { toast } from "sonner";
 import ReactMarkdown from 'react-markdown'; // ✅ ایمپورت کتابخانه جدید
+import { ComparisonSpiderChart } from "@/components/ui/ComparisonSpiderChart";
 
 interface AssessmentResult {
   assessment: {
@@ -22,11 +23,61 @@ interface AssessmentResult {
   messages: any[];
 }
 
+interface FinalReportOverview {
+  overallScore: number;
+  averageScore: number;
+}
+
+interface FinalReportCategory {
+  key: string;
+  label: string;
+  normalizedScore: number;
+}
+
+interface FinalReportRadarEntry {
+  subject: string;
+  userScore: number;
+  targetScore: number;
+}
+
+interface FinalReportData {
+  overview?: FinalReportOverview;
+  categories?: FinalReportCategory[];
+  radar?: FinalReportRadarEntry[];
+  strengths?: string[];
+  recommendations?: string[];
+  developmentPlan?: string[];
+  risks?: string[];
+}
+
+const clampScore = (value: number, min = 0, max = 100) => Math.min(max, Math.max(min, value));
+
+const toPercentage = (value: unknown): number => {
+  if (typeof value === "number") {
+    return clampScore(Number.isFinite(value) ? value : 0);
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().replace(/[^\d.-]/g, "");
+    const parsed = Number(normalized);
+    return clampScore(Number.isFinite(parsed) ? parsed : 0);
+  }
+  const parsed = Number(value);
+  return clampScore(Number.isFinite(parsed) ? parsed : 0);
+};
+
+const finalReportSpiderSeries = [
+  { key: "user", label: "امتیاز شما", color: "#6366f1" },
+  { key: "target", label: "هدف (۱۰۰)", color: "#94a3b8" },
+];
+
 const Results = () => {
   const navigate = useNavigate();
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [finalReport, setFinalReport] = useState<FinalReportData | null>(null);
+  const [finalReportError, setFinalReportError] = useState<string | null>(null);
+  const [isFinalReportLoading, setIsFinalReportLoading] = useState(false);
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -46,8 +97,51 @@ const Results = () => {
         setIsLoading(false);
       }
     };
+    const fetchFinalReport = async () => {
+      setIsFinalReportLoading(true);
+      setFinalReportError(null);
+      try {
+        const response = await getUserFinalReport();
+        if (response.success && response.data) {
+          setFinalReport(response.data);
+        } else {
+          setFinalReport(null);
+          setFinalReportError(response.message || 'گزارش نهایی در دسترس نیست.');
+        }
+      } catch (err: any) {
+        const message = err?.message || 'گزارش نهایی هنوز آماده نشده است.';
+        setFinalReport(null);
+        setFinalReportError(message);
+        console.error('Final report fetch failed:', err);
+      } finally {
+        setIsFinalReportLoading(false);
+      }
+    };
     fetchResults();
+    fetchFinalReport();
   }, []);
+
+  const spiderData = useMemo(() => {
+    if (finalReport?.radar && finalReport.radar.length > 0) {
+      return finalReport.radar
+        .map((entry) => ({
+          subject: entry.subject,
+          user: toPercentage(entry.userScore),
+          target: toPercentage(entry.targetScore ?? 100),
+        }))
+        .filter((entry) => Number.isFinite(entry.user));
+    }
+    if (finalReport?.categories && finalReport.categories.length > 0) {
+      return finalReport.categories
+        .map((category) => ({
+          subject: category.label,
+          user: toPercentage(category.normalizedScore),
+          target: 100,
+        }))
+        .filter((entry) => Number.isFinite(entry.user));
+    }
+    return [];
+  }, [finalReport]);
 
   const renderContent = () => {
     if (isLoading) {
@@ -106,6 +200,27 @@ const Results = () => {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-hrbooteh-lg border-0 bg-hrbooteh-surface">
+          <CardHeader>
+            <CardTitle className="text-xl text-hrbooteh-text-primary">نمودار عنکبوتی دسته‌بندی‌ها</CardTitle>
+            <CardDescription>مقایسه میانگین امتیاز شایستگی‌ها در مسیر شما</CardDescription>
+          </CardHeader>
+          <CardContent className="h-96">
+            {isFinalReportLoading ? (
+              <div className="flex h-full flex-col items-center justify-center gap-3 text-hrbooteh-text-secondary">
+                <LoaderCircle className="h-10 w-10 animate-spin text-hrbooteh-primary" />
+                <p className="text-sm">در حال بارگذاری نمودار...</p>
+              </div>
+            ) : spiderData.length > 0 ? (
+              <ComparisonSpiderChart data={spiderData} series={finalReportSpiderSeries} />
+            ) : (
+              <div className="flex h-full items-center justify-center text-center text-sm text-hrbooteh-text-secondary">
+                {finalReportError || "برای نمایش نمودار لازم است تمام مراحل مسیر تکمیل شوند."}
+              </div>
+            )}
           </CardContent>
         </Card>
 
