@@ -1817,58 +1817,48 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
     [analytics.progress],
   );
   const sentimentTabs = useMemo(
-    () => [
-      { key: "sent-overall", label: "همه پرسشنامه‌ها", data: sentimentChartData },
-      ...analytics.assessmentDetails.map((detail) => ({
+    () =>
+      analytics.assessmentDetails.map((detail) => ({
         key: `sent-${detail.id}`,
         label: detail.label,
         data: buildSentimentChartData(detail.sentimentTotals),
       })),
-    ],
-    [sentimentChartData, analytics.assessmentDetails],
+    [analytics.assessmentDetails],
   );
   const keywordTabs = useMemo(
-    () => [
-      { key: "kw-overall", label: "همه پرسشنامه‌ها", data: analytics.keywords },
-      ...analytics.assessmentDetails.map((detail) => ({
+    () =>
+      analytics.assessmentDetails.map((detail) => ({
         key: `kw-${detail.id}`,
         label: detail.label,
         data: detail.keywords,
       })),
-    ],
-    [analytics.keywords, analytics.assessmentDetails],
+    [analytics.assessmentDetails],
   );
   const conversationTabs = useMemo(
-    () => [
-      { key: "conv-overall", label: "همه پرسشنامه‌ها", data: analytics.conversationKeywords },
-      ...analytics.assessmentDetails.map((detail) => ({
+    () =>
+      analytics.assessmentDetails.map((detail) => ({
         key: `conv-${detail.id}`,
         label: detail.label,
         data: detail.conversationKeywords,
       })),
-    ],
-    [analytics.conversationKeywords, analytics.assessmentDetails],
+    [analytics.assessmentDetails],
   );
   const heatmapTabs = useMemo(
-    () => [
-      { key: "heat-overall", label: "همه پرسشنامه‌ها", data: factorHeatmapData },
-      ...analytics.assessmentDetails.map((detail) => ({
+    () =>
+      analytics.assessmentDetails.map((detail) => ({
         key: `heat-${detail.id}`,
         label: detail.label,
         data: buildFactorHeatmapData(detail.factorEntries),
       })),
-    ],
-    [factorHeatmapData, analytics.assessmentDetails],
+    [analytics.assessmentDetails],
   );
   const timelineTabs = useMemo(
-    () => [
-      { key: "timeline-overall", label: "همه پرسشنامه‌ها", data: timelineData, average: timelineAverage },
-      ...analytics.assessmentDetails.map((detail) => {
+    () =>
+      analytics.assessmentDetails.map((detail) => {
         const { data, average } = buildTimelineSeries(detail.progress);
         return { key: `timeline-${detail.id}`, label: detail.label, data, average };
       }),
-    ],
-    [timelineData, timelineAverage, analytics.assessmentDetails],
+    [analytics.assessmentDetails],
   );
   const comparisonSpider = useMemo(() => {
     if (assessmentFactorDetails.length < 2) return null;
@@ -2042,25 +2032,29 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
             <CardDescription className="text-xs text-white/60">ترکیب مهم‌ترین کلیدواژه‌های این شایستگی</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Tabs defaultValue={keywordTabs[0]?.key} className="space-y-3" dir="rtl">
-              <TabsList className="flex flex-wrap gap-2 rounded-2xl bg-white/10 p-2">
+            {keywordTabs.length === 0 ? (
+              noData("هنوز ابر واژگانی برای این پرسشنامه‌ها ثبت نشده است.")
+            ) : (
+              <Tabs defaultValue={keywordTabs[0]?.key} className="space-y-3" dir="rtl">
+                <TabsList className="flex flex-wrap gap-2 rounded-2xl bg-white/10 p-2">
+                  {keywordTabs.map((tab) => (
+                    <TabsTrigger
+                      key={tab.key}
+                      value={tab.key}
+                      className="flex-1 rounded-xl border border-transparent px-2 py-1 text-xs text-white data-[state=active]:border-white/20 data-[state=active]:bg-white/20"
+                      style={{ fontFamily: rtlFontStack }}
+                    >
+                      {tab.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
                 {keywordTabs.map((tab) => (
-                  <TabsTrigger
-                    key={tab.key}
-                    value={tab.key}
-                    className="flex-1 rounded-xl border border-transparent px-2 py-1 text-xs text-white data-[state=active]:border-white/20 data-[state=active]:bg-white/20"
-                    style={{ fontFamily: rtlFontStack }}
-                  >
-                    {tab.label}
-                  </TabsTrigger>
+                  <TabsContent key={tab.key} value={tab.key}>
+                    <KeywordWordCloud data={tab.data} emptyMessage="کلیدواژه‌ای برای این پرسشنامه ثبت نشده است." />
+                  </TabsContent>
                 ))}
-              </TabsList>
-              {keywordTabs.map((tab) => (
-                <TabsContent key={tab.key} value={tab.key}>
-                  <KeywordWordCloud data={tab.data} emptyMessage="کلیدواژه‌ای برای این پرسشنامه ثبت نشده است." />
-                </TabsContent>
-              ))}
-            </Tabs>
+              </Tabs>
+            )}
           </CardContent>
         </Card>
         <Card className="bg-white/5 text-white">
@@ -2069,25 +2063,29 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
             <CardDescription className="text-xs text-white/60">کلمات پرتکرار در کل گفت‌وگوها</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Tabs defaultValue={conversationTabs[0]?.key} className="space-y-3" dir="rtl">
-              <TabsList className="flex flex-wrap gap-2 rounded-2xl bg-white/10 p-2">
+            {conversationTabs.length === 0 ? (
+              noData("برای این شایستگی واژگان مکالمه‌ای در دسترس نیست.")
+            ) : (
+              <Tabs defaultValue={conversationTabs[0]?.key} className="space-y-3" dir="rtl">
+                <TabsList className="flex flex-wrap gap-2 rounded-2xl bg-white/10 p-2">
+                  {conversationTabs.map((tab) => (
+                    <TabsTrigger
+                      key={tab.key}
+                      value={tab.key}
+                      className="flex-1 rounded-xl border border-transparent px-2 py-1 text-xs text-white data-[state=active]:border-white/20 data-[state=active]:bg-white/20"
+                      style={{ fontFamily: rtlFontStack }}
+                    >
+                      {tab.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
                 {conversationTabs.map((tab) => (
-                  <TabsTrigger
-                    key={tab.key}
-                    value={tab.key}
-                    className="flex-1 rounded-xl border border-transparent px-2 py-1 text-xs text-white data-[state=active]:border-white/20 data-[state=active]:bg-white/20"
-                    style={{ fontFamily: rtlFontStack }}
-                  >
-                    {tab.label}
-                  </TabsTrigger>
+                  <TabsContent key={tab.key} value={tab.key}>
+                    <KeywordWordCloud data={tab.data} emptyMessage="واژه‌ای برای این پرسشنامه یافت نشد." />
+                  </TabsContent>
                 ))}
-              </TabsList>
-              {conversationTabs.map((tab) => (
-                <TabsContent key={tab.key} value={tab.key}>
-                  <KeywordWordCloud data={tab.data} emptyMessage="واژه‌ای برای این پرسشنامه یافت نشد." />
-                </TabsContent>
-              ))}
-            </Tabs>
+              </Tabs>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -2099,53 +2097,57 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
             <CardDescription className="text-xs text-white/60">ارزش نسبی هر مولفه در این شایستگی</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Tabs defaultValue={heatmapTabs[0]?.key} className="space-y-3" dir="rtl">
-              <TabsList className="flex flex-wrap gap-2 rounded-2xl bg-white/10 p-2">
+            {heatmapTabs.length === 0 ? (
+              noData("داده‌ای برای فاکتورهای این شایستگی ثبت نشده است.")
+            ) : (
+              <Tabs defaultValue={heatmapTabs[0]?.key} className="space-y-3" dir="rtl">
+                <TabsList className="flex flex-wrap gap-2 rounded-2xl bg-white/10 p-2">
+                  {heatmapTabs.map((tab) => (
+                    <TabsTrigger
+                      key={tab.key}
+                      value={tab.key}
+                      className="flex-1 rounded-xl border border-transparent px-2 py-1 text-xs text-white data-[state=active]:border-white/20 data-[state=active]:bg-white/20"
+                      style={{ fontFamily: rtlFontStack }}
+                    >
+                      {tab.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
                 {heatmapTabs.map((tab) => (
-                  <TabsTrigger
-                    key={tab.key}
-                    value={tab.key}
-                    className="flex-1 rounded-xl border border-transparent px-2 py-1 text-xs text-white data-[state=active]:border-white/20 data-[state=active]:bg-white/20"
-                    style={{ fontFamily: rtlFontStack }}
-                  >
-                    {tab.label}
-                  </TabsTrigger>
+                  <TabsContent key={tab.key} value={tab.key} className="h-[300px]">
+                    {tab.data.length === 0 ? (
+                      noData("فاکتوری برای این پرسشنامه ثبت نشده است.")
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={tab.data} layout="vertical" margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                          <CartesianGrid stroke={chartGridColor} horizontal={false} />
+                          <XAxis type="number" domain={[0, 100]} hide />
+                          <YAxis
+                            dataKey="name"
+                            type="category"
+                            width={160}
+                            tick={{ fill: "#f8fafc", fontSize: 12, fontFamily: rtlFontStack }}
+                            tickFormatter={(value: string) => normalizeBidi(value)}
+                          />
+                          <RechartsTooltip
+                            formatter={(_value: number, name: string, item: any) => [
+                              normalizeBidi(`${item.payload.percent}٪`),
+                              normalizeBidi(name),
+                            ]}
+                            contentStyle={tooltipStyle}
+                          />
+                          <Bar dataKey="percent" radius={[10, 10, 10, 10]}>
+                            {tab.data.map((entry, index) => (
+                              <Cell key={`${entry.name}-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </TabsContent>
                 ))}
-              </TabsList>
-              {heatmapTabs.map((tab) => (
-                <TabsContent key={tab.key} value={tab.key} className="h-[300px]">
-                  {tab.data.length === 0 ? (
-                    noData("فاکتوری برای این پرسشنامه ثبت نشده است.")
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={tab.data} layout="vertical" margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
-                        <CartesianGrid stroke={chartGridColor} horizontal={false} />
-                        <XAxis type="number" domain={[0, 100]} hide />
-                        <YAxis
-                          dataKey="name"
-                          type="category"
-                          width={160}
-                          tick={{ fill: "#f8fafc", fontSize: 12, fontFamily: rtlFontStack }}
-                          tickFormatter={(value: string) => normalizeBidi(value)}
-                        />
-                        <RechartsTooltip
-                          formatter={(_value: number, name: string, item: any) => [
-                            normalizeBidi(`${item.payload.percent}٪`),
-                            normalizeBidi(name),
-                          ]}
-                          contentStyle={tooltipStyle}
-                        />
-                        <Bar dataKey="percent" radius={[10, 10, 10, 10]}>
-                          {tab.data.map((entry, index) => (
-                            <Cell key={`${entry.name}-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
-                </TabsContent>
-              ))}
-            </Tabs>
+              </Tabs>
+            )}
           </CardContent>
         </Card>
         <Card className="bg-white/5 text-white">
@@ -2154,74 +2156,78 @@ const CategoryAnalyticsTab = ({ analytics, score }: { analytics: PreparedCategor
             <CardDescription className="text-xs text-white/60">مقایسه امتیاز هر بخش و میانگین متحرک</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Tabs defaultValue={timelineTabs[0]?.key} className="space-y-3" dir="rtl">
-              <TabsList className="flex flex-wrap gap-2 rounded-2xl bg-white/10 p-2">
+            {timelineTabs.length === 0 ? (
+              noData("برای این شایستگی روند زمانی ثبت نشده است.")
+            ) : (
+              <Tabs defaultValue={timelineTabs[0]?.key} className="space-y-3" dir="rtl">
+                <TabsList className="flex flex-wrap gap-2 rounded-2xl bg-white/10 p-2">
+                  {timelineTabs.map((tab) => (
+                    <TabsTrigger
+                      key={tab.key}
+                      value={tab.key}
+                      className="flex-1 rounded-xl border border-transparent px-2 py-1 text-xs text-white data-[state=active]:border-white/20 data-[state=active]:bg-white/20"
+                      style={{ fontFamily: rtlFontStack }}
+                    >
+                      {tab.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
                 {timelineTabs.map((tab) => (
-                  <TabsTrigger
-                    key={tab.key}
-                    value={tab.key}
-                    className="flex-1 rounded-xl border border-transparent px-2 py-1 text-xs text-white data-[state=active]:border-white/20 data-[state=active]:bg-white/20"
-                    style={{ fontFamily: rtlFontStack }}
-                  >
-                    {tab.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              {timelineTabs.map((tab) => (
-                <TabsContent key={tab.key} value={tab.key} className="h-[300px]">
-                  {tab.data.length === 0 ? (
-                    noData("داده‌ای برای روند زمانی این پرسشنامه وجود ندارد.")
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={tab.data} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
-                        <CartesianGrid stroke={chartGridColor} strokeDasharray="6 6" />
-                        <XAxis
-                          dataKey="iteration"
-                          tick={{ fill: "#e2e8f0", fontSize: 12, fontFamily: rtlFontStack }}
-                          tickFormatter={(value: number) => normalizeBidi(`مرحله ${value}`)}
-                        />
-                        <YAxis tick={{ fill: "#e2e8f0", fontSize: 12, fontFamily: rtlFontStack }} />
-                        <RechartsTooltip
-                          formatter={(value: number, name: string) => [
-                            normalizeBidi(`${value.toFixed(1)} امتیاز`),
-                            normalizeBidi(name || "عملکرد"),
-                          ]}
-                          labelFormatter={(value: number) => normalizeBidi(`مرحله ${value}`)}
-                          contentStyle={tooltipStyle}
-                        />
-                        <Legend
-                          wrapperStyle={{ direction: "rtl" as const }}
-                          formatter={(value) => normalizeBidi(value as string)}
-                        />
-                        {tab.average ? (
-                          <ReferenceLine
-                            y={tab.average}
-                            stroke="#f97316"
-                            strokeDasharray="4 4"
-                            label={{
-                              value: "میانگین",
-                              position: "right",
-                              fill: "#f97316",
-                              fontSize: 11,
-                              fontFamily: rtlFontStack,
-                            }}
+                  <TabsContent key={tab.key} value={tab.key} className="h-[300px]">
+                    {tab.data.length === 0 ? (
+                      noData("داده‌ای برای روند زمانی این پرسشنامه وجود ندارد.")
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={tab.data} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                          <CartesianGrid stroke={chartGridColor} strokeDasharray="6 6" />
+                          <XAxis
+                            dataKey="iteration"
+                            tick={{ fill: "#e2e8f0", fontSize: 12, fontFamily: rtlFontStack }}
+                            tickFormatter={(value: number) => normalizeBidi(`مرحله ${value}`)}
                           />
-                        ) : null}
-                        <Line
-                          type="monotone"
-                          dataKey="performance"
-                          stroke="#38bdf8"
-                          strokeWidth={3}
-                          dot={{ r: 4, stroke: "#fff", strokeWidth: 1.5 }}
-                          name="عملکرد"
-                        />
-                        <Line type="monotone" dataKey="trend" stroke="#c084fc" strokeWidth={2} dot={false} name="میانگین متحرک" />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  )}
-                </TabsContent>
-              ))}
-            </Tabs>
+                          <YAxis tick={{ fill: "#e2e8f0", fontSize: 12, fontFamily: rtlFontStack }} />
+                          <RechartsTooltip
+                            formatter={(value: number, name: string) => [
+                              normalizeBidi(`${value.toFixed(1)} امتیاز`),
+                              normalizeBidi(name || "عملکرد"),
+                            ]}
+                            labelFormatter={(value: number) => normalizeBidi(`مرحله ${value}`)}
+                            contentStyle={tooltipStyle}
+                          />
+                          <Legend
+                            wrapperStyle={{ direction: "rtl" as const }}
+                            formatter={(value) => normalizeBidi(value as string)}
+                          />
+                          {tab.average ? (
+                            <ReferenceLine
+                              y={tab.average}
+                              stroke="#f97316"
+                              strokeDasharray="4 4"
+                              label={{
+                                value: "میانگین",
+                                position: "right",
+                                fill: "#f97316",
+                                fontSize: 11,
+                                fontFamily: rtlFontStack,
+                              }}
+                            />
+                          ) : null}
+                          <Line
+                            type="monotone"
+                            dataKey="performance"
+                            stroke="#38bdf8"
+                            strokeWidth={3}
+                            dot={{ r: 4, stroke: "#fff", strokeWidth: 1.5 }}
+                            name="عملکرد"
+                          />
+                          <Line type="monotone" dataKey="trend" stroke="#c084fc" strokeWidth={2} dot={false} name="میانگین متحرک" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    )}
+                  </TabsContent>
+                ))}
+              </Tabs>
+            )}
           </CardContent>
         </Card>
         <Card className="bg-white/5 text-white">
