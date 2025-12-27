@@ -125,6 +125,16 @@ export const PowerWheel = ({
     return Array.from({ length: rings }, (_, index) => radius * ((index + 1) / rings));
   }, [rings, radius]);
 
+  const axisPolygonPath = useMemo(() => {
+    if (axes.length < 3) return null;
+    const path = axes
+      .map(
+        (entry, idx) => `${idx === 0 ? "M" : "L"}${entry.pointX.toFixed(2)},${entry.pointY.toFixed(2)}`,
+      )
+      .join(" ");
+    return `${path} Z`;
+  }, [axes]);
+
   const handleTooltip = (entry: typeof axes[number], visible: boolean) => {
     if (!visible) {
       setTooltip((prev) => ({ ...prev, visible: false }));
@@ -218,6 +228,16 @@ export const PowerWheel = ({
               );
             })}
           </g>
+
+          {axisPolygonPath ? (
+            <path
+              d={axisPolygonPath}
+              fill="rgba(99,102,241,0.12)"
+              stroke="rgba(255,255,255,0.65)"
+              strokeWidth={1.2}
+              strokeDasharray="6 6"
+            />
+          ) : null}
 
           {showOuterDots ? (
             <g>

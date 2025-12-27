@@ -165,6 +165,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const DEFAULT_CATEGORY_COLOR = "#6366F1";
+const ADDITIONAL_CATEGORY_LABEL = "سایر دسته‌بندی‌ها";
 
 const CATEGORY_SEQUENCE = [
   "شایستگی های رفتاری (بین فردی)",
@@ -172,7 +173,7 @@ const CATEGORY_SEQUENCE = [
   "شایستگی های فردی",
   "شایستگی های رهبری و مدیریت",
   "شایستگی‌های روانشناختی",
-  "سایر دسته‌بندی‌ها",
+  ADDITIONAL_CATEGORY_LABEL,
 ] as const;
 const PRIMARY_CATEGORY_SEQUENCE = CATEGORY_SEQUENCE.slice(0, 5);
 const POWER_WHEEL_GROUP_MAP: Partial<Record<string, PowerWheelGroup>> = {
@@ -1103,13 +1104,21 @@ const AdminFinalReports = () => {
   }, [summaries, searchTerm]);
 
   const spiderData = useMemo(() => {
-    if (!detail?.radar) return [];
-    return detail.radar.map((entry) => ({
-      subject: entry.subject,
-      user: entry.userScore,
-      target: entry.targetScore,
+    const radarEntries =
+      detail?.radar
+        ?.filter((entry) => normalizeCategoryName(entry.subject) !== ADDITIONAL_CATEGORY_LABEL)
+        .map((entry) => ({
+          subject: entry.subject,
+          user: entry.userScore,
+          target: entry.targetScore,
+        })) ?? [];
+    if (radarEntries.length > 0) return radarEntries;
+    return filteredCategoryOverview.map((category) => ({
+      subject: category.label,
+      user: category.normalizedScore,
+      target: 100,
     }));
-  }, [detail]);
+  }, [detail, filteredCategoryOverview]);
 
   const spiderSeries = [
     { key: "user", label: "امتیاز کاربر", color: "#6366f1" },
@@ -1173,9 +1182,14 @@ const AdminFinalReports = () => {
       .sort((a, b) => getCategoryOrder(a.normalizedKey) - getCategoryOrder(b.normalizedKey));
   }, [detail, assessmentsByCategory]);
 
+  const filteredCategoryOverview = useMemo(
+    () => categoryOverview.filter((entry) => entry.normalizedKey !== ADDITIONAL_CATEGORY_LABEL),
+    [categoryOverview],
+  );
+
   const categoryChartData = useMemo(
     () =>
-      categoryOverview.map((entry) => ({
+      filteredCategoryOverview.map((entry) => ({
         name: entry.label,
         score: entry.normalizedScore,
         completed: entry.completedCount,
@@ -1183,12 +1197,12 @@ const AdminFinalReports = () => {
         pending: entry.pendingCount,
         color: entry.color,
       })),
-    [categoryOverview],
+    [filteredCategoryOverview],
   );
 
   const pendingCategorySummary = useMemo(() => {
-    if (categoryOverview.length === 0) return [];
-    return categoryOverview
+    if (filteredCategoryOverview.length === 0) return [];
+    return filteredCategoryOverview
       .filter((entry) => entry.pendingCount > 0)
       .map((entry) => ({
         label: entry.label,
@@ -1197,12 +1211,12 @@ const AdminFinalReports = () => {
         normalizedKey: entry.normalizedKey,
       }))
       .sort((a, b) => getCategoryOrder(a.normalizedKey) - getCategoryOrder(b.normalizedKey));
-  }, [categoryOverview]);
+  }, [filteredCategoryOverview]);
 
   const categoryAnalyticsList = useMemo(() => {
     const used = new Set<string>();
     const ordered: Array<{ key: string; label: string; score: number; analytics: PreparedCategoryAnalytics }> = [];
-    categoryOverview.forEach((entry) => {
+    filteredCategoryOverview.forEach((entry) => {
       const analytics = categoryAnalytics[entry.normalizedKey];
       if (analytics) {
         ordered.push({
@@ -1215,7 +1229,7 @@ const AdminFinalReports = () => {
       }
     });
     Object.values(categoryAnalytics).forEach((analytics) => {
-      if (used.has(analytics.key)) return;
+      if (used.has(analytics.key) || analytics.key === ADDITIONAL_CATEGORY_LABEL) return;
       ordered.push({
         key: analytics.key,
         label: analytics.label,
@@ -1224,18 +1238,24 @@ const AdminFinalReports = () => {
       });
     });
     return ordered;
-  }, [categoryOverview, categoryAnalytics]);
+  }, [filteredCategoryOverview, categoryAnalytics]);
 
   const questionnairePowerWheelAxes = useMemo<PowerWheelAxis[]>(() => {
     if (!detail?.assessments || detail.assessments.length === 0) return [];
-    return detail.assessments.map((assessment, index) => ({
-      key: `assessment-axis-${assessment.assessmentId}-${index}`,
-      label:
-        assessment.questionnaireTitle?.trim() ||
-        `${normalizeCategoryName(assessment.category)} - گفت‌وگو ${index + 1}`,
-      group: mapCategoryToPowerWheelGroup(assessment.category),
-      value: Math.min(Math.max(toNum(assessment.normalizedScore), 0), 100),
-    }));
+    return detail.assessments
+      .map((assessment, index) => {
+        const normalizedCategory = normalizeCategoryName(assessment.category);
+        if (normalizedCategory === ADDITIONAL_CATEGORY_LABEL) return null;
+        return {
+          key: `assessment-axis-${assessment.assessmentId}-${index}`,
+          label:
+            assessment.questionnaireTitle?.trim() ||
+            `${normalizedCategory} - گفت‌وگو ${index + 1}`,
+          group: mapCategoryToPowerWheelGroup(assessment.category),
+          value: Math.min(Math.max(toNum(assessment.normalizedScore), 0), 100),
+        };
+      })
+      .filter((axis): axis is PowerWheelAxis => Boolean(axis));
   }, [detail?.assessments]);
 
   const heatmapColorForScore = useCallback((score: number) => {
