@@ -312,27 +312,25 @@ const ResultsModal = ({ isOpen, onClose, assessmentId }: ResultsModalProps) => {
                         </div>
                     </div>
                     <div className="space-y-4">
-                         <h3 className="text-lg font-semibold text-hrbooteh-text-primary">تحلیل نهایی عملکرد</h3>
-                         <div className="prose prose-sm dark:prose-invert max-w-none p-4 bg-hrbooteh-surface-elevated rounded-md border">
-                            <ReactMarkdown>
-                                {analysis.report}
-                            </ReactMarkdown>
-                         </div>
-                         {phaseSummaries.length > 0 && (
-                             <div className="space-y-3 rounded-xl border border-hrbooteh-surface-elevated bg-hrbooteh-surface p-4">
-                                 <p className="text-sm font-semibold text-hrbooteh-text-primary">تحلیل هر پرسشنامه</p>
-                                 <div className="space-y-3">
-                                     {phaseSummaries.map((summary) => (
-                                         <div key={summary.id} className="rounded-lg border border-hrbooteh-surface-elevated/70 bg-hrbooteh-surface-elevated p-3">
-                                             <p className="text-xs font-semibold text-hrbooteh-text-secondary">{summary.title}</p>
-                                             <div className="prose prose-sm dark:prose-invert max-w-none text-hrbooteh-text-secondary">
-                                                 <ReactMarkdown>{summary.report}</ReactMarkdown>
-                                             </div>
-                                         </div>
-                                     ))}
-                                 </div>
-                             </div>
-                         )}
+                        {phaseSummaries.length > 0 ? (
+                            <div className="space-y-3 rounded-xl border border-hrbooteh-surface-elevated bg-hrbooteh-surface p-4">
+                                <p className="text-base font-semibold text-hrbooteh-text-primary">تحلیل هر پرسشنامه</p>
+                                <div className="space-y-3">
+                                    {phaseSummaries.slice(0, 2).map((summary) => (
+                                        <div key={summary.id} className="rounded-lg border border-hrbooteh-surface-elevated/70 bg-hrbooteh-surface-elevated p-3">
+                                            <p className="text-xs font-semibold text-hrbooteh-text-secondary">{summary.title}</p>
+                                            <div className="prose prose-sm dark:prose-invert max-w-none text-hrbooteh-text-secondary">
+                                                <ReactMarkdown>{summary.report}</ReactMarkdown>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="rounded-xl border border-dashed border-hrbooteh-surface-elevated bg-hrbooteh-surface/60 p-4 text-center text-sm text-hrbooteh-text-secondary">
+                                تحلیلی برای پرسشنامه‌ها در دسترس نیست.
+                            </div>
+                        )}
                     </div>
                 </div>
             );
