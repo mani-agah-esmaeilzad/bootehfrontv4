@@ -195,7 +195,11 @@ const ResultsModal = ({ isOpen, onClose, assessmentId }: ResultsModalProps) => {
                         // *** FINAL FIX APPLIED HERE: No more JSON.parse needed ***
                         // We now directly access the final_analysis object.
                         if (resultData.results && typeof resultData.results.final_analysis === 'object') {
-                            setAnalysis(resultData.results.final_analysis);
+                            const sanitizedAnalysis: FinalAnalysis = {
+                                ...resultData.results.final_analysis,
+                                report: "",
+                            };
+                            setAnalysis(sanitizedAnalysis);
                         } else {
                             // This error will be thrown if the backend response structure is wrong
                             throw new Error("ساختار گزارش نهایی دریافت شده از سرور نامعتبر است.");
