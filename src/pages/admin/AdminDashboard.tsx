@@ -1,12 +1,14 @@
 // src/pages/admin/AdminDashboard.tsx
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   BarChart2,
   Building,
+  Download,
   FileText,
+  LoaderCircle,
   Sparkles,
   Users,
   SlidersHorizontal,
@@ -17,6 +19,8 @@ import {
   Waves,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { downloadAssessmentChatLog } from "@/services/apiService";
 
 const quickStats = [
   { label: "کاربران فعال", value: "۲,۴۵۰", delta: "+۱۲٪ نسبت به هفته قبل" },
@@ -130,6 +134,7 @@ const formatNumber = (value: number) => new Intl.NumberFormat("fa-IR").format(va
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const [isDownloadingLog, setIsDownloadingLog] = useState(false);
 
   const heroHighlights = useMemo(
     () => [
@@ -152,6 +157,19 @@ const AdminDashboard = () => {
       degradedNames,
     };
   }, [aiServices]);
+
+  const handleDownloadLog = async () => {
+    if (isDownloadingLog) return;
+    setIsDownloadingLog(true);
+    try {
+      await downloadAssessmentChatLog();
+      toast.success("فایل لاگ با موفقیت دانلود شد.");
+    } catch (error: any) {
+      toast.error(error?.message || "خطا در دانلود فایل لاگ");
+    } finally {
+      setIsDownloadingLog(false);
+    }
+  };
 
   return (
     <div className="admin-page">
@@ -206,6 +224,32 @@ const AdminDashboard = () => {
             <p className="mt-2 text-xs text-emerald-600">{stat.delta}</p>
           </div>
         ))}
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-3xl border border-white/10 bg-white/85 p-6 shadow-lg shadow-indigo-500/5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+                <Download className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-base font-bold text-slate-900">لاگ خروجی LLM</p>
+                <p className="text-xs text-slate-500">
+                  دریافت آخرین نسخه فایل متنی خروجی‌های نهایی هوش مصنوعی برای کاربران.
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={handleDownloadLog}
+              disabled={isDownloadingLog}
+              className="rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-500 px-5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 hover:opacity-90"
+            >
+              {isDownloadingLog ? <LoaderCircle className="ml-2 h-4 w-4 animate-spin" /> : null}
+              دانلود فایل txt
+            </Button>
+          </div>
+        </div>
       </section>
 
       <section className="grid gap-6 lg:grid-cols-3">

@@ -164,6 +164,28 @@ export const exportGroupResults = async (userIds: number[]) => {
     window.URL.revokeObjectURL(url);
 };
 
+export const downloadAssessmentChatLog = async () => {
+    const token = getToken('admin/assessment');
+    const headers: Record<string, string> = {};
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    const response = await fetch(`${API_BASE_URL}/admin/assessment/llm-log`, { headers });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'خطا در دریافت فایل لاگ');
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'assessment-llm-log.txt';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+};
+
 // --- تابع جدید برای جزئیات کاربر ---
 
 /**
