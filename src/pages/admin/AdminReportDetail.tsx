@@ -3,7 +3,7 @@
 "use client";
 import { useEffect, useState, useRef, ReactNode, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import apiFetch from "@/services/apiService";
+import apiFetch, { downloadReportChartsLog } from "@/services/apiService";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -1052,6 +1052,7 @@ const AdminReportDetail = () => {
   const [report, setReport] = useState<ReportDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingLog, setIsDownloadingLog] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pdfPrintRef = useRef<HTMLDivElement>(null);
 
@@ -1142,6 +1143,19 @@ const AdminReportDetail = () => {
       console.error(e);
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleDownloadChartsLog = async () => {
+    if (!report || isDownloadingLog) return;
+    setIsDownloadingLog(true);
+    try {
+      await downloadReportChartsLog(report.id, report.username);
+      toast.success("فایل لاگ نمودارها دانلود شد.");
+    } catch (e: any) {
+      toast.error(e?.message || "خطا در دانلود فایل لاگ نمودارها.");
+    } finally {
+      setIsDownloadingLog(false);
     }
   };
 
@@ -1465,6 +1479,14 @@ const AdminReportDetail = () => {
           <Button onClick={() => navigate("/admin/reports")} variant="outline" className="flex-row-reverse gap-2">
             بازگشت
             <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+          <Button onClick={handleDownloadChartsLog} disabled={isDownloadingLog} variant="outline" className="flex-row-reverse gap-2">
+            {isDownloadingLog ? (
+              <LoaderCircle className="ml-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="ml-2 h-4 w-4" />
+            )}
+            دانلود لاگ نمودارها
           </Button>
           <Button onClick={handleDownloadPDF} disabled={isDownloading} className="flex-row-reverse gap-2">
             {isDownloading ? (

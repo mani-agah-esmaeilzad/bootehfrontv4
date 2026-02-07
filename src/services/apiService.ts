@@ -274,6 +274,32 @@ export const downloadReportsChartsLog = async () => {
     window.URL.revokeObjectURL(url);
 };
 
+export const downloadReportChartsLog = async (assessmentId: number, username?: string | null) => {
+    const token = getToken('admin/reports');
+    const headers: Record<string, string> = {};
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    const response = await fetch(`${API_BASE_URL}/admin/reports/${assessmentId}/charts-log`, { headers });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'خطا در دریافت فایل لاگ');
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const safeUsername = username ? String(username).replace(/[^\w-]+/g, "") : null;
+    const fileName = safeUsername
+        ? `report-charts-${assessmentId}-${safeUsername}.txt`
+        : `report-charts-${assessmentId}.txt`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+};
+
 // --- بلاگ ---
 
 export type BlogPostPayload = {
