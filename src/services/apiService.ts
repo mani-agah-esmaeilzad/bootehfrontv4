@@ -252,6 +252,28 @@ export const adminGetPersonalityResults = async () =>
 export const adminGetReportsOverview = async () =>
     await apiFetch('admin/reports-overview');
 
+export const downloadReportsChartsLog = async () => {
+    const token = getToken('admin/reports');
+    const headers: Record<string, string> = {};
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    const response = await fetch(`${API_BASE_URL}/admin/reports/charts-log`, { headers });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'خطا در دریافت فایل لاگ');
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'reports-charts-output.txt';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+};
+
 // --- بلاگ ---
 
 export type BlogPostPayload = {

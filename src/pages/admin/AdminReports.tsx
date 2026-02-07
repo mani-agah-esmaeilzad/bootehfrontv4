@@ -21,8 +21,8 @@ import {
     Cell,
 } from "recharts";
 import { toast } from "sonner";
-import { ArrowLeft, BarChart as BarChartIcon, LoaderCircle, RefreshCw, Search, Trash2 } from "lucide-react";
-import apiFetch, { adminGetReportsOverview } from "@/services/apiService";
+import { ArrowLeft, BarChart as BarChartIcon, Download, LoaderCircle, RefreshCw, Search, Trash2 } from "lucide-react";
+import apiFetch, { adminGetReportsOverview, downloadReportsChartsLog } from "@/services/apiService";
 import { ComparisonSpiderChart } from "@/components/ui/ComparisonSpiderChart";
 import { normalizeBidi } from "@/lib/bidi";
 
@@ -351,6 +351,7 @@ const AdminReports = () => {
     const [compareDetails, setCompareDetails] = useState<Record<number, ComparisonDetail>>({});
     const [compareLoadingId, setCompareLoadingId] = useState<number | null>(null);
     const [compareError, setCompareError] = useState<string | null>(null);
+    const [isDownloadingLog, setIsDownloadingLog] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -381,6 +382,19 @@ const AdminReports = () => {
         } finally {
             setIsLoading(false);
             setIsOverviewLoading(false);
+        }
+    };
+
+    const handleDownloadChartsLog = async () => {
+        if (isDownloadingLog) return;
+        setIsDownloadingLog(true);
+        try {
+            await downloadReportsChartsLog();
+            toast.success("فایل لاگ نمودارها با موفقیت دانلود شد.");
+        } catch (error: any) {
+            toast.error(error?.message || "خطا در دانلود فایل لاگ نمودارها");
+        } finally {
+            setIsDownloadingLog(false);
         }
     };
 
@@ -636,6 +650,14 @@ const AdminReports = () => {
                 <div className="flex flex-wrap items-center gap-3">
                     <Button variant="outline" onClick={() => navigate('/admin/dashboard')}>
                         <ArrowLeft className="ml-2 h-4 w-4" /> بازگشت به داشبورد
+                    </Button>
+                    <Button variant="outline" onClick={handleDownloadChartsLog} disabled={isDownloadingLog}>
+                        {isDownloadingLog ? (
+                            <LoaderCircle className="ml-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Download className="ml-2 h-4 w-4" />
+                        )}
+                        دانلود لاگ نمودارها
                     </Button>
                     <Button variant="secondary" onClick={loadData} disabled={isLoading || isOverviewLoading}>
                         {(isLoading || isOverviewLoading) ? (
